@@ -42,6 +42,7 @@ test("keys(), values(), and Symbol.iterator are equivalent", () => {
   expect([...set]).toEqual(words);
   expect(iteratorToArray(set.keys())).toEqual(words);
   expect(iteratorToArray(set.values())).toEqual(words);
+  expect(set.values()).toEqual(set.keys());
 });
 
 test("entries() returns [string, string] doubled values", () => {
