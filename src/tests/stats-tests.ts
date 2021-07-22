@@ -8,13 +8,21 @@ beforeEach(() => {
   set = new TernaryStringSet();
 });
 
-test("Stats for base cases", () => {
+test("stats for base cases", () => {
   expect(set.stats).toEqual({
     depth: 0,
     nodes: 0,
     size: 0,
     surrogates: 0,
   });
+  set.add("");
+  expect(set.stats).toEqual({
+    depth: 0,
+    nodes: 0,
+    size: 1,
+    surrogates: 0,
+  });
+  set.clear();  
   set.add("a");
   expect(set.stats).toEqual({
     depth: 1,
@@ -24,7 +32,7 @@ test("Stats for base cases", () => {
   });
 });
 
-test("String count matches size", () => {
+test("string count matches size", () => {
   expect(set.stats.size).toBe(set.size);
 
   set.add("");
@@ -43,7 +51,7 @@ test("String count matches size", () => {
   expect(set.stats.size).toBe(set.size);
 });
 
-test("Balancing reduces depth", () => {
+test("balancing reduces depth", () => {
   words.forEach((s) => set.add(s));
   const bad = set.stats;
   set.clear();
@@ -53,7 +61,7 @@ test("Balancing reduces depth", () => {
   expect(good.depth).toBeLessThan(bad.depth);
 });
 
-test("Surrogate pair detection", () => {
+test("surrogate pair detection", () => {
   set.addAll(["kitten", "linear\ud800\udc00B", "😀"]);
   const stats = set.stats;
   expect(stats.surrogates).toBe(2);
