@@ -70,6 +70,7 @@ test("basic partial matches test", () => {
   const elements = ["a", "aa", "aaa", "aab", "aaaa", "aaaaa", "aaaab", "aaaac"];
   tree.addAll(elements);
   expect(tree.getPartialMatchesOf("?", "?")).toEqual(["a"]);
+  expect(tree.getPartialMatchesOf("")).toEqual([]);
   expect(tree.getPartialMatchesOf("a.")).toEqual(["aa"]);
   expect(tree.getPartialMatchesOf("a..")).toEqual(["aaa", "aab"]);
   expect(tree.getPartialMatchesOf("aa.")).toEqual(["aaa", "aab"]);
@@ -161,7 +162,7 @@ test("Hamming dist 0 is exact match", () => {
   expect(tree.getWithinHammingDistanceOf("zzz", 0)).toEqual([]);
 });
 
-test("Hamming dist n is matches all strings of pattern match", () => {
+test("Hamming dist >= n matches all strings with pattern's length", () => {
   tree.addAll(["a", "aa", "aaa", "aaaa", "aac", "abc", "xyz"]);
   expect(tree.getWithinHammingDistanceOf("abc", 3)).toEqual([
     "aaa",
@@ -199,4 +200,12 @@ test("Hamming dist for cats", () => {
   expect(tree.getWithinHammingDistanceOf("cat", 3)).toEqual(
     words.filter((s) => s.length == 3),
   );
+});
+
+test("Hamming dist empty string handling", () => {
+  tree.addAll(["", "a", "b"]);
+  expect(tree.getWithinHammingDistanceOf("", 0)).toEqual([""]);
+  expect(tree.getWithinHammingDistanceOf("", 1)).toEqual([""]);
+  tree.delete("");
+  expect(tree.getWithinHammingDistanceOf("", 0)).toEqual([]);
 });

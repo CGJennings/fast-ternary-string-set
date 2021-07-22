@@ -390,8 +390,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     distance = Math.max(0, Math.floor(Number(distance)));
     if (distance !== distance) throw new TypeError("distance must be a number");
 
-    // only the string itself is within distance 0
-    if (distance < 1) {
+    // only the string itself is within distance 0 or matches empty pattern
+    if (distance < 1 || pattern.length === 0) {
       return this.has(pattern) ? [pattern] : [];
     }
 
