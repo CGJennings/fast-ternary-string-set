@@ -11,10 +11,10 @@ A fast string set based on ternary search trees. Features:
  - All matching, including approximate matching, is based on full code points and not char codes.
  - Balances search time and memory consumption: stored strings share tree nodes and do not require a reference to the original strings.
  - The tree structure is encoded in a form that is friendly to common JS engine optimizations.
- - Elements are stored by Unicode code point; any valid Unicode string can be added to a`TernaryStringSet`.
- - Sets can be serialized to a compact binary format (an `ArrayBuffer`).
- - Written in TypeScript with full documentation, targeting modern JavaScript engines.
- - Backed by an extensive test suite.
+ - Elements are stored by Unicode code point; any valid Unicode string can be added to a set.
+ - Sets can be serialized to a compact binary format (as an `ArrayBuffer`).
+ - Written in fully documented TypeScript, targeting modern JavaScript engines.
+ - Backed by extensive test suites.
  - No other dependencies.
 
 ## Installation
@@ -48,35 +48,65 @@ Create a new string set and add some strings:
 ```js
 const set = new TernaryStringSet();
 set.add("dog").add("cat").add("eagle");
-console.log(set.has("cat"));
+set.has("cat");
 // => true
 set.delete("cat");
-console.log(set.has("cat"));
+// => true since "cat" was in the set
+set.has("cat");
 // => false
-console.log(set.has(123.456));
+set.has(123.456);
 // => false (any non-string returns false)
 ```
 
 Add an entire array of string elements:
 
 ```js
-const stringArray = ["aardvark", "beaver", "cat", "dog", "eagle", /* ..., */ "zebra"];
+const stringArray = [
+    "aardvark", "beaver", "cat",
+    "dog", "eagle", /* ..., */ "zebra"
+];
 set.addAll(stringArray);
 ```
 
 Iterate over all elements in sorted order:
 
 ```js
-for(let el of set) {
+for (const el of set) {
     console.log(el);
 }
+// or equivalently:
+set.forEach((el) => console.log(el));
 ```
 
 Find all elements that can be made from the letters of "taco":
 
 ```js
-console.log(set.getArrangementsOf("taco"));
-// => ["act", "cat", "taco"] (for example)
+set.getArrangementsOf("taco");
+// => ["act", "cat", "coat", "taco"] (for example)
+```
+
+Find all elements within Hamming distance 1 of "cat":
+
+```js
+set.getWithinHammingDistanceOf("cat", 1);
+// => ["bat", "can", "cap", "cat", "cot", "sat"] (for example)
+```
+
+Find all elements that match "b.t":
+
+```js
+set.getPartialMatchesOf("b.t");
+// => ["bat", "bet", "bit", "bot", "but"] (for example)
+```
+
+Serialize to or from a binary blob:
+
+```js
+// write a set to an ArrayBuffer
+const buff = set.toBuffer();
+
+// create a new set from a previously saved ArrayBuffer
+const set = TernaryStringSet.fromBuffer(buff);
 ```
 
 ## Differences from standard JS `Set`
