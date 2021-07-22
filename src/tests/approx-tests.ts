@@ -67,7 +67,8 @@ test("arrangements include empty string if present", () => {
 });
 
 test("basic partial matches test", () => {
-  tree.addAll(["a", "aa", "aaa", "aab", "aaaa", "aaaaa", "aaaab", "aaaac"]);
+  const elements = ["a", "aa", "aaa", "aab", "aaaa", "aaaaa", "aaaab", "aaaac"];
+  tree.addAll(elements);
   expect(tree.getPartialMatchesOf("?", "?")).toEqual(["a"]);
   expect(tree.getPartialMatchesOf("a.")).toEqual(["aa"]);
   expect(tree.getPartialMatchesOf("a..")).toEqual(["aaa", "aab"]);
@@ -88,6 +89,11 @@ test("basic partial matches test", () => {
     "aaaab",
     "aaaac",
   ]);
+  // strings with no don't care can only match their exact string
+  for(const el of elements) {
+    expect(tree.getPartialMatchesOf(el)).toEqual([el]);
+  }
+  expect(tree.getPartialMatchesOf("Z")).toEqual([]);
 });
 
 test("partial matches against real word list", () => {
