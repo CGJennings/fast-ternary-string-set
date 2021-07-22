@@ -22,7 +22,7 @@ test("stats for base cases", () => {
     size: 1,
     surrogates: 0,
   });
-  set.clear();  
+  set.clear();
   set.add("a");
   expect(set.stats).toEqual({
     depth: 1,

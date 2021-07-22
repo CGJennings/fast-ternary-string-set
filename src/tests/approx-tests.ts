@@ -80,18 +80,10 @@ test("basic partial matches test", () => {
   expect(set.getPartialMatchesOf("..a")).toEqual(["aaa"]);
   expect(set.getPartialMatchesOf("..b")).toEqual(["aab"]);
   expect(set.getPartialMatchesOf(".a.")).toEqual(["aaa", "aab"]);
-  expect(set.getPartialMatchesOf(".....")).toEqual([
-    "aaaaa",
-    "aaaab",
-    "aaaac",
-  ]);
-  expect(set.getPartialMatchesOf("aaaa.")).toEqual([
-    "aaaaa",
-    "aaaab",
-    "aaaac",
-  ]);
+  expect(set.getPartialMatchesOf(".....")).toEqual(["aaaaa", "aaaab", "aaaac"]);
+  expect(set.getPartialMatchesOf("aaaa.")).toEqual(["aaaaa", "aaaab", "aaaac"]);
   // strings with no don't care can only match their exact string
-  for(const el of elements) {
+  for (const el of elements) {
     expect(set.getPartialMatchesOf(el)).toEqual([el]);
   }
   expect(set.getPartialMatchesOf("Z")).toEqual([]);
