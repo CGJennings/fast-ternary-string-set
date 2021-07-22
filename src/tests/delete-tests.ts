@@ -8,6 +8,15 @@ beforeEach(() => {
     tree = new TernaryStringSet();
 });
 
+test("Add/delete empty string", () => {
+    tree.add("").add("horse");
+    expect(tree.size).toBe(2);
+    expect(tree.has("")).toBe(true);
+    tree.delete("");
+    expect(tree.size).toBe(1);
+    expect(tree.has("")).toBe(false);
+});
+
 test("Delete non-member", () => {
     expect(tree.size).toBe(0);
     tree.add("dog");
