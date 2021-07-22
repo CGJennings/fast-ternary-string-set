@@ -1,15 +1,15 @@
 import { TernaryStringSet } from "../index";
 import { load } from "./word-list-loader";
 
-let tree: TernaryStringSet;
+let set: TernaryStringSet;
 const words = load("short-english");
 
 beforeEach(() => {
-  tree = new TernaryStringSet();
+  set = new TernaryStringSet();
 });
 
 test("arrangements do not allow reuse or use of characters not present", () => {
-  tree.addAll([
+  set.addAll([
     "apple",
     "bag",
     "ice",
@@ -23,7 +23,7 @@ test("arrangements do not allow reuse or use of characters not present", () => {
     "rice",
     "spice",
   ]);
-  expect(tree.getArrangementsOf("nicer")).toEqual([
+  expect(set.getArrangementsOf("nicer")).toEqual([
     "ice",
     "ire",
     "nice",
@@ -33,7 +33,7 @@ test("arrangements do not allow reuse or use of characters not present", () => {
 });
 
 test("arrangements allow use of characters as many times as they are specified", () => {
-  tree.addAll([
+  set.addAll([
     "aah",
     "aardvark",
     "bar",
@@ -44,64 +44,64 @@ test("arrangements allow use of characters as many times as they are specified",
     "aaa",
     "baa",
   ]);
-  expect(tree.getArrangementsOf("ardvark")).toEqual(["a", "aa", "dark"]);
-  expect(tree.getArrangementsOf("aardvark")).toEqual([
+  expect(set.getArrangementsOf("ardvark")).toEqual(["a", "aa", "dark"]);
+  expect(set.getArrangementsOf("aardvark")).toEqual([
     "a",
     "aa",
     "aaa",
     "aardvark",
     "dark",
   ]);
-  expect(tree.getArrangementsOf("")).toEqual([]);
-  expect(tree.getArrangementsOf("a")).toEqual(["a"]);
-  expect(tree.getArrangementsOf("aa")).toEqual(["a", "aa"]);
-  expect(tree.getArrangementsOf("aaa")).toEqual(["a", "aa", "aaa"]);
-  expect(tree.getArrangementsOf("aaaa")).toEqual(["a", "aa", "aaa"]);
+  expect(set.getArrangementsOf("")).toEqual([]);
+  expect(set.getArrangementsOf("a")).toEqual(["a"]);
+  expect(set.getArrangementsOf("aa")).toEqual(["a", "aa"]);
+  expect(set.getArrangementsOf("aaa")).toEqual(["a", "aa", "aaa"]);
+  expect(set.getArrangementsOf("aaaa")).toEqual(["a", "aa", "aaa"]);
 });
 
 test("arrangements include empty string if present", () => {
-  tree.addAll(["a", "b", "c"]);
-  expect(tree.getArrangementsOf("")).toEqual([]);
-  tree.add("");
-  expect(tree.getArrangementsOf("")).toEqual([""]);
+  set.addAll(["a", "b", "c"]);
+  expect(set.getArrangementsOf("")).toEqual([]);
+  set.add("");
+  expect(set.getArrangementsOf("")).toEqual([""]);
 });
 
 test("basic partial matches test", () => {
   const elements = ["a", "aa", "aaa", "aab", "aaaa", "aaaaa", "aaaab", "aaaac"];
-  tree.addAll(elements);
-  expect(tree.getPartialMatchesOf("?", "?")).toEqual(["a"]);
-  expect(tree.getPartialMatchesOf("")).toEqual([]);
-  expect(tree.getPartialMatchesOf("a.")).toEqual(["aa"]);
-  expect(tree.getPartialMatchesOf("a..")).toEqual(["aaa", "aab"]);
-  expect(tree.getPartialMatchesOf("aa.")).toEqual(["aaa", "aab"]);
-  expect(tree.getPartialMatchesOf("...")).toEqual(["aaa", "aab"]);
-  expect(tree.getPartialMatchesOf(".aa")).toEqual(["aaa"]);
-  expect(tree.getPartialMatchesOf(".ab")).toEqual(["aab"]);
-  expect(tree.getPartialMatchesOf("..a")).toEqual(["aaa"]);
-  expect(tree.getPartialMatchesOf("..b")).toEqual(["aab"]);
-  expect(tree.getPartialMatchesOf(".a.")).toEqual(["aaa", "aab"]);
-  expect(tree.getPartialMatchesOf(".....")).toEqual([
+  set.addAll(elements);
+  expect(set.getPartialMatchesOf("?", "?")).toEqual(["a"]);
+  expect(set.getPartialMatchesOf("")).toEqual([]);
+  expect(set.getPartialMatchesOf("a.")).toEqual(["aa"]);
+  expect(set.getPartialMatchesOf("a..")).toEqual(["aaa", "aab"]);
+  expect(set.getPartialMatchesOf("aa.")).toEqual(["aaa", "aab"]);
+  expect(set.getPartialMatchesOf("...")).toEqual(["aaa", "aab"]);
+  expect(set.getPartialMatchesOf(".aa")).toEqual(["aaa"]);
+  expect(set.getPartialMatchesOf(".ab")).toEqual(["aab"]);
+  expect(set.getPartialMatchesOf("..a")).toEqual(["aaa"]);
+  expect(set.getPartialMatchesOf("..b")).toEqual(["aab"]);
+  expect(set.getPartialMatchesOf(".a.")).toEqual(["aaa", "aab"]);
+  expect(set.getPartialMatchesOf(".....")).toEqual([
     "aaaaa",
     "aaaab",
     "aaaac",
   ]);
-  expect(tree.getPartialMatchesOf("aaaa.")).toEqual([
+  expect(set.getPartialMatchesOf("aaaa.")).toEqual([
     "aaaaa",
     "aaaab",
     "aaaac",
   ]);
   // strings with no don't care can only match their exact string
   for(const el of elements) {
-    expect(tree.getPartialMatchesOf(el)).toEqual([el]);
+    expect(set.getPartialMatchesOf(el)).toEqual([el]);
   }
-  expect(tree.getPartialMatchesOf("Z")).toEqual([]);
+  expect(set.getPartialMatchesOf("Z")).toEqual([]);
 });
 
 test("partial matches against real word list", () => {
-  tree.addAll(words);
-  expect(tree.getPartialMatchesOf(".")).toEqual(["I", "a"]);
-  expect(tree.getPartialMatchesOf(".e.n")).toEqual(["bean", "mean"]);
-  expect(tree.getPartialMatchesOf("........e")).toEqual([
+  set.addAll(words);
+  expect(set.getPartialMatchesOf(".")).toEqual(["I", "a"]);
+  expect(set.getPartialMatchesOf(".e.n")).toEqual(["bean", "mean"]);
+  expect(set.getPartialMatchesOf("........e")).toEqual([
     "chocolate",
     "expensive",
     "furniture",
@@ -113,10 +113,10 @@ test("partial matches against real word list", () => {
     "vegetable",
     "xylophone",
   ]);
-  expect(tree.getPartialMatchesOf("j...")).toEqual(["join", "jump", "just"]);
-  expect(tree.getPartialMatchesOf(".u..e")).toEqual(["juice", "quite"]);
-  expect(tree.getPartialMatchesOf("public")).toEqual(["public"]);
-  expect(tree.getPartialMatchesOf(".a.")).toEqual([
+  expect(set.getPartialMatchesOf("j...")).toEqual(["join", "jump", "just"]);
+  expect(set.getPartialMatchesOf(".u..e")).toEqual(["juice", "quite"]);
+  expect(set.getPartialMatchesOf("public")).toEqual(["public"]);
+  expect(set.getPartialMatchesOf(".a.")).toEqual([
     "bad",
     "bag",
     "can",
@@ -138,7 +138,7 @@ test("partial matches against real word list", () => {
     "was",
     "way",
   ]);
-  expect(tree.getPartialMatchesOf("...........")).toEqual([
+  expect(set.getPartialMatchesOf("...........")).toEqual([
     "comfortable",
     "examination",
     "grandfather",
@@ -147,30 +147,30 @@ test("partial matches against real word list", () => {
 });
 
 test("partial matches empty string handling", () => {
-  tree.addAll(["", "a", "b"]);
-  expect(tree.getPartialMatchesOf("")).toEqual([""]);
-  expect(tree.getPartialMatchesOf(".")).toEqual(["a", "b"]);
-  expect(tree.getPartialMatchesOf("a")).toEqual(["a"]);
-  expect(tree.getPartialMatchesOf("b")).toEqual(["b"]);
+  set.addAll(["", "a", "b"]);
+  expect(set.getPartialMatchesOf("")).toEqual([""]);
+  expect(set.getPartialMatchesOf(".")).toEqual(["a", "b"]);
+  expect(set.getPartialMatchesOf("a")).toEqual(["a"]);
+  expect(set.getPartialMatchesOf("b")).toEqual(["b"]);
 });
 
 test("Hamming dist 0 is exact match", () => {
-  tree.addAll(["a", "aa", "aaa", "aaaa", "aac", "abc", "xyz"]);
-  expect(tree.getWithinHammingDistanceOf("abc", 0)).toEqual(["abc"]);
-  expect(tree.getWithinHammingDistanceOf("abz", 0)).toEqual([]);
-  expect(tree.getWithinHammingDistanceOf("azz", 0)).toEqual([]);
-  expect(tree.getWithinHammingDistanceOf("zzz", 0)).toEqual([]);
+  set.addAll(["a", "aa", "aaa", "aaaa", "aac", "abc", "xyz"]);
+  expect(set.getWithinHammingDistanceOf("abc", 0)).toEqual(["abc"]);
+  expect(set.getWithinHammingDistanceOf("abz", 0)).toEqual([]);
+  expect(set.getWithinHammingDistanceOf("azz", 0)).toEqual([]);
+  expect(set.getWithinHammingDistanceOf("zzz", 0)).toEqual([]);
 });
 
 test("Hamming dist >= n matches all strings with pattern's length", () => {
-  tree.addAll(["a", "aa", "aaa", "aaaa", "aac", "abc", "xyz"]);
-  expect(tree.getWithinHammingDistanceOf("abc", 3)).toEqual([
+  set.addAll(["a", "aa", "aaa", "aaaa", "aac", "abc", "xyz"]);
+  expect(set.getWithinHammingDistanceOf("abc", 3)).toEqual([
     "aaa",
     "aac",
     "abc",
     "xyz",
   ]);
-  expect(tree.getWithinHammingDistanceOf("abc", 4)).toEqual([
+  expect(set.getWithinHammingDistanceOf("abc", 4)).toEqual([
     "aaa",
     "aac",
     "abc",
@@ -179,9 +179,9 @@ test("Hamming dist >= n matches all strings with pattern's length", () => {
 });
 
 test("Hamming dist 1..n-1 matches strings <= dist", () => {
-  tree.addAll(["a", "aa", "aaa", "aaaa", "aac", "abc", "xyz"]);
-  expect(tree.getWithinHammingDistanceOf("abc", 1)).toEqual(["aac", "abc"]);
-  expect(tree.getWithinHammingDistanceOf("abc", 2)).toEqual([
+  set.addAll(["a", "aa", "aaa", "aaaa", "aac", "abc", "xyz"]);
+  expect(set.getWithinHammingDistanceOf("abc", 1)).toEqual(["aac", "abc"]);
+  expect(set.getWithinHammingDistanceOf("abc", 2)).toEqual([
     "aaa",
     "aac",
     "abc",
@@ -189,23 +189,23 @@ test("Hamming dist 1..n-1 matches strings <= dist", () => {
 });
 
 test("Hamming dist for cats", () => {
-  tree.addAll(words);
-  expect(tree.getWithinHammingDistanceOf("cat", 0)).toEqual(["cat"]);
-  expect(tree.getWithinHammingDistanceOf("cat", 1)).toEqual(
+  set.addAll(words);
+  expect(set.getWithinHammingDistanceOf("cat", 0)).toEqual(["cat"]);
+  expect(set.getWithinHammingDistanceOf("cat", 1)).toEqual(
     words.filter((s) => /^.at$/.test(s) || /^c.t$/.test(s) || /^ca.$/.test(s)),
   );
-  expect(tree.getWithinHammingDistanceOf("cat", 2)).toEqual(
+  expect(set.getWithinHammingDistanceOf("cat", 2)).toEqual(
     words.filter((s) => /^..t$/.test(s) || /^c..$/.test(s) || /^.a.$/.test(s)),
   );
-  expect(tree.getWithinHammingDistanceOf("cat", 3)).toEqual(
+  expect(set.getWithinHammingDistanceOf("cat", 3)).toEqual(
     words.filter((s) => s.length == 3),
   );
 });
 
 test("Hamming dist empty string handling", () => {
-  tree.addAll(["", "a", "b"]);
-  expect(tree.getWithinHammingDistanceOf("", 0)).toEqual([""]);
-  expect(tree.getWithinHammingDistanceOf("", 1)).toEqual([""]);
-  tree.delete("");
-  expect(tree.getWithinHammingDistanceOf("", 0)).toEqual([]);
+  set.addAll(["", "a", "b"]);
+  expect(set.getWithinHammingDistanceOf("", 0)).toEqual([""]);
+  expect(set.getWithinHammingDistanceOf("", 1)).toEqual([""]);
+  set.delete("");
+  expect(set.getWithinHammingDistanceOf("", 0)).toEqual([]);
 });

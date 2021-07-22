@@ -1,32 +1,32 @@
 import { TernaryStringSet } from "../index";
 import { load } from "./word-list-loader";
 
-let tree: TernaryStringSet;
+let set: TernaryStringSet;
 const words = load("short-english");
 
 beforeEach(() => {
-  tree = new TernaryStringSet();
+  set = new TernaryStringSet();
 });
 
 test("balanced tree is better constructed", () => {
   // add words in worst possible order
   for (const s of words) {
-    tree.add(s);
+    set.add(s);
   }
-  const badStats = tree.stats;
-  tree.balance();
-  const goodStats = tree.stats;
-  expect(Array.from(tree)).toEqual(words);
+  const badStats = set.stats;
+  set.balance();
+  const goodStats = set.stats;
+  expect(Array.from(set)).toEqual(words);
   expect(badStats.depth).toBeGreaterThan(goodStats.depth);
-  expect(tree.has("")).toBe(false);
+  expect(set.has("")).toBe(false);
 });
 
 test("empty string is preserved after balancing", () => {
   // add words in worst possible order
   for (const s of words) {
-    tree.add(s);
+    set.add(s);
   }
-  tree.add("");
-  tree.balance();
-  expect(tree.has("")).toBe(true);
+  set.add("");
+  set.balance();
+  expect(set.has("")).toBe(true);
 });

@@ -1,42 +1,42 @@
 import { TernaryStringSet } from "../index";
 import { load } from "./word-list-loader";
 
-let tree: TernaryStringSet;
+let set: TernaryStringSet;
 const words = load("short-english");
 
 beforeEach(() => {
-  tree = new TernaryStringSet();
+  set = new TernaryStringSet();
 });
 
 test("empty tree has header only", () => {
-  expect(tree.toBuffer().byteLength).toBe(8);
+  expect(set.toBuffer().byteLength).toBe(8);
 });
 
 test("non-empty tree has node bytes", () => {
-  tree.add("a");
-  expect(tree.toBuffer().byteLength).toBe(8 + 4 * 4);
+  set.add("a");
+  expect(set.toBuffer().byteLength).toBe(8 + 4 * 4);
 });
 
 test("roundtrip a small set", () => {
-  tree.addAll(["", "apple", "ankle", "ball", "pi", "piano", "pink", "ukulele"]);
-  let buff = tree.toBuffer();
+  set.addAll(["", "apple", "ankle", "ball", "pi", "piano", "pink", "ukulele"]);
+  let buff = set.toBuffer();
   const newTree = TernaryStringSet.fromBuffer(buff);
   buff = null;
-  expect(newTree.size).toBe(tree.size);
-  expect(newTree.stats).toEqual(tree.stats);
-  for (const s of tree) {
+  expect(newTree.size).toBe(set.size);
+  expect(newTree.stats).toEqual(set.stats);
+  for (const s of set) {
     expect(newTree.has(s)).toBe(true);
   }
 });
 
 test("roundtrip a large set", () => {
-  tree.addAll(words);
-  let buff = tree.toBuffer();
+  set.addAll(words);
+  let buff = set.toBuffer();
   const newTree = TernaryStringSet.fromBuffer(buff);
   buff = null;
-  expect(newTree.size).toBe(tree.size);
-  expect(newTree.stats).toEqual(tree.stats);
-  for (const s of tree) {
+  expect(newTree.size).toBe(set.size);
+  expect(newTree.stats).toEqual(set.stats);
+  for (const s of set) {
     expect(newTree.has(s)).toBe(true);
   }
 });

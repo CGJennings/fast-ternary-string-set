@@ -1,22 +1,22 @@
 import { TernaryStringSet } from "../index";
 import { load } from "./word-list-loader";
 
-let tree: TernaryStringSet;
+let set: TernaryStringSet;
 const words = load("short-english");
 
 beforeEach(() => {
-  tree = new TernaryStringSet();
+  set = new TernaryStringSet();
 });
 
 test("Stats for base cases", () => {
-  expect(tree.stats).toEqual({
+  expect(set.stats).toEqual({
     depth: 0,
     nodes: 0,
     size: 0,
     surrogates: 0,
   });
-  tree.add("a");
-  expect(tree.stats).toEqual({
+  set.add("a");
+  expect(set.stats).toEqual({
     depth: 1,
     nodes: 1,
     size: 1,
@@ -25,36 +25,36 @@ test("Stats for base cases", () => {
 });
 
 test("String count matches size", () => {
-  expect(tree.stats.size).toBe(tree.size);
+  expect(set.stats.size).toBe(set.size);
 
-  tree.add("");
-  expect(tree.has("")).toBe(true);
-  expect(tree.stats.size).toBe(tree.size);
+  set.add("");
+  expect(set.has("")).toBe(true);
+  expect(set.stats.size).toBe(set.size);
 
-  tree.clear();
-  expect(tree.has("")).toBe(false);
-  expect(tree.stats.size).toBe(tree.size);
+  set.clear();
+  expect(set.has("")).toBe(false);
+  expect(set.stats.size).toBe(set.size);
 
-  tree.add("kitten");
-  expect(tree.has("kitten")).toBe(true);
-  expect(tree.stats.size).toBe(tree.size);
+  set.add("kitten");
+  expect(set.has("kitten")).toBe(true);
+  expect(set.stats.size).toBe(set.size);
 
-  tree.addAll(["kitten", "puppy", "kid", "owlet"]);
-  expect(tree.stats.size).toBe(tree.size);
+  set.addAll(["kitten", "puppy", "kid", "owlet"]);
+  expect(set.stats.size).toBe(set.size);
 });
 
 test("Balancing reduces depth", () => {
-  words.forEach((s) => tree.add(s));
-  const bad = tree.stats;
-  tree.clear();
-  tree.addAll(words);
-  const good = tree.stats;
+  words.forEach((s) => set.add(s));
+  const bad = set.stats;
+  set.clear();
+  set.addAll(words);
+  const good = set.stats;
   expect(good.size).toBe(bad.size);
   expect(good.depth).toBeLessThan(bad.depth);
 });
 
 test("Surrogate pair detection", () => {
-  tree.addAll(["kitten", "linear\ud800\udc00B", "😀"]);
-  const stats = tree.stats;
+  set.addAll(["kitten", "linear\ud800\udc00B", "😀"]);
+  const stats = set.stats;
   expect(stats.surrogates).toBe(2);
 });

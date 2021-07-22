@@ -1,26 +1,26 @@
 import { TernaryStringSet } from "../index";
 import { load } from "./word-list-loader";
 
-let tree: TernaryStringSet;
+let set: TernaryStringSet;
 const words = load("short-english");
 
 beforeEach(() => {
-  tree = new TernaryStringSet();
+  set = new TernaryStringSet();
 });
 
 test("Symbol.iterator does nothing on empty set", () => {
   /* eslint-disable @typescript-eslint/no-unused-vars */
   let i = 0;
-  for (const s of tree) {
+  for (const s of set) {
     ++i;
   }
   expect(i).toBe(0);
 });
 
 test("Symbol.iterator visits each word", () => {
-  tree.addAll(words);
+  set.addAll(words);
   let i = 0;
-  for (const s of tree) {
+  for (const s of set) {
     expect(s).toBe(words[i++]);
   }
   expect(i).toBe(words.length);
@@ -38,26 +38,26 @@ function iteratorToArray<T>(it: Iterator<T>): T[] {
 
 test("keys(), values(), and Symbol.iterator are equivalent", () => {
   const words = ["alpha", "beta", "delta", "epsilon", "gamma"];
-  tree.addAll(words);
-  expect([...tree]).toEqual(words);
-  expect(iteratorToArray(tree.keys())).toEqual(words);
-  expect(iteratorToArray(tree.values())).toEqual(words);
+  set.addAll(words);
+  expect([...set]).toEqual(words);
+  expect(iteratorToArray(set.keys())).toEqual(words);
+  expect(iteratorToArray(set.values())).toEqual(words);
 });
 
 test("entries() returns [string, string] doubled values", () => {
-  expect(iteratorToArray(tree.entries())).toEqual([]);
+  expect(iteratorToArray(set.entries())).toEqual([]);
 
   const words = ["alpha", "beta", "delta", "epsilon", "gamma"];
-  tree.addAll(words);
-  expect(iteratorToArray(tree.entries())).toEqual(words.map((s) => [s, s]));
+  set.addAll(words);
+  expect(iteratorToArray(set.entries())).toEqual(words.map((s) => [s, s]));
 });
 
 test("forEach() passes string, string doubled values", () => {
   const words = ["alpha", "beta", "delta", "epsilon", "gamma"];
   const result: string[] = [];
-  tree.addAll(words);
-  tree.forEach((k, v, t) => {
-    expect(t).toBe(tree);
+  set.addAll(words);
+  set.forEach((k, v, t) => {
+    expect(t).toBe(set);
     expect(v).toBe(k);
     result.push(k);
   });
@@ -65,10 +65,10 @@ test("forEach() passes string, string doubled values", () => {
 });
 
 test("forEach() callback called with thisArg", () => {
-  tree.add("ostrich");
+  set.add("ostrich");
   const thisArg = "fish";
-  tree.forEach(function (this: string, k, v, t) {
-    expect(t).toBe(tree);
+  set.forEach(function (this: string, k, v, t) {
+    expect(t).toBe(set);
     expect(k).toBe("ostrich");
     expect(v).toBe(k);
     expect(this).toBe(thisArg);

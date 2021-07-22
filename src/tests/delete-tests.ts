@@ -1,52 +1,52 @@
 import { TernaryStringSet } from "../index";
 import { load } from "./word-list-loader";
 
-let tree: TernaryStringSet;
+let set: TernaryStringSet;
 const words = load("short-english");
 
 beforeEach(() => {
-    tree = new TernaryStringSet();
+    set = new TernaryStringSet();
 });
 
 test("Add/delete empty string", () => {
-    tree.add("").add("horse");
-    expect(tree.size).toBe(2);
-    expect(tree.has("")).toBe(true);
-    tree.delete("");
-    expect(tree.size).toBe(1);
-    expect(tree.has("")).toBe(false);
+    set.add("").add("horse");
+    expect(set.size).toBe(2);
+    expect(set.has("")).toBe(true);
+    set.delete("");
+    expect(set.size).toBe(1);
+    expect(set.has("")).toBe(false);
 });
 
 test("Delete non-member", () => {
-    expect(tree.size).toBe(0);
-    tree.add("dog");
-    expect(tree.size).toBe(1);
-    expect(tree.has("cat")).toBe(false);
-    expect(tree.delete("cat")).toBe(false);
-    expect(tree.size).toBe(1);
+    expect(set.size).toBe(0);
+    set.add("dog");
+    expect(set.size).toBe(1);
+    expect(set.has("cat")).toBe(false);
+    expect(set.delete("cat")).toBe(false);
+    expect(set.size).toBe(1);
 });
 
 test("Delete member", () => {
-    expect(tree.size).toBe(0);
-    tree.add("dog");
-    expect(tree.size).toBe(1);
-    expect(tree.has("dog")).toBe(true);
-    expect(tree.delete("dog")).toBe(true);
-    expect(tree.size).toBe(0);
+    expect(set.size).toBe(0);
+    set.add("dog");
+    expect(set.size).toBe(1);
+    expect(set.has("dog")).toBe(true);
+    expect(set.delete("dog")).toBe(true);
+    expect(set.size).toBe(0);
 });
 
 test("Delete multiple", () => {
-    tree.addAll(words);
-    let size = tree.size;
+    set.addAll(words);
+    let size = set.size;
     const randomOrder = shuffle([...words]);
 
     for (const w of randomOrder) {
-        expect(tree.size).toBe(size--);
-        expect(tree.has(w)).toBe(true);
-        expect(tree.delete(w)).toBe(true);
-        expect(tree.has(w)).toBe(false);
+        expect(set.size).toBe(size--);
+        expect(set.has(w)).toBe(true);
+        expect(set.delete(w)).toBe(true);
+        expect(set.has(w)).toBe(false);
     }
-    expect(tree.size).toBe(0);
+    expect(set.size).toBe(0);
 });
 
 function shuffle<T>(array: T[]): T[] {

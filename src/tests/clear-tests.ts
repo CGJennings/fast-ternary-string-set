@@ -1,29 +1,29 @@
 import { TernaryStringSet } from "../index";
 
-let tree: TernaryStringSet;
+let set: TernaryStringSet;
 
 beforeEach(() => {
-  tree = new TernaryStringSet();
+  set = new TernaryStringSet();
 });
 
 test("Clear empty tree", () => {
-  expect(tree.size).toBe(0);
-  expect(() => tree.clear()).not.toThrow();
-  expect(tree.size).toBe(0);
+  expect(set.size).toBe(0);
+  expect(() => set.clear()).not.toThrow();
+  expect(set.size).toBe(0);
 });
 
 test("Clear non-empty tree", () => {
-  tree.addAll(["chicken", "duck", "whale"]);
-  expect(tree.size).toBe(3);
-  tree.clear();
-  expect(tree.size).toBe(0);
+  set.addAll(["chicken", "duck", "whale"]);
+  expect(set.size).toBe(3);
+  set.clear();
+  expect(set.size).toBe(0);
 });
 
 test("Clear tree with empty string", () => {
-  tree.add("horse").add("");
-  expect(tree.size).toBe(2);
-  expect(tree.has("")).toBe(true);
-  tree.clear();
-  expect(tree.size).toBe(0);
-  expect(tree.has("")).toBe(false);
+  set.add("horse").add("");
+  expect(set.size).toBe(2);
+  expect(set.has("")).toBe(true);
+  set.clear();
+  expect(set.size).toBe(0);
+  expect(set.has("")).toBe(false);
 });
