@@ -44,6 +44,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   #tree: number[];
   /** Tracks whether empty string is in the set as a special case. */
   #hasEmpty: boolean;
+  /** Tracks set size. */
+  #size: number;
 
   /** Creates a new, empty tree set. */
   constructor() {
@@ -54,6 +56,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   clear(): void {
     this.#tree = [];
     this.#hasEmpty = false;
+    this.#size = 0;
   }
 
   /**
@@ -74,7 +77,10 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       s = String(s);
     }
     if (s.length === 0) {
-      this.#hasEmpty = true;
+      if (!this.#hasEmpty) {
+        this.#hasEmpty = true;
+        ++this.#size;
+      }
     } else {
       this.addImpl(0, s, 0, s.codePointAt(0));
     }
@@ -100,7 +106,10 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     } else {
       i += cp >= CP_MIN_SURROGATE ? 2 : 1;
       if (i >= s.length) {
-        tree[node] |= EOW;
+        if ((tree[node] & EOW) === 0) {
+          tree[node] |= EOW;
+          ++this.#size;
+        }
       } else {
         tree[node + 2] = this.addImpl(tree[node + 2], s, i, s.codePointAt(i));
       }
@@ -193,7 +202,10 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
     if (s.length === 0) {
       const had = this.#hasEmpty;
-      this.#hasEmpty = false;
+      if (had) {
+        this.#hasEmpty = false;
+        --this.#size;
+      }
       return had;
     }
 
@@ -214,7 +226,10 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       i += cp >= CP_MIN_SURROGATE ? 2 : 1;
       if (i >= s.length) {
         const had = (tree[node] & EOW) === EOW;
-        tree[node] = tree[node] & CP_MASK;
+        if (had) {
+          tree[node] = tree[node] & CP_MASK;
+          --this.#size;
+        }
         return had;
       } else {
         return this.deleteImpl(tree[node + 2], s, i, s.codePointAt(i));
@@ -596,12 +611,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @returns The non-negative integer number of string elements in the tree.
    */
   get size(): number {
-    const tree = this.#tree;
-    let n = this.#hasEmpty ? 1 : 0;
-    for (let i = 0; i < tree.length; i += 4) {
-      if (tree[i] & EOW) ++n;
-    }
-    return n;
+    return this.#size;
   }
 
   /**
@@ -727,6 +737,13 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     for (let byte = BUFFER_HEAD_SIZE; byte < view.byteLength; byte += 4) {
       tree[tree.length] = view.getInt32(byte, false);
     }
+
+    let size = newTree.#hasEmpty ? 1 : 0;
+    for (let node=0; node < tree.length; node += 4) {
+      if (tree[node] & EOW) ++size;
+    }
+    newTree.#size = size;
+
     return newTree;
   }
 }

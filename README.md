@@ -118,8 +118,6 @@ JavaScript `Set` objects guarantee that they iterate over elements in the order 
 
 `TernaryStringSet`s can contain the empty string, but cannot contain non-strings. This includes `null` and `undefined`.
 
-The `size` method runs in time proportional to the number of tree nodes rather than constant time.
-
 ## Tips
 
 Adding strings to a ternary tree in sorted order produces a worst-case tree structure. This can be avoided by adding
