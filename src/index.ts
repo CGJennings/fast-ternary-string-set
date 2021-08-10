@@ -739,7 +739,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
 
     let size = newTree.#hasEmpty ? 1 : 0;
-    for (let node=0; node < tree.length; node += 4) {
+    for (let node = 0; node < tree.length; node += 4) {
       if (tree[node] & EOW) ++size;
     }
     newTree.#size = size;
