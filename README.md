@@ -1,6 +1,8 @@
 # Fast ternary string set
 
-A fast string set based on ternary search trees. Features:
+A fast string set based on ternary search trees, with both exact and approximate membership tests.
+
+Features:
 
  - Drop-in replacement for most code that uses a standard [JavaScript `Set`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set) of string elements.
  - All search results and iteration methods list elements in ascending sorted (lexicographic) order.
@@ -16,6 +18,7 @@ A fast string set based on ternary search trees. Features:
  - Written in fully documented TypeScript, targeting modern JavaScript engines.
  - Backed by extensive test suites.
  - No other dependencies.
+ - Use as a standalone/ECMAScript module or as a Node.js/CommonJS module.
 
 ## Installation
 
@@ -27,7 +30,7 @@ npm install fast-ternary-string-set
 
 Or, if using `yarn`, `yarn add fast-ternary-string-set`.
 
-Alternatively, to use it without Node.js, copy the the main source file (`src/index.ts`) into any TypeScript project, then import the copied file in your code.
+Alternatively, to use it without Node.js, copy the main source file (`src/index.ts`) into any TypeScript project, then `import` the copied file into your code.
 
 ## Examples of use
 
