@@ -47,9 +47,35 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   /** Tracks set size. */
   #size: number;
 
-  /** Creates a new, empty set. */
-  constructor() {
+  /**
+   * Creates a new set. The set will be empty unless the optional iterable `source` object
+   * is specified. If a `source` is provided, all of its elements will be added to the new set.
+   * If `source` contains any element that would cause `add()` to throw an error, the constructor
+   * will also throw an error for that element.
+   *
+   * **Note:** Since strings are iterable, passing a string to the constructor will create
+   * a new set containing one string for each unique code point in the source string, and not
+   * a singleton set containing just the source string as you might expect.
+   *
+   * @param source An optional iterable object whose strings will be added to the new set.
+   */
+  constructor(source?: Iterable<string>) {
     this.clear();
+
+    if (source != null) {
+      if (typeof source[Symbol.iterator] !== "function") {
+        throw new TypeError("source object is not iterable");
+      }
+      if (source instanceof TernaryStringSet) {
+        this.#tree = source.#tree.slice();
+        this.#hasEmpty = source.#hasEmpty;
+        this.#size = source.#size;
+      } else if (Array.isArray(source)) {
+        this.addAll(source);
+      } else {
+        this.addAll(Array.from(source));
+      }
+    }
   }
 
   /**

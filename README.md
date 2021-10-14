@@ -1,6 +1,6 @@
 # Fast ternary string set
 
-A fast string set based on ternary search trees, with both exact and approximate membership tests.
+A fast, space-efficient, serializable string set based on ternary search trees, with both exact and approximate membership tests.
 
 Features:
 
@@ -30,7 +30,7 @@ npm install fast-ternary-string-set
 
 Or, if using `yarn`, `yarn add fast-ternary-string-set`.
 
-Alternatively, to use it without Node.js, copy the main source file (`src/index.ts`) into any TypeScript project, then `import` the copied file into your code.
+Alternatively, to use it without Node.js, copy the main source file (`src/index.ts`) into any TypeScript project, then `import` the copied file into your code. (You will probably want to rename the file to something appropriate, such as `ternary-string-set.ts`.)
 
 ## Examples of use
 
@@ -59,6 +59,17 @@ set.has("cat");
 // => false
 set.has(123.456);
 // => false (any non-string returns false)
+```
+
+Create a new string set from an existing set or other `Iterable<string>`:
+
+```js
+// otherSet could be any Iterable<string>, such as a string array
+// or even another TernaryStringSet
+let otherSet = new Set(["fish", "hippo"]);
+let set = new TernaryStringSet(otherSet);
+set.has("hippo");
+// => true
 ```
 
 Add an entire array of string elements:
@@ -125,7 +136,7 @@ JavaScript `Set` objects guarantee that they iterate over elements in the order 
 
 Adding strings to a ternary tree in sorted order produces a worst-case tree structure. This can be avoided by adding
 sorted strings using the `addAll` method, which produces an optimal tree structure given a sorted input array.
-Alternatively, the `balance` method can be called to rebuild the tree with optimal structure, but this is expensive.
+Alternatively, the `balance` method can be called to rebuild the tree with optimal structure, but this can be expensive.
 
 After deleting a large number of strings, future search performance may be improved by calling `balance`.
 
@@ -153,5 +164,13 @@ The included `tsconfig.json` targets ES2015 (ES6). To target old JavaScript engi
 The project includes an extensive suite of tests under `src/tests`. To run all tests:
 
 ```bash
+npm test
+```
+
+Before submitting a pull request, format, lint, and run all tests:
+
+```bash
+npm run format
+npm run lint
 npm test
 ```
