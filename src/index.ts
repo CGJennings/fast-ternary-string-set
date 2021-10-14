@@ -25,8 +25,8 @@ const BUFFER_HEAD_SIZE = 8;
  * U+10FFFF, are *not* supported.
  *
  * Strings are stored using a *ternary search tree*, which has excellent performance
- * characteristics when properly constructed. However, it is important to avoid adding
- * strings in sorted order for best performance.
+ * characteristics when properly constructed (it is important to avoid adding strings
+ * in sorted order).
  */
 export class TernaryStringSet implements Set<string>, Iterable<string> {
   /**
@@ -38,8 +38,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * 4. `tree[n+3]`: array index of the "greater than" branch's child node
    *
    * Most modern JS engines optimize arrays that contain only 32-bit integers, meaning that
-   * this structure is likely to be more efficient than an equivalent tree based on
-   * linked objects.
+   * this structure usually offers better time/space performance than an equivalent tree
+   * based on linked objects.
    */
   #tree: number[];
   /** Tracks whether empty string is in the set as a special case. */
@@ -47,9 +47,18 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   /** Tracks set size. */
   #size: number;
 
-  /** Creates a new, empty tree set. */
+  /** Creates a new, empty set. */
   constructor() {
     this.clear();
+  }
+
+  /**
+   * Returns the number of unique strings stored in this set.
+   *
+   * @returns The non-negative integer number of string elements in the set.
+   */
+  get size(): number {
+    return this.#size;
   }
 
   /** Removes all strings in this set. */
@@ -61,7 +70,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
   /**
    * Adds a string to this set. The string can be empty, but cannot be null.
-   * Adding a string that is already in this set has no effect.
+   * Adding an already present string has no effect.
    * If inserting multiple strings in sorted (lexicographic) order, prefer
    * `addAll` over this method.
    *
@@ -152,7 +161,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param s The non-null string to test for.
    * @returns True if the string is present.
    */
-  /* eslint-disable @typescript-eslint/no-explicit-any */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   has(s: any): boolean {
     if (typeof s !== "string") {
       if (!(s instanceof String)) {
@@ -192,7 +201,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param s The non-null string to delete.
    * @returns True if the string was in this set; false otherwise.
    */
-  /* eslint-disable @typescript-eslint/no-explicit-any */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   delete(s: any): boolean {
     if (typeof s !== "string") {
       if (!(s instanceof String)) {
@@ -255,7 +264,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (charPattern == null) throw new ReferenceError("null charPattern");
     charPattern = String(charPattern);
 
-    // availChars[codePoint] = how many times codePoint is in pattern
+    // availChars[codePoint] = how many times codePoint appears in pattern
     const availChars: number[] = [];
     for (let i = 0; i < charPattern.length; ) {
       const cp = charPattern.codePointAt(i++);
@@ -263,8 +272,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       availChars[cp] = availChars[cp] ? availChars[cp] + 1 : 1;
     }
 
-    const words: string[] = [];
-    if (this.#hasEmpty) words[0] = "";
+    const words: string[] = this.#hasEmpty ? [""] : [];
     this.getArrangementsOfImpl(0, availChars, [], words);
     return words;
   }
@@ -276,7 +284,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     words: string[],
   ) {
     const tree = this.#tree;
-    if (node >= tree.length) return false;
+    if (node >= tree.length) return;
 
     this.getArrangementsOfImpl(tree[node + 1], availChars, prefix, words);
 
@@ -319,15 +327,9 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       return this.#hasEmpty ? [""] : [];
     }
 
+    const dc = dontCareChar.codePointAt(0);
     const matches: string[] = [];
-    this.getPartialMatchesOfImpl(
-      0,
-      pattern,
-      0,
-      dontCareChar.codePointAt(0),
-      [],
-      matches,
-    );
+    this.getPartialMatchesOfImpl(0, pattern, 0, dc, [], matches);
     return matches;
   }
 
@@ -484,7 +486,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
   /**
    * Calls the specified callback function once for each string in this set, passing the string
-   * and this set. The string is passed as both value and key, to match the behaviour of `Map.forEach`.
+   * and this set. The string is passed as both value and key to align with `Map.forEach`.
    * If `thisArg` is specified, it is used as `this` when invoking the callback function.
    *
    * @param callbackFn The function to call for each string.
@@ -562,7 +564,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
   /**
    * Returns an iterator over the strings in this set, in ascending lexicographic order.
-   * This allows this tree set to be used in `for...of` loops.
+   * As a result, this set can be used in `for...of` loops and other contexts that
+   * expect iterable objects.
    *
    * @returns An non-null iterator over the strings in this set.
    */
@@ -606,39 +609,6 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Returns the number of unique strings stored in the tree.
-   *
-   * @returns The non-negative integer number of string elements in the tree.
-   */
-  get size(): number {
-    return this.#size;
-  }
-
-  /**
-   * Returns technical statistics about this set's underlying tree structure.
-   * Advanced users can use this to estimate the memory used by the set,
-   * judge the impact of one or more operations on the tree structure,
-   * and make more informed decisions about whether to balance the tree.
-   */
-  get stats(): TernaryTreeStats {
-    let size = this.#hasEmpty ? 1 : 0;
-    let depth = 0;
-    let surrogates = 0;
-    this.visitNodes(0, 1, (n, d) => {
-      depth = Math.max(d, depth);
-      const cp = this.#tree[n];
-      if (cp & EOW) ++size;
-      if ((cp & CP_MASK) >= CP_MIN_SURROGATE) ++surrogates;
-    });
-    return {
-      depth,
-      nodes: this.#tree.length / 4,
-      size,
-      surrogates,
-    };
-  }
-
-  /**
    * Optimizes the layout of the underlying data structure to maximize search speed.
    * This may improve future search performance after adding or deleting a large
    * number of strings.
@@ -662,7 +632,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Returns a byte buffer whose contents can be used to recreate this set.
+   * Returns a buffer whose contents can be used to recreate this set.
    * The returned data is independent of the platform on which it is created.
    *
    * @returns A non-null buffer.
@@ -674,19 +644,19 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     const buffer = new ArrayBuffer(BUFFER_HEAD_SIZE + this.#tree.length * 4);
     const view = new DataView(buffer);
     // first two bytes are magic "TT" for ternary tree
-    view.setInt8(0, BUFFER_MAGIC);
-    view.setInt8(1, BUFFER_MAGIC);
+    view.setUint8(0, BUFFER_MAGIC);
+    view.setUint8(1, BUFFER_MAGIC);
     // third byte is version number
-    view.setInt8(2, BUFFER_VERSION);
+    view.setUint8(2, BUFFER_VERSION);
     // fourth byte tracks presence of empty string
-    view.setInt8(3, this.#hasEmpty ? 1 : 0);
+    view.setUint8(3, this.#hasEmpty ? 1 : 0);
 
     // fifth though eigth bytes store number of nodes as a check
-    view.setInt32(4, tree.length, false);
+    view.setUint32(4, tree.length, false);
 
     // remainder of buffer stores tree content
     for (let i = 0, byte = BUFFER_HEAD_SIZE; i < tree.length; ++i, byte += 4) {
-      view.setInt32(byte, tree[i], false);
+      view.setUint32(byte, tree[i], false);
     }
 
     return buffer;
@@ -696,7 +666,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * Creates a new string set from data in a buffer previously created with `toBuffer`.
    *
    * @param buffer The buffer to recreate the set from.
-   * @returns A set recreating the original set stored in the buffer.
+   * @returns A new set that recreates the original set that was stored in the buffer.
    * @throws `ReferenceError` If the specified buffer is null.
    * @throws `TypeError` If the buffer data is invalid or from an unsupported version.
    */
@@ -710,32 +680,35 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     // verify that this appears to be valid tree data
     // and that the version of the format is supported
     if ((view.byteLength & 3) !== 0) {
-      throw new TypeError("bad data (length)");
+      throw new TypeError("bad buffer (length)");
     }
-    if (view.getInt8(0) !== BUFFER_MAGIC || view.getInt8(1) !== BUFFER_MAGIC) {
-      throw new TypeError("bad data (magic bytes)");
+    if (view.getUint8(0) !== BUFFER_MAGIC || view.getInt8(1) !== BUFFER_MAGIC) {
+      throw new TypeError("bad buffer (magic bytes)");
     }
-    if (view.getInt8(2) < 1) {
-      throw new TypeError("bad data (version byte)");
+    if (view.getUint8(2) < 1) {
+      throw new TypeError("bad buffer (version byte)");
     }
-    if (view.getInt8(2) > BUFFER_VERSION) {
+    if (view.getUint8(2) > BUFFER_VERSION) {
       throw new TypeError(
         `unsupported version: ${view.getInt8(2)} > ${BUFFER_VERSION}`,
       );
     }
-    if (view.getInt8(3) !== 0 && view.getInt8(3) !== 1) {
-      throw new TypeError("bad data (bad tree properties)");
+
+    const treeFlags = view.getUint8(3);
+    if (treeFlags > 1) {
+      throw new TypeError("bad buffer (invalid tree properties)");
     }
-    const expectedLength = BUFFER_HEAD_SIZE + view.getInt32(4, false) * 4;
+
+    const expectedLength = BUFFER_HEAD_SIZE + view.getUint32(4, false) * 4;
     if (view.byteLength < expectedLength) {
-      throw new TypeError("bad data (missing bytes)");
+      throw new TypeError("bad buffer (missing bytes)");
     }
 
     const newTree = new TernaryStringSet();
-    newTree.#hasEmpty = (view.getInt8(3) & 1) === 1;
+    newTree.#hasEmpty = (treeFlags & 1) === 1;
     const tree = newTree.#tree;
     for (let byte = BUFFER_HEAD_SIZE; byte < view.byteLength; byte += 4) {
-      tree[tree.length] = view.getInt32(byte, false);
+      tree[tree.length] = view.getUint32(byte, false);
     }
 
     let size = newTree.#hasEmpty ? 1 : 0;
@@ -745,6 +718,32 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     newTree.#size = size;
 
     return newTree;
+  }
+
+  /**
+   * Returns information about this set's underlying tree structure.
+   * This method is intended only for advanced use cases, such as:
+   *  - estimating the set's memory footprint;
+   *  - measuring the impact of some sequence of operations;
+   *  - making more informed decisions about whether to balance the tree;
+   *  - determining whether the tree can be packed into a custom format.
+   */
+  get stats(): TernaryTreeStats {
+    let size = this.#hasEmpty ? 1 : 0;
+    let depth = 0;
+    let surrogates = 0;
+    this.visitNodes(0, 1, (n, d) => {
+      depth = Math.max(d, depth);
+      const cp = this.#tree[n];
+      if (cp & EOW) ++size;
+      if ((cp & CP_MASK) >= CP_MIN_SURROGATE) ++surrogates;
+    });
+    return {
+      depth,
+      nodes: this.#tree.length / 4,
+      size,
+      surrogates,
+    };
   }
 }
 

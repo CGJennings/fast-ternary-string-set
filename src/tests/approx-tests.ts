@@ -64,6 +64,8 @@ test("arrangements include empty string if present", () => {
   expect(set.getArrangementsOf("")).toEqual([]);
   set.add("");
   expect(set.getArrangementsOf("")).toEqual([""]);
+  expect(set.getArrangementsOf("z")).toEqual([""]);
+  expect(set.getArrangementsOf("a")).toEqual(["", "a"]);
 });
 
 test("basic partial matches test", () => {
