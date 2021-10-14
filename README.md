@@ -12,6 +12,7 @@ Features:
    3. List all elements that match a pattern including "don't care" letters (as `.` in a regular expression).
    4. List all elements within a specified [Hamming distance](https://en.wikipedia.org/wiki/Hamming_distance) of a pattern.
  - All matching, including approximate matching, is based on full code points and not char codes.
+ - Supports standard set relations (equality, subset, superset) and operations (union, intersection, difference, symmetric difference).
  - Balances search time and memory consumption: stored strings share tree nodes and do not require a reference to the original strings.
  - The tree structure is encoded in a form that is friendly to common JS engine optimizations.
  - Elements are stored by Unicode code point; any valid Unicode string can be added to a set.
