@@ -36,6 +36,14 @@ function iteratorToArray<T>(it: Iterator<T>): T[] {
   return array;
 }
 
+test("iterator includes empty string if present", () => {
+  expect([...set]).toEqual([]);
+  set.add("");
+  expect([...set]).toEqual([""]);
+  set.add("sturgeon");
+  expect([...set]).toEqual(["", "sturgeon"]);
+});
+
 test("keys(), values(), and Symbol.iterator are equivalent", () => {
   const words = ["alpha", "beta", "delta", "epsilon", "gamma"];
   set.addAll(words);
