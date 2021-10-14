@@ -1,8 +1,6 @@
 import { TernaryStringSet } from "../index";
-import { load } from "./word-list-loader";
 
 let set: TernaryStringSet;
-const words = load("short-english");
 
 beforeEach(() => {
   set = new TernaryStringSet();
@@ -51,15 +49,7 @@ test("string count matches size", () => {
   expect(set.stats.size).toBe(set.size);
 });
 
-test("balancing reduces depth", () => {
-  words.forEach((s) => set.add(s));
-  const bad = set.stats;
-  set.clear();
-  set.addAll(words);
-  const good = set.stats;
-  expect(good.size).toBe(bad.size);
-  expect(good.depth).toBeLessThan(bad.depth);
-});
+// effects of balancing on stats are tested in balance-tests.ts
 
 test("surrogate pair detection", () => {
   set.addAll(["kitten", "linear\ud800\udc00B", "😀"]);

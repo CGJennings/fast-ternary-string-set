@@ -87,7 +87,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     return this.#size;
   }
 
-  /** Removes all strings in this set. */
+  /** Removes all strings from this set. */
   clear(): void {
     this.#tree = [];
     this.#hasEmpty = false;
@@ -165,7 +165,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param start The index of the first element to add (inclusive, default is 0).
    * @param end The index of the last element to add (exclusive, default is `strings.length`)
    */
-  addAll(strings: string[], start = 0, end?: number): void {
+  addAll(strings: readonly string[], start = 0, end?: number): void {
     if (strings == null) throw new ReferenceError("null strings");
     if (end === undefined) end = strings.length;
 
@@ -345,13 +345,23 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       return Array.from(this);
     }
 
+    const results: string[] = [];
     const prefix = this.__cp(pattern);
     let node = this.__has(0, prefix, 0);
-    if (node < 0) node = -node - 1;
-    if (node >= this.#tree.length) return [];
+    if (node < 0) {
+      node = -node - 1;
+      // prefix not in tree, therefore no children are either
+      if (node >= this.#tree.length) {
+        return results;
+      }
+      // prefix in tree, but is not itself in the set
+    } else {
+      // prefix in tree, and also in set
+      results.push(String.fromCodePoint(...prefix));
+    }
 
-    const results: string[] = [];
-    this.__visit(node, prefix, (s) => {
+    // continue from end of prefix by taking equal branch
+    this.__visit(this.#tree[node + 2], prefix, (s) => {
       results.push(String.fromCodePoint(...s));
     });
     return results;

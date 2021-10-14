@@ -1,8 +1,7 @@
 import { TernaryStringSet } from "../index";
-import { load } from "./word-list-loader";
+import { words, wordSet } from "./word-list-loader";
 
 let set: TernaryStringSet;
-const words = load("short-english");
 
 beforeEach(() => {
   set = new TernaryStringSet();
@@ -40,7 +39,7 @@ test("Empty string", () => {
 
 test("Accurate for many words/addAll", () => {
   expect(set.size).toBe(0);
-  set.addAll(words);
+  set = wordSet();
   expect(set.size).toBe(words.length);
   let i = 0;
   for (const el of set) {

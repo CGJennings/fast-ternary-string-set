@@ -1,8 +1,7 @@
 import { TernaryStringSet } from "../index";
-import { load } from "./word-list-loader";
+import { words, wordSet } from "./word-list-loader";
 
 let set: TernaryStringSet;
-const words = load("short-english");
 
 beforeEach(() => {
   set = new TernaryStringSet();
@@ -68,15 +67,6 @@ test("arrangements include empty string if present", () => {
   expect(set.getArrangementsOf("a")).toEqual(["", "a"]);
 });
 
-/** Get completions the hard way for comparison. */
-function completions(prefix: string, elements: string[]): string[] {
-  const results = [];
-  for (const s of elements) {
-    if (s.startsWith(prefix)) results.push(s);
-  }
-  return results;
-}
-
 test("basic completions test", () => {
   const elements = [
     "",
@@ -106,6 +96,28 @@ test("basic completions test", () => {
   expect(set.getCompletionsOf("banz")).toEqual([]);
 });
 
+/** Get completions the hard way for comparison. */
+function completions(prefix: string, elements: readonly string[]): string[] {
+  const results = [];
+  for (const s of elements) {
+    if (s.startsWith(prefix)) results.push(s);
+  }
+  return results;
+}
+
+test("test completions against real word list", () => {
+  set = wordSet(false);
+  expect(set.getCompletionsOf("z")).toEqual(completions("z", words));
+  expect(set.getCompletionsOf("wi")).toEqual(completions("wi", words));
+  expect(set.getCompletionsOf("wi").length).toEqual(14);
+  expect(set.getCompletionsOf("she")).toEqual([
+    "she",
+    "sheep",
+    "sheet",
+    "shelf",
+  ]);
+});
+
 test("basic partial matches test", () => {
   const elements = ["a", "aa", "aaa", "aab", "aaaa", "aaaaa", "aaaab", "aaaac"];
   set.addAll(elements);
@@ -130,7 +142,7 @@ test("basic partial matches test", () => {
 });
 
 test("partial matches against real word list", () => {
-  set.addAll(words);
+  set = wordSet(false);
   expect(set.getPartialMatchesOf(".")).toEqual(["I", "a"]);
   expect(set.getPartialMatchesOf(".e.n")).toEqual(["bean", "mean"]);
   expect(set.getPartialMatchesOf("........e")).toEqual([
@@ -221,7 +233,7 @@ test("Hamming dist 1..n-1 matches strings <= dist", () => {
 });
 
 test("Hamming dist for cats", () => {
-  set.addAll(words);
+  set = wordSet(false);
   expect(set.getWithinHammingDistanceOf("cat", 0)).toEqual(["cat"]);
   expect(set.getWithinHammingDistanceOf("cat", 1)).toEqual(
     words.filter((s) => /^.at$/.test(s) || /^c.t$/.test(s) || /^ca.$/.test(s)),

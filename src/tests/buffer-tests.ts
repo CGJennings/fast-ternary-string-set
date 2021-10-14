@@ -1,8 +1,7 @@
 import { TernaryStringSet } from "../index";
-import { load } from "./word-list-loader";
+import { wordSet } from "./word-list-loader";
 
 let set: TernaryStringSet;
-const words = load("short-english");
 
 beforeEach(() => {
   set = new TernaryStringSet();
@@ -30,7 +29,7 @@ test("roundtrip a small set", () => {
 });
 
 test("roundtrip a large set", () => {
-  set.addAll(words);
+  set = wordSet(false);
   let buff = set.toBuffer();
   const newTree = TernaryStringSet.fromBuffer(buff);
   buff = null;

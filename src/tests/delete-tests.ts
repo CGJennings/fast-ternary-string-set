@@ -1,8 +1,7 @@
 import { TernaryStringSet } from "../index";
-import { load } from "./word-list-loader";
+import { words, wordSet } from "./word-list-loader";
 
 let set: TernaryStringSet;
-const words = load("short-english");
 
 beforeEach(() => {
   set = new TernaryStringSet();
@@ -36,7 +35,7 @@ test("Delete member", () => {
 });
 
 test("Delete multiple", () => {
-  set.addAll(words);
+  set = wordSet();
   let size = set.size;
   const randomOrder = shuffle([...words]);
 
