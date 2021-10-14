@@ -699,7 +699,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   /**
    * Returns a new set that is the union of this set and the specified set.
    * The new set will include any element that is a member of either set.
-   * 
+   *
    * @param rhs The set to form a union with.
    * @returns A new set containing the elements of both sets.
    */
@@ -721,7 +721,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   /**
    * Returns a new set that is the intersection of this set and the specified set.
    * The new set will include only those elements that are members of both sets.
-   * 
+   *
    * @param rhs The set to intersect with this set.
    * @returns A new set containing only elements in both sets.
    */
@@ -748,12 +748,12 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * Returns a new set that is the difference of this set and the specified set.
    * The new set will include all of the elements of this set *except* for those
    * in the specified set.
-   * 
+   *
    * @param rhs The set to subtract from this set.
    * @returns A new set containing only those elements in this set that are not
    *   in the specified set.
    */
-   subtract(rhs: TernaryStringSet): TernaryStringSet {
+  subtract(rhs: TernaryStringSet): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
@@ -767,17 +767,17 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       }
     });
     return diff;
-   }
+  }
 
   /**
    * Returns a new set that is the symmetric difference of this set and the specified set.
    * The new set will include all of the elements that are either set, but not in *both* sets.
-   * 
+   *
    * @param rhs The set to take the symmetric difference of from this set.
    * @returns A new set containing only those elements in this set or the specified set,
    *   but not both.
    */
-   symmetricDifference(rhs: TernaryStringSet): TernaryStringSet {
+  symmetricDifference(rhs: TernaryStringSet): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
@@ -794,7 +794,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       }
     });
     return diff;
-   }   
+  }
 
   /**
    * Returns an iterator over the strings in this set, in ascending lexicographic order.
@@ -820,7 +820,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * the function as an array of code points. Thus the string
    * `"ABC"` would be passed as `[65, 66, 67]`. If the function
    * returns `false`, tree traversal ends immediately.
-   * 
+   *
    * Does not visit the empty string.
    *
    * @param node The starting node index (0 for tree root).
@@ -853,7 +853,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * the last node in the tree, then the specified string is not in the tree at all.
    * Otherwise, the specified string is a prefix of other strings in the set but
    * is not itself in the set.
-   * 
+   *
    * Does not handle testing for the empty string.
    *
    * @param node The subtree from which to begin searching.
@@ -884,7 +884,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   /**
    * Private helper method similar to `add()`, but it takes a string specified
    * as an array of code points.
-   * 
+   *
    * Does not handle adding empty strings.
    *
    * @param node The subtree from which to begin adding.
@@ -921,7 +921,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
 
     return node;
-  }  
+  }
 
   /**
    * Private helper method that returns a string as an array of numeric code points.
