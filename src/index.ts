@@ -341,6 +341,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   getCompletionsOf(pattern: string): string[] {
     if (pattern == null) throw new ReferenceError("null pattern");
 
+    pattern = String(pattern);
+
     if (pattern.length === 0) {
       return Array.from(this);
     }
@@ -695,6 +697,106 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
+   * Returns a new set that is the union of this set and the specified set.
+   * The new set will include any element that is a member of either set.
+   *
+   * @param rhs The set to form a union with.
+   * @returns A new set containing the elements of both sets.
+   */
+  union(rhs: TernaryStringSet): TernaryStringSet {
+    if (!(rhs instanceof TernaryStringSet)) {
+      throw new TypeError("not a TernaryStringSet");
+    }
+    if (rhs.#size > this.#size) {
+      return rhs.union(this);
+    }
+    const union = new TernaryStringSet(this);
+    union.#hasEmpty ||= rhs.#hasEmpty;
+    rhs.__visit(0, [], (s) => {
+      union.__add(0, s, 0);
+    });
+    return union;
+  }
+
+  /**
+   * Returns a new set that is the intersection of this set and the specified set.
+   * The new set will include only those elements that are members of both sets.
+   *
+   * @param rhs The set to intersect with this set.
+   * @returns A new set containing only elements in both sets.
+   */
+  intersection(rhs: TernaryStringSet): TernaryStringSet {
+    if (!(rhs instanceof TernaryStringSet)) {
+      throw new TypeError("not a TernaryStringSet");
+    }
+    if (rhs.#size < this.#size) {
+      return rhs.intersection(this);
+    }
+    const intersect = new TernaryStringSet(this);
+    intersect.#hasEmpty &&= rhs.#hasEmpty;
+    intersect.__visit(0, [], (s, node) => {
+      // delete if not also in rhs
+      if (rhs.__has(0, s, 0) < 0) {
+        intersect.#tree[node] = intersect.#tree[node] & CP_MASK;
+        --intersect.#size;
+      }
+    });
+    return intersect;
+  }
+
+  /**
+   * Returns a new set that is the difference of this set and the specified set.
+   * The new set will include all of the elements of this set *except* for those
+   * in the specified set.
+   *
+   * @param rhs The set to subtract from this set.
+   * @returns A new set containing only those elements in this set that are not
+   *   in the specified set.
+   */
+  subtract(rhs: TernaryStringSet): TernaryStringSet {
+    if (!(rhs instanceof TernaryStringSet)) {
+      throw new TypeError("not a TernaryStringSet");
+    }
+    const diff = new TernaryStringSet(this);
+    if (rhs.#hasEmpty) diff.#hasEmpty = false;
+    diff.__visit(0, [], (s, node) => {
+      // delete if in rhs
+      if (rhs.__has(0, s, 0) >= 0) {
+        diff.#tree[node] = diff.#tree[node] & CP_MASK;
+        --diff.#size;
+      }
+    });
+    return diff;
+  }
+
+  /**
+   * Returns a new set that is the symmetric difference of this set and the specified set.
+   * The new set will include all of the elements that are either set, but not in *both* sets.
+   *
+   * @param rhs The set to take the symmetric difference of from this set.
+   * @returns A new set containing only those elements in this set or the specified set,
+   *   but not both.
+   */
+  symmetricDifference(rhs: TernaryStringSet): TernaryStringSet {
+    if (!(rhs instanceof TernaryStringSet)) {
+      throw new TypeError("not a TernaryStringSet");
+    }
+    const diff = new TernaryStringSet(this);
+    diff.#hasEmpty = this.#hasEmpty !== rhs.#hasEmpty;
+    rhs.__visit(0, [], (s) => {
+      // if s is also in diff, delete in diff; otherwise add to diff
+      const node = diff.__has(0, s, 0);
+      if (node >= 0) {
+        diff.#tree[node] = diff.#tree[node] & CP_MASK;
+        --diff.#size;
+      } else {
+        diff.__add(0, s, 0);
+      }
+    });
+    return diff;
+  }
+
+  /**
    * Returns an iterator over the strings in this set, in ascending lexicographic order.
    * As a result, this set can be used in `for...of` loops and other contexts that
    * expect iterable objects.
@@ -719,6 +821,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * `"ABC"` would be passed as `[65, 66, 67]`. If the function
    * returns `false`, tree traversal ends immediately.
    *
+   * Does not visit the empty string.
+   *
    * @param node The starting node index (0 for tree root).
    * @param prefix The array to have string code points appended to it.
    * @param visitFn The function to invoke for each string.
@@ -726,14 +830,14 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   private __visit(
     node: number,
     prefix: number[],
-    visitFn: (prefix: number[]) => void | boolean,
+    visitFn: (prefix: number[], node: number) => void | boolean,
   ) {
     const tree = this.#tree;
     if (node >= tree.length) return;
     this.__visit(tree[node + 1], prefix, visitFn);
     prefix.push(tree[node] & CP_MASK);
     if (tree[node] & EOW) {
-      if (visitFn(prefix) === false) return;
+      if (visitFn(prefix, node) === false) return;
     }
     this.__visit(tree[node + 2], prefix, visitFn);
     prefix.pop();
@@ -749,6 +853,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * the last node in the tree, then the specified string is not in the tree at all.
    * Otherwise, the specified string is a prefix of other strings in the set but
    * is not itself in the set.
+   *
+   * Does not handle testing for the empty string.
    *
    * @param node The subtree from which to begin searching.
    * @param s The array of code points to search for.
@@ -773,6 +879,48 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         return this.__has(tree[node + 2], s, i);
       }
     }
+  }
+
+  /**
+   * Private helper method similar to `add()`, but it takes a string specified
+   * as an array of code points.
+   *
+   * Does not handle adding empty strings.
+   *
+   * @param node The subtree from which to begin adding.
+   * @param s The array of code points to add for.
+   * @param i The index of the code point currently being added.
+   */
+  private __add(node: number, s: number[], i: number): number {
+    const tree = this.#tree;
+    const cp = s[i];
+
+    if (node >= tree.length) {
+      node = tree.length;
+      if (node >= NODE_CEILING) {
+        throw new RangeError("cannot add more strings");
+      }
+      tree.push(cp, NUL, NUL, NUL);
+    }
+
+    const treeCp = tree[node] & CP_MASK;
+    if (cp < treeCp) {
+      tree[node + 1] = this.__add(tree[node + 1], s, i);
+    } else if (cp > treeCp) {
+      tree[node + 3] = this.__add(tree[node + 3], s, i);
+    } else {
+      i += cp >= CP_MIN_SURROGATE ? 2 : 1;
+      if (i >= s.length) {
+        if ((tree[node] & EOW) === 0) {
+          tree[node] |= EOW;
+          ++this.#size;
+        }
+      } else {
+        tree[node + 2] = this.__add(tree[node + 2], s, i);
+      }
+    }
+
+    return node;
   }
 
   /**
