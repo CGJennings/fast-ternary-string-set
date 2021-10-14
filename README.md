@@ -113,6 +113,24 @@ set.getPartialMatchesOf("b.t");
 // => ["bat", "bet", "bit", "bot", "but"] (for example)
 ```
 
+Compare sets:
+
+```js
+let s1 = new TernaryStringSet(["a", "b", "c"]);
+let s2 = new TernaryStringSet(s1);
+s1.equals(s2);
+// => true
+s1.isSubsetOf(s2);
+// => true
+s2.add("d");
+s1.equals(s2);
+// => false
+s1.isSubsetOf(s2);
+// => true
+s1.isSupersetOf(s2);
+// => false
+```
+
 Serialize to or from a binary blob:
 
 ```js

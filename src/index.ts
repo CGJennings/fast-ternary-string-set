@@ -2,7 +2,7 @@
 const NUL = ~(1 << 31);
 /** First node index that would run off of the end of the array. */
 const NODE_CEILING = NUL - 3;
-/** End-of-word flag: set on node values when that node also marks the end of a word. */
+/** End-of-string flag: set on node values when that node also marks the end of a string. */
 const EOW = 1 << 21;
 /** Mask to extract the code point from a node value, ignoring flags. */
 const CP_MASK = EOW - 1;
@@ -172,7 +172,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (--end < start) return;
 
     // if the tree is empty and the list is sorted, this insertion
-    // order ensures a balanced tree (inserting words in sorted order
+    // order ensures a balanced tree (inserting strings in sorted order
     // is a degenerate case)
     const mid = Math.floor(start + (end - start) / 2);
     this.add(strings[mid]);
@@ -298,35 +298,35 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       availChars[cp] = availChars[cp] ? availChars[cp] + 1 : 1;
     }
 
-    const words: string[] = this.#hasEmpty ? [""] : [];
-    this.getArrangementsOfImpl(0, availChars, [], words);
-    return words;
+    const matches: string[] = this.#hasEmpty ? [""] : [];
+    this.getArrangementsOfImpl(0, availChars, [], matches);
+    return matches;
   }
 
   private getArrangementsOfImpl(
     node: number,
     availChars: number[],
     prefix: number[],
-    words: string[],
+    matches: string[],
   ) {
     const tree = this.#tree;
     if (node >= tree.length) return;
 
-    this.getArrangementsOfImpl(tree[node + 1], availChars, prefix, words);
+    this.getArrangementsOfImpl(tree[node + 1], availChars, prefix, matches);
 
     const cp = tree[node] & CP_MASK;
     if (availChars[cp] > 0) {
       --availChars[cp];
       prefix.push(cp);
       if (tree[node] & EOW) {
-        words.push(String.fromCharCode(...prefix));
+        matches.push(String.fromCharCode(...prefix));
       }
-      this.getArrangementsOfImpl(tree[node + 2], availChars, prefix, words);
+      this.getArrangementsOfImpl(tree[node + 2], availChars, prefix, matches);
       prefix.pop();
       ++availChars[cp];
     }
 
-    this.getArrangementsOfImpl(tree[node + 3], availChars, prefix, words);
+    this.getArrangementsOfImpl(tree[node + 3], availChars, prefix, matches);
   }
 
   /**
@@ -442,7 +442,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
     // optimize cases where any string the same length as the pattern will match
     if (distance >= pattern.length) {
-      this.visitWords(0, [], (prefix) => {
+      this.__visit(0, [], (prefix) => {
         if (prefix.length === pattern.length) {
           matches.push(String.fromCodePoint(...prefix));
         }
@@ -525,7 +525,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     let thiz: unknown;
     if (arguments.length >= 2) thiz = thisArg;
 
-    this.visitWords(0, [], (prefix) => {
+    this.__visit(0, [], (prefix) => {
       const s = String.fromCodePoint(...prefix);
       callbackFn.call(thiz, s, s, this);
     });
@@ -589,6 +589,70 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
+   * Returns whether this set contains exactly the same elements as the specified set.
+   * If passed an object that is not a `TernaryTreeSet`, this method returns false.
+   *
+   * @param rhs The set (or other object) to compare this set to.
+   * @returns True if the specified object is also a `TernaryTreeSet` and it contains the same elements.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  equals(rhs: any): boolean {
+    if (!(rhs instanceof TernaryStringSet)) return false;
+    if (this.#size !== rhs.#size) return false;
+    return this.isSubsetOf(rhs);
+  }
+
+  /**
+   * Returns whether this set is a subset of the specified set. This set is a subset if every
+   * element in this set is also contained in the other set. By this definition,
+   * equal sets are also subsets of each other. To test if this set is a *proper* subset
+   * of the specified set, use code like this: `lhs.size < rhs.size && lhs.isSubsetOf(rhs)`.
+   *
+   * @param rhs The set to compare this set to.
+   * @returns True if this set is a subset of, or equal to, the specified set.
+   */
+  isSubsetOf(rhs: TernaryStringSet): boolean {
+    if (!(rhs instanceof TernaryStringSet)) {
+      throw new TypeError("not a TernaryStringSet");
+    }
+    if (this.#size > rhs.#size) return false;
+    if (this.#hasEmpty && !rhs.#hasEmpty) return false;
+
+    // What follows is a faster equivalent to the following code:
+    // ```
+    // for (const s of this) {
+    //   if (!rhs.has(s)) return false;
+    // }
+    // return true;
+    // ```
+
+    let subset = true;
+    this.__visit(0, [], (s) => {
+      if (rhs.__has(0, s, 0) < 0) {
+        subset = false;
+        return false;
+      }
+    });
+    return subset;
+  }
+
+  /**
+   * Returns whether this set is a superset of the specified set. This set is a superset if every
+   * element in the other set is also contained in this set. By this definition,
+   * equal sets are also supersets of each other. To test if this set is a *proper* superset
+   * of the specified set, use code like this: `lhs.size > rhs.size && lhs.isSupersetOf(rhs)`.
+   *
+   * @param rhs The set to compare this set to.
+   * @returns True if this set is a superset of, or equal to, the specified set.
+   */
+  isSupersetOf(rhs: TernaryStringSet): boolean {
+    if (!(rhs instanceof TernaryStringSet)) {
+      throw new TypeError("not a TernaryStringSet");
+    }
+    return rhs.isSubsetOf(this);
+  }
+
+  /**
    * Returns an iterator over the strings in this set, in ascending lexicographic order.
    * As a result, this set can be used in `for...of` loops and other contexts that
    * expect iterable objects.
@@ -606,32 +670,67 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     return this.constructor.name;
   }
 
-  private visitWords(
+  /**
+   * A private helper method that calls a function for each string in the
+   * subtree rooted at the specified node index. Strings are passed to
+   * the function as an array of code points. Thus the string
+   * `"ABC"` would be passed as `[65, 66, 67]`. If the function
+   * returns `false`, tree traversal ends immediately.
+   *
+   * @param node The starting node index (0 for tree root).
+   * @param prefix The array to have string code points appended to it.
+   * @param visitFn The function to invoke for each string.
+   */
+  private __visit(
     node: number,
     prefix: number[],
-    visitFn: (prefix: number[]) => unknown,
+    visitFn: (prefix: number[]) => void | boolean,
   ) {
     const tree = this.#tree;
     if (node >= tree.length) return;
-    this.visitWords(tree[node + 1], prefix, visitFn);
+    this.__visit(tree[node + 1], prefix, visitFn);
     prefix.push(tree[node] & CP_MASK);
-    if (tree[node] & EOW) visitFn(prefix);
-    this.visitWords(tree[node + 2], prefix, visitFn);
+    if (tree[node] & EOW) {
+      if (visitFn(prefix) === false) return;
+    }
+    this.__visit(tree[node + 2], prefix, visitFn);
     prefix.pop();
-    this.visitWords(tree[node + 3], prefix, visitFn);
+    this.__visit(tree[node + 3], prefix, visitFn);
   }
 
-  private visitNodes(
-    node: number,
-    depth: number,
-    visitFn: (node: number, depth: number) => unknown,
-  ) {
+  /**
+   * Private helper method similar to `has()`, but it searches for a string specified
+   * as an array of code points. If the string is found, the node index of the node
+   * where the string ends is returned. If the string is not found, a negative number
+   * is returned that is one less than the node where the search failed. To convert
+   * this to the node where the search failed, use `-node - 1`. If this node is past
+   * the last node in the tree, then the specified string is not in the tree at all.
+   * Otherwise, the specified string is a prefix of other strings in the set but
+   * is not itself in the set.
+   *
+   * @param node The subtree from which to begin searching.
+   * @param s The array of code points to search for.
+   * @param i The index of the code point currently being searched for.
+   * @returns The node index where the string ends, or a negative value indicating the node
+   *     where searching failed, as described above.
+   */
+  private __has(node: number, s: number[], i: number): number {
     const tree = this.#tree;
-    if (node >= tree.length) return;
-    visitFn(node, depth);
-    this.visitNodes(tree[node + 1], depth + 1, visitFn);
-    this.visitNodes(tree[node + 2], depth + 1, visitFn);
-    this.visitNodes(tree[node + 3], depth + 1, visitFn);
+    if (node >= tree.length) return -node - 1;
+
+    const cp = s[i];
+    const treeCp = tree[node] & CP_MASK;
+    if (cp < treeCp) {
+      return this.__has(tree[node + 1], s, i);
+    } else if (cp > treeCp) {
+      return this.__has(tree[node + 3], s, i);
+    } else {
+      if (++i >= s.length) {
+        return (tree[node] & EOW) === EOW ? node : -node - 1;
+      } else {
+        return this.__has(tree[node + 2], s, i);
+      }
+    }
   }
 
   /**
@@ -639,22 +738,19 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * This may improve future search performance after adding or deleting a large
    * number of strings.
    *
-   * It is not normally necessary to call this method. However, there are scenarios
-   * where it may be effective:
-   *  - If the set will be used in phases, with strings being added in the first phase
-   *    followed by an extensive phase of search operations.
+   * It is not normally necessary to call this method as long as care was taken not
+   * to add large numbers of words in lexicographic order. That said, two scenarios
+   * where it may be particularly effective are:
+   *  - If the set will be used in phases, with strings being added in one phase
+   *    followed by a phase of extensive search operations.
    *  - If the string is about to be converted into a buffer for future use.
    *
-   * As stated under `addAll`, if the entire contents of the set are defined by a single
-   * call to `addAll` using a sorted set, the resulting tree will already be balanced.
-   * If the only strings added to the set came from a single call to `addAll` and
-   * those strings were stored in lexicographic order, then the data structure is
-   * already in optimal form.
+   * As detailed under `addAll`, if the entire contents of the set were added by a single
+   * call to `addAll` using a sorted array, the tree is already balanced and calling this
+   * method will have no benefit.
    */
   balance(): void {
-    const temp = new TernaryStringSet();
-    temp.addAll(Array.from(this));
-    this.#tree = temp.#tree;
+    this.#tree = new TernaryStringSet(Array.from(this)).#tree;
   }
 
   /**
@@ -770,6 +866,18 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       size,
       surrogates,
     };
+  }
+  private visitNodes(
+    node: number,
+    depth: number,
+    visitFn: (node: number, depth: number) => unknown,
+  ) {
+    const tree = this.#tree;
+    if (node >= tree.length) return;
+    visitFn(node, depth);
+    this.visitNodes(tree[node + 1], depth + 1, visitFn);
+    this.visitNodes(tree[node + 2], depth + 1, visitFn);
+    this.visitNodes(tree[node + 3], depth + 1, visitFn);
   }
 }
 
