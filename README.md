@@ -7,9 +7,10 @@ Features:
  - Drop-in replacement for most code that uses a standard [JavaScript `Set`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set) of string elements.
  - All search results and iteration methods list elements in ascending sorted (lexicographic) order.
  - Includes several approximate matching methods:
-   1. List all elements that can be made from a given list of letters.
-   2. List all elements that match a pattern including "don't care" letters (as `.` in a regular expression).
-   3. List all elements within a specified [Hamming distance](https://en.wikipedia.org/wiki/Hamming_distance) of a pattern.
+   1. List all elements that complete (start with) a given prefix.
+   2. List all elements that can be made from a given list of letters.
+   3. List all elements that match a pattern including "don't care" letters (as `.` in a regular expression).
+   4. List all elements within a specified [Hamming distance](https://en.wikipedia.org/wiki/Hamming_distance) of a pattern.
  - All matching, including approximate matching, is based on full code points and not char codes.
  - Balances search time and memory consumption: stored strings share tree nodes and do not require a reference to the original strings.
  - The tree structure is encoded in a form that is friendly to common JS engine optimizations.
@@ -92,21 +93,28 @@ for (const el of set) {
 set.forEach((el) => console.log(el));
 ```
 
-Find all elements that can be made from the letters of "taco":
+Find all elements that start with `"sha"`:
+
+```js
+set.getCompletionsOf("sha");
+// => ["shade", "shadow", "shake", "shape", "shapes"] (for example)
+```
+
+Find all elements that can be made from the letters of `"taco"`:
 
 ```js
 set.getArrangementsOf("taco");
 // => ["act", "cat", "coat", "taco"] (for example)
 ```
 
-Find all elements within Hamming distance 1 of "cat":
+Find all elements within Hamming distance 1 of `"cat"`:
 
 ```js
 set.getWithinHammingDistanceOf("cat", 1);
 // => ["bat", "can", "cap", "cat", "cot", "sat"] (for example)
 ```
 
-Find all elements that match "b.t":
+Find all elements that match `"b.t"`:
 
 ```js
 set.getPartialMatchesOf("b.t");

@@ -1,8 +1,7 @@
 import { TernaryStringSet } from "../index";
-import { load } from "./word-list-loader";
+import { words, wordSet } from "./word-list-loader";
 
 let set: TernaryStringSet;
-const words = load("short-english");
 
 beforeEach(() => {
   set = new TernaryStringSet();
@@ -18,7 +17,7 @@ test("Symbol.iterator does nothing on empty set", () => {
 });
 
 test("Symbol.iterator visits each word", () => {
-  set.addAll(words);
+  set = wordSet(false);
   let i = 0;
   for (const s of set) {
     expect(s).toBe(words[i++]);

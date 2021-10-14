@@ -87,7 +87,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     return this.#size;
   }
 
-  /** Removes all strings in this set. */
+  /** Removes all strings from this set. */
   clear(): void {
     this.#tree = [];
     this.#hasEmpty = false;
@@ -165,7 +165,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param start The index of the first element to add (inclusive, default is 0).
    * @param end The index of the last element to add (exclusive, default is `strings.length`)
    */
-  addAll(strings: string[], start = 0, end?: number): void {
+  addAll(strings: readonly string[], start = 0, end?: number): void {
     if (strings == null) throw new ReferenceError("null strings");
     if (end === undefined) end = strings.length;
 
@@ -327,6 +327,44 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
 
     this.getArrangementsOfImpl(tree[node + 3], availChars, prefix, matches);
+  }
+
+  /**
+   * Returns an array of possible completions for the specified pattern string.
+   * That is, an array of all strings in the set that start with the pattern.
+   * If the pattern itself is in the set, it is included as the first entry.
+   *
+   * @param pattern The non-null pattern to find completions for.
+   * @returns A (possibly empty) array of all strings in the set for which the
+   *     pattern is a prefix.
+   */
+  getCompletionsOf(pattern: string): string[] {
+    if (pattern == null) throw new ReferenceError("null pattern");
+
+    if (pattern.length === 0) {
+      return Array.from(this);
+    }
+
+    const results: string[] = [];
+    const prefix = this.__cp(pattern);
+    let node = this.__has(0, prefix, 0);
+    if (node < 0) {
+      node = -node - 1;
+      // prefix not in tree, therefore no children are either
+      if (node >= this.#tree.length) {
+        return results;
+      }
+      // prefix in tree, but is not itself in the set
+    } else {
+      // prefix in tree, and also in set
+      results.push(String.fromCodePoint(...prefix));
+    }
+
+    // continue from end of prefix by taking equal branch
+    this.__visit(this.#tree[node + 2], prefix, (s) => {
+      results.push(String.fromCodePoint(...s));
+    });
+    return results;
   }
 
   /**
@@ -735,6 +773,23 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         return this.__has(tree[node + 2], s, i);
       }
     }
+  }
+
+  /**
+   * Private helper method that returns a string as an array of numeric code points.
+   * (This is not equivalent to `[...s]`, which returns strings.)
+   *
+   * @param s The string to conver.
+   * @returns An array of the code points that comprise the string.
+   */
+  private __cp(s: string): number[] {
+    const cps = [];
+    for (let i = 0; i < s.length; ) {
+      const cp = s.codePointAt(i++);
+      if (cp >= CP_MIN_SURROGATE) ++i;
+      cps.push(cp);
+    }
+    return cps;
   }
 
   /**

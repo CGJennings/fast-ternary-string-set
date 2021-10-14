@@ -1,8 +1,7 @@
 import { TernaryStringSet } from "../index";
-import { load } from "./word-list-loader";
+import { words } from "./word-list-loader";
 
 let set: TernaryStringSet;
-const words = load("short-english");
 
 beforeEach(() => {
   set = new TernaryStringSet();
@@ -22,6 +21,7 @@ test("balanced tree is better constructed", () => {
 });
 
 test("empty string is preserved after balancing", () => {
+  const words = ["a", "ape", "apple", "apples", "bee", "bees", "car", "cars"];
   // add words in worst possible order
   for (const s of words) {
     set.add(s);
