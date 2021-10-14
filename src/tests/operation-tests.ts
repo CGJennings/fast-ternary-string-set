@@ -2,24 +2,32 @@ import { TernaryStringSet } from "../index";
 
 function union(a: string[], b: string[]): string[] {
   const u = new TernaryStringSet(a).union(new TernaryStringSet(b));
-  return Array.from(u);
+  const v = Array.from(u);
+  expect(u.size).toBe(v.length);
+  return v;
 }
 
 function inter(a: string[], b: string[]): string[] {
-  const i = new TernaryStringSet(a).intersection(new TernaryStringSet(b));
-  return Array.from(i);
+  const u = new TernaryStringSet(a).intersection(new TernaryStringSet(b));
+  const v = Array.from(u);
+  expect(u.size).toBe(v.length);
+  return v;
 }
 
 function sub(a: string[], b: string[]): string[] {
-  const d = new TernaryStringSet(a).subtract(new TernaryStringSet(b));
-  return Array.from(d);
+  const u = new TernaryStringSet(a).subtract(new TernaryStringSet(b));
+  const v = Array.from(u);
+  expect(u.size).toBe(v.length);
+  return v;
 }
 
 function sdiff(a: string[], b: string[]): string[] {
-  const d = new TernaryStringSet(a).symmetricDifference(
+  const u = new TernaryStringSet(a).symmetricDifference(
     new TernaryStringSet(b),
   );
-  return Array.from(d);
+  const v = Array.from(u);
+  expect(u.size).toBe(v.length);
+  return v;
 }
 
 test("Union", () => {

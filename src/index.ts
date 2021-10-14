@@ -262,7 +262,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       if (i >= s.length) {
         const had = (tree[node] & EOW) === EOW;
         if (had) {
-          tree[node] = tree[node] & CP_MASK;
+          tree[node] &= CP_MASK;
           --this.#size;
         }
         return had;
@@ -711,7 +711,10 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       return rhs.union(this);
     }
     const union = new TernaryStringSet(this);
-    union.#hasEmpty ||= rhs.#hasEmpty;
+    if (!union.#hasEmpty && rhs.#hasEmpty) {
+      union.#hasEmpty = true;
+      ++union.#size;
+    }
     rhs.__visit(0, [], (s) => {
       union.__add(0, s, 0);
     });
@@ -733,11 +736,15 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       return rhs.intersection(this);
     }
     const intersect = new TernaryStringSet(this);
+    if (intersect.#hasEmpty && !rhs.#hasEmpty) {
+      intersect.#hasEmpty = false;
+      --intersect.#size;
+    }
     intersect.#hasEmpty &&= rhs.#hasEmpty;
     intersect.__visit(0, [], (s, node) => {
       // delete if not also in rhs
       if (rhs.__has(0, s, 0) < 0) {
-        intersect.#tree[node] = intersect.#tree[node] & CP_MASK;
+        intersect.#tree[node] &= CP_MASK;
         --intersect.#size;
       }
     });
@@ -758,11 +765,14 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       throw new TypeError("not a TernaryStringSet");
     }
     const diff = new TernaryStringSet(this);
-    if (rhs.#hasEmpty) diff.#hasEmpty = false;
+    if (rhs.#hasEmpty && diff.#hasEmpty) {
+      diff.#hasEmpty = false;
+      --diff.#size;
+    }
     diff.__visit(0, [], (s, node) => {
       // delete if in rhs
       if (rhs.__has(0, s, 0) >= 0) {
-        diff.#tree[node] = diff.#tree[node] & CP_MASK;
+        diff.#tree[node] &= CP_MASK;
         --diff.#size;
       }
     });
@@ -783,11 +793,18 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
     const diff = new TernaryStringSet(this);
     diff.#hasEmpty = this.#hasEmpty !== rhs.#hasEmpty;
+    if (this.#hasEmpty !== diff.#hasEmpty) {
+      if (diff.#hasEmpty) {
+        ++diff.#size;
+      } else {
+        --diff.#size;
+      }
+    }
     rhs.__visit(0, [], (s) => {
       // if s is also in diff, delete in diff; otherwise add to diff
       const node = diff.__has(0, s, 0);
       if (node >= 0) {
-        diff.#tree[node] = diff.#tree[node] & CP_MASK;
+        diff.#tree[node] &= CP_MASK;
         --diff.#size;
       } else {
         diff.__add(0, s, 0);
