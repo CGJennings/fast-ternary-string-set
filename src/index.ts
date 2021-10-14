@@ -330,6 +330,34 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
+   * Returns an array of possible completions for the specified pattern string.
+   * That is, an array of all strings in the set that start with the pattern.
+   * If the pattern itself is in the set, it is included as the first entry.
+   *
+   * @param pattern The non-null pattern to find completions for.
+   * @returns A (possibly empty) array of all strings in the set for which the
+   *     pattern is a prefix.
+   */
+  getCompletionsOf(pattern: string): string[] {
+    if (pattern == null) throw new ReferenceError("null pattern");
+
+    if (pattern.length === 0) {
+      return Array.from(this);
+    }
+
+    const prefix = this.__cp(pattern);
+    let node = this.__has(0, prefix, 0);
+    if (node < 0) node = -node - 1;
+    if (node >= this.#tree.length) return [];
+
+    const results: string[] = [];
+    this.__visit(node, prefix, (s) => {
+      results.push(String.fromCodePoint(...s));
+    });
+    return results;
+  }
+
+  /**
    * Returns all strings that match the pattern. The pattern may include zero or
    * more "don't care" characters that can match any code point. By default this
    * character is `"."`, but any valid code point can be used. For example, the
@@ -555,6 +583,10 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   values(): IterableIterator<string> {
     const tree = this.#tree;
     function* itor(node: number, prefix: number[]): Generator<string> {
+      if (node < 0) {
+        node = 0;
+        yield "";
+      }
       if (node >= tree.length) return;
       yield* itor(tree[node + 1], prefix);
       prefix.push(tree[node] & CP_MASK);
@@ -563,7 +595,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       prefix.pop();
       yield* itor(tree[node + 3], prefix);
     }
-    return itor(0, []);
+    return itor(this.#hasEmpty ? -1 : 0, []);
   }
 
   /**
@@ -731,6 +763,23 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         return this.__has(tree[node + 2], s, i);
       }
     }
+  }
+
+  /**
+   * Private helper method that returns a string as an array of numeric code points.
+   * (This is not equivalent to `[...s]`, which returns strings.)
+   *
+   * @param s The string to conver.
+   * @returns An array of the code points that comprise the string.
+   */
+  private __cp(s: string): number[] {
+    const cps = [];
+    for (let i = 0; i < s.length; ) {
+      const cp = s.codePointAt(i++);
+      if (cp >= CP_MIN_SURROGATE) ++i;
+      cps.push(cp);
+    }
+    return cps;
   }
 
   /**

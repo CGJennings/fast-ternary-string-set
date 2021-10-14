@@ -68,6 +68,44 @@ test("arrangements include empty string if present", () => {
   expect(set.getArrangementsOf("a")).toEqual(["", "a"]);
 });
 
+/** Get completions the hard way for comparison. */
+function completions(prefix: string, elements: string[]): string[] {
+  const results = [];
+  for (const s of elements) {
+    if (s.startsWith(prefix)) results.push(s);
+  }
+  return results;
+}
+
+test("basic completions test", () => {
+  const elements = [
+    "",
+    "aardvark",
+    "aardvarks",
+    "apple",
+    "banjos",
+    "banks",
+    "cars",
+  ];
+  set.addAll(elements);
+  expect(set.getCompletionsOf("")).toEqual(elements);
+  expect(set.getCompletionsOf("a")).toEqual(["aardvark", "aardvarks", "apple"]);
+  expect(set.getCompletionsOf("aa")).toEqual(["aardvark", "aardvarks"]);
+  expect(set.getCompletionsOf("aardvark")).toEqual(["aardvark", "aardvarks"]);
+  expect(set.getCompletionsOf("aardvarks")).toEqual(["aardvarks"]);
+  expect(set.getCompletionsOf("aardvarkz")).toEqual([]);
+  expect(set.getCompletionsOf("aardvarksz")).toEqual([]);
+  expect(set.getCompletionsOf("b")).toEqual(["banjos", "banks"]);
+  expect(set.getCompletionsOf("ba")).toEqual(["banjos", "banks"]);
+  expect(set.getCompletionsOf("ban")).toEqual(["banjos", "banks"]);
+  expect(set.getCompletionsOf("banj")).toEqual(["banjos"]);
+  expect(set.getCompletionsOf("banjo")).toEqual(["banjos"]);
+  expect(set.getCompletionsOf("banjos")).toEqual(["banjos"]);
+  expect(set.getCompletionsOf("z")).toEqual([]);
+  expect(set.getCompletionsOf("zaa")).toEqual([]);
+  expect(set.getCompletionsOf("banz")).toEqual([]);
+});
+
 test("basic partial matches test", () => {
   const elements = ["a", "aa", "aaa", "aab", "aaaa", "aaaaa", "aaaab", "aaaac"];
   set.addAll(elements);
