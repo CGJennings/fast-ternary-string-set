@@ -555,6 +555,10 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   values(): IterableIterator<string> {
     const tree = this.#tree;
     function* itor(node: number, prefix: number[]): Generator<string> {
+      if (node < 0) {
+        node = 0;
+        yield "";
+      }
       if (node >= tree.length) return;
       yield* itor(tree[node + 1], prefix);
       prefix.push(tree[node] & CP_MASK);
@@ -563,7 +567,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       prefix.pop();
       yield* itor(tree[node + 3], prefix);
     }
-    return itor(0, []);
+    return itor(this.#hasEmpty ? -1 : 0, []);
   }
 
   /**
