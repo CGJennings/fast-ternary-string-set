@@ -214,7 +214,7 @@ The TypeScript source is found under `src`. Compiled output is written to `lib`.
 npm run build
 ```
 
-The included `tsconfig.json` targets ES2015 (ES6). To target old JavaScript engines or browsers you will need to modify this configuration and/or use a tool like Babel.
+The included `tsconfig.json` targets ES2021. To target old JavaScript engines or browsers you will need to modify this configuration and/or use a tool like Babel.
 
 The project includes an extensive suite of tests under `src/tests`. To run all tests:
 
