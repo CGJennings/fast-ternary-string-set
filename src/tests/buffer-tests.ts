@@ -22,7 +22,7 @@ test("roundtrip a small set", () => {
   const newTree = TernaryStringSet.fromBuffer(buff);
   buff = null;
   expect(newTree.size).toBe(set.size);
-  expect(newTree.stats).toEqual(set.stats);
+  expect(newTree.stats.toString()).toEqual(set.stats.toString());
   for (const s of set) {
     expect(newTree.has(s)).toBe(true);
   }
@@ -34,7 +34,7 @@ test("roundtrip a large set", () => {
   const newTree = TernaryStringSet.fromBuffer(buff);
   buff = null;
   expect(newTree.size).toBe(set.size);
-  expect(newTree.stats).toEqual(set.stats);
+  expect(newTree.stats.toString()).toEqual(set.stats.toString());
   for (const s of set) {
     expect(newTree.has(s)).toBe(true);
   }
