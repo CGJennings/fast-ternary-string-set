@@ -9,11 +9,17 @@ const CP_MASK = EOW - 1;
 /** Smallest code point that requires a surrogate pair. */
 const CP_MIN_SURROGATE = 0x10000;
 /** Version number for the data buffer format. */
-const BUFFER_VERSION = 1;
+const BUFFER_VERSION = 2;
 /** Magic number used by buffer data format. */
 const BUFFER_MAGIC = 84;
 /** Buffer format header size (4 bytes magic/properties + 4 bytes node count). */
 const BUFFER_HEAD_SIZE = 8;
+/** Buffer format flag bit: set has empty string */
+const BF_HAS_EMPTY = 1;
+/** Buffer format flag bit: set is compact */
+const BF_COMPACT = 2;
+/** Buffer format flag bit: use 16-bit integers for branch pointers. */
+const BF_BRANCH16 = 4;
 
 /**
  * A sorted string set that implements a superset of the standard JS `Set` interface.
@@ -44,6 +50,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   #tree: number[];
   /** Tracks whether empty string is in the set as a special case. */
   #hasEmpty: boolean;
+  /** Tracks whether this tree has been compacted; if true this must be undone before mutating the tree. */
+  #compact: boolean;
   /** Tracks set size. */
   #size: number;
 
@@ -69,6 +77,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       if (source instanceof TernaryStringSet) {
         this.#tree = source.#tree.slice();
         this.#hasEmpty = source.#hasEmpty;
+        this.#compact = source.#compact;
         this.#size = source.#size;
       } else if (Array.isArray(source)) {
         this.addAll(source);
@@ -91,6 +100,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   clear(): void {
     this.#tree = [];
     this.#hasEmpty = false;
+    this.#compact = false;
     this.#size = 0;
   }
 
@@ -117,6 +127,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         ++this.#size;
       }
     } else {
+      if (this.#compact && !this.has(s)) this.__decompact();
       this.addImpl(0, s, 0, s.codePointAt(0));
     }
     return this;
@@ -244,6 +255,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       return had;
     }
 
+    if (this.#compact && this.has(s)) this.__decompact();
     return this.deleteImpl(0, s, 0, s.codePointAt(0));
   }
 
@@ -711,7 +723,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (rhs.#size > this.#size) {
       return rhs.union(this);
     }
-    const union = new TernaryStringSet(this);
+    const union = this.__noncompactClone();
     if (!union.#hasEmpty && rhs.#hasEmpty) {
       union.#hasEmpty = true;
       ++union.#size;
@@ -736,7 +748,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (rhs.#size < this.#size) {
       return rhs.intersection(this);
     }
-    const intersect = new TernaryStringSet(this);
+    const intersect = this.__noncompactClone();
     if (intersect.#hasEmpty && !rhs.#hasEmpty) {
       intersect.#hasEmpty = false;
       --intersect.#size;
@@ -765,7 +777,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
-    const diff = new TernaryStringSet(this);
+    const diff = this.__noncompactClone();
     if (rhs.#hasEmpty && diff.#hasEmpty) {
       diff.#hasEmpty = false;
       --diff.#size;
@@ -792,7 +804,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
-    const diff = new TernaryStringSet(this);
+    const diff = this.__noncompactClone();
     diff.#hasEmpty = this.#hasEmpty !== rhs.#hasEmpty;
     if (this.#hasEmpty !== diff.#hasEmpty) {
       if (diff.#hasEmpty) {
@@ -959,6 +971,25 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
+   * Private helper that converts a compact tree back into a non-compact form.
+   */
+  private __decompact() {
+    if (this.#compact) this.balance();
+  }
+
+  /**
+   * Private helper method that returns a clone of this set; but unlike using
+   * the constructor to copy a set, the new set is guaranteed not to be compact.
+   */
+  private __noncompactClone() {
+    if (this.#compact) {
+      return new TernaryStringSet(Array.from(this));
+    } else {
+      return new TernaryStringSet(this);
+    }
+  }
+
+  /**
    * Optimizes the layout of the underlying data structure to maximize search speed.
    * This may improve future search performance after adding or deleting a large
    * number of strings.
@@ -973,9 +1004,123 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * As detailed under `addAll`, if the entire contents of the set were added by a single
    * call to `addAll` using a sorted array, the tree is already balanced and calling this
    * method will have no benefit.
+   *
+   * **Note:** This method undoes the effect of `compact()`. If you want to balance and
+   * compact the tree, be sure to balance it first.
    */
   balance(): void {
     this.#tree = new TernaryStringSet(Array.from(this)).#tree;
+    this.#compact = false;
+  }
+
+  /**
+   * Compacts the set to reduce memory use and improve search performance.
+   * For large sets, a compacted set is typically *significantly* smaller
+   * than an uncompacted set. The tradeoff is that compact sets cannot be modified.
+   * Any method that mutates the set, including
+   * `add`, `addAll`, `balance`, and `delete`
+   * can therefore cause the set to revert to an uncompacted state.
+   *
+   * Compaction and uncompaction are expensive operations, so rapid cycling
+   * between these states should be avoided. Compaction is an excellent option
+   * if the primary purpose of a set matching against a fixed collection
+   * of strings, such as a dictionary.
+   */
+  compact(): void {
+    if (this.#compact || this.#tree.length === 0) return;
+
+    // Theory of operation:
+    //
+    // In a ternary tree, all strings with the same prefix share the nodes
+    // that make up that prefix. The compact operation does much the same thing,
+    // but for suffixes. It does this by deduplicating identical tree nodes.
+    // For example, every string that ends in "e" and is not a prefix of any other
+    // string looks the same: an "e" node with three NUL pointers for its child branches.
+    // But these can be distributed throughout the tree. Consider a tree containing only
+    // "ape" and "haze": we could save space by having only a single copy of the "e" node
+    // and pointing to it from both the "p" node and the "z" node.
+    //
+    // To compact the tree, we iterate over each node in turn. If this is the first time
+    // we have seen this node, we assign it to the next available slot in the new,
+    // compacted array we will be create. If we have already seen the equivalent node,
+    // we do not assign it a slot since it will share the previously assigned slot.
+    // We then write out the new tree by iterating over the deduplicated nodes. When
+    // writing a node's child branch pointers, instead of using the original pointers
+    // we look up the new slot assigned to each child in the previous step.
+    //
+    // After performing the above step once, we will have deduplicated just the leaf nodes
+    // (because initially the only pointer that appears in multiple nodes is the NUL pointer).
+    // However, because the parents of those leaf nodes are now sharing pointers where they
+    // point to a deduplicated leaf node, there may now be duplicates among the parent nodes.
+    // Thus we can repeat the process above to dedupe the parent nodes. This in turn can result
+    // in duplicates in the grandparent nodes, and so on. Rewriting passes can be repeated until
+    // the output array is the same size as the input array, meaning that no duplicates were removed.
+    //
+
+    let source = this.#tree;
+    for (;;) {
+      const compacted = this.compactImpl(source);
+      if (compacted.length === source.length) {
+        this.#tree = compacted;
+        break;
+      }
+      source = compacted;
+    }
+    this.#compact = true;
+  }
+
+  /** Performs a single compaction pass; see `compact()` method. */
+  private compactImpl(tree: number[]): number[] {
+    // this uses nested sparse arrays to map node values to "slots"
+    // mapping(index of node in input tree) => index of node ("slot") in compacted output
+    let nextSlot = 0;
+    const nodeMap: number[][][][] = [];
+    function mapping(i: number): number {
+      // nodeMap[value][ltPointer][eqPointer][gtPointer] = slot
+      let ltMap = nodeMap[tree[i]];
+      if (ltMap == null) {
+        nodeMap[tree[i]] = ltMap = [];
+      }
+      let eqMap = ltMap[tree[i + 1]];
+      if (eqMap == null) {
+        ltMap[tree[i + 1]] = eqMap = [];
+      }
+      let gtMap = eqMap[tree[i + 2]];
+      if (gtMap == null) {
+        eqMap[tree[i + 2]] = gtMap = [];
+      }
+      let slot = gtMap[tree[i + 3]];
+      if (slot == null) {
+        gtMap[tree[i + 3]] = slot = nextSlot;
+        nextSlot += 4;
+      }
+      return slot;
+    }
+
+    // create map of unique nodes
+    for (let i = 0; i < tree.length; i += 4) {
+      mapping(i);
+    }
+
+    // rewrite tree
+    const out: number[] = [];
+    for (let i = 0; i < tree.length; i += 4) {
+      const slot = mapping(i);
+      // if the unique version of the node hasn't been written yet,
+      // append it to the output array
+      if (slot >= out.length) {
+        if (slot > out.length) throw new Error("assertion");
+        // write the node value unchanged
+        out[slot] = tree[i];
+        // write the pointers for each child branch, but use the new
+        // slot for whatever child node is found there
+        out[slot + 1] = mapping(tree[i + 1]);
+        out[slot + 2] = mapping(tree[i + 2]);
+        out[slot + 3] = mapping(tree[i + 3]);
+      }
+    }
+
+    return out;
   }
 
   /**
@@ -986,24 +1131,54 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    */
   toBuffer(): ArrayBuffer {
     const tree = this.#tree;
+    // use 16-bit ints for branches if node count is small enough
+    const USE_BRANCH16 = tree.length < 0xffff;
 
     // allocate space for header + node count + tree nodes
-    const buffer = new ArrayBuffer(BUFFER_HEAD_SIZE + this.#tree.length * 4);
+    let buffSize = this.#tree.length * 4;
+    if (USE_BRANCH16) buffSize = (this.#tree.length / 4) * 10;
+    const buffer = new ArrayBuffer(BUFFER_HEAD_SIZE + buffSize);
     const view = new DataView(buffer);
+
     // first two bytes are magic "TT" for ternary tree
     view.setUint8(0, BUFFER_MAGIC);
     view.setUint8(1, BUFFER_MAGIC);
+
     // third byte is version number
     view.setUint8(2, BUFFER_VERSION);
-    // fourth byte tracks presence of empty string
-    view.setUint8(3, this.#hasEmpty ? 1 : 0);
 
-    // fifth though eigth bytes store number of nodes as a check
-    view.setUint32(4, tree.length, false);
+    // fourth byte tracks flags:
+    //   - presence of empty string
+    //   - whether set is compacted
+    let treeFlags = 0;
+    if (this.#hasEmpty) treeFlags |= BF_HAS_EMPTY;
+    if (this.#compact) treeFlags |= BF_COMPACT;
+    if (USE_BRANCH16) treeFlags |= BF_BRANCH16;
+    view.setUint8(3, treeFlags);
+
+    // fifth though eigth bytes store size (in v1, stored node count)
+    view.setUint32(4, this.#size, false);
 
     // remainder of buffer stores tree content
-    for (let i = 0, byte = BUFFER_HEAD_SIZE; i < tree.length; ++i, byte += 4) {
-      view.setUint32(byte, tree[i], false);
+    if (USE_BRANCH16) {
+      for (
+        let i = 0, byte = BUFFER_HEAD_SIZE;
+        i < tree.length;
+        i += 4, byte += 10
+      ) {
+        view.setUint32(byte, tree[i], false);
+        view.setUint16(byte + 4, tree[i + 1], false);
+        view.setUint16(byte + 6, tree[i + 2], false);
+        view.setUint16(byte + 8, tree[i + 3], false);
+      }
+    } else {
+      for (
+        let i = 0, byte = BUFFER_HEAD_SIZE;
+        i < tree.length;
+        ++i, byte += 4
+      ) {
+        view.setUint32(byte, tree[i], false);
+      }
     }
 
     return buffer;
@@ -1026,43 +1201,66 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
     // verify that this appears to be valid tree data
     // and that the version of the format is supported
-    if ((view.byteLength & 3) !== 0) {
-      throw new TypeError("bad buffer (length)");
-    }
     if (view.getUint8(0) !== BUFFER_MAGIC || view.getInt8(1) !== BUFFER_MAGIC) {
       throw new TypeError("bad buffer (magic bytes)");
     }
-    if (view.getUint8(2) < 1) {
+    const version = view.getUint8(2);
+    if (version < 1) {
       throw new TypeError("bad buffer (version byte)");
     }
-    if (view.getUint8(2) > BUFFER_VERSION) {
+    if (version > BUFFER_VERSION) {
       throw new TypeError(
-        `unsupported version: ${view.getInt8(2)} > ${BUFFER_VERSION}`,
+        `unsupported version: ${version} > ${BUFFER_VERSION}`,
       );
     }
 
     const treeFlags = view.getUint8(3);
-    if (treeFlags > 1) {
+    if (treeFlags > (BF_COMPACT | BF_HAS_EMPTY | BF_BRANCH16)) {
       throw new TypeError("bad buffer (invalid tree properties)");
     }
 
-    const expectedLength = BUFFER_HEAD_SIZE + view.getUint32(4, false) * 4;
-    if (view.byteLength < expectedLength) {
-      throw new TypeError("bad buffer (missing bytes)");
-    }
+    // branches were stored as 16-bit values
+    const USE_BRANCH16 = (treeFlags && BF_BRANCH16) === BF_BRANCH16;
+
+    // tree size in version 2+, tree node count in version 1
+    const treeSize = view.getUint32(4, false);
 
     const newTree = new TernaryStringSet();
-    newTree.#hasEmpty = (treeFlags & 1) === 1;
+    newTree.#hasEmpty = (treeFlags & BF_HAS_EMPTY) === BF_HAS_EMPTY;
+    newTree.#compact = (treeFlags & BF_COMPACT) === BF_COMPACT;
+
     const tree = newTree.#tree;
-    for (let byte = BUFFER_HEAD_SIZE; byte < view.byteLength; byte += 4) {
-      tree[tree.length] = view.getUint32(byte, false);
+    if (USE_BRANCH16) {
+      for (let byte = BUFFER_HEAD_SIZE; byte < view.byteLength; byte += 10) {
+        let n;
+        tree[tree.length] = view.getUint32(byte, false);
+        n = view.getUint16(byte + 4, false);
+        tree[tree.length] = n === 0xffff ? NUL : n;
+        n = view.getUint16(byte + 6, false);
+        tree[tree.length] = n === 0xffff ? NUL : n;
+        n = view.getUint16(byte + 8, false);
+        tree[tree.length] = n === 0xffff ? NUL : n;
+      }
+    } else {
+      for (let byte = BUFFER_HEAD_SIZE; byte < view.byteLength; byte += 4) {
+        tree[tree.length] = view.getUint32(byte, false);
+      }
     }
 
-    let size = newTree.#hasEmpty ? 1 : 0;
-    for (let node = 0; node < tree.length; node += 4) {
-      if (tree[node] & EOW) ++size;
+    if (version >= 2) {
+      newTree.#size = treeSize;
+    } else {
+      if (newTree.#compact) {
+        throw new TypeError("bad buffer (v1 compact)");
+      }
+      // version 1 did not store size, need to count from EOW flags;
+      // this is accurate since version 1 can't be compact
+      let size = newTree.#hasEmpty ? 1 : 0;
+      for (let node = 0; node < tree.length; node += 4) {
+        if (tree[node] & EOW) ++size;
+      }
+      newTree.#size = size;
     }
-    newTree.#size = size;
 
     return newTree;
   }
@@ -1099,6 +1297,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     return {
       size: this.#size,
       nodes,
+      compact: this.#compact,
       depth: breadth.length,
       breadth,
       minCodePoint,
@@ -1122,6 +1321,8 @@ export interface TernaryTreeStats {
    * set will consume approximately `nodes * 16` bytes of memory, plus some object overhead.
    */
   nodes: number;
+  /** True if the tree structure is compacted. */
+  compact: boolean;
   /** The maximum depth (height) of the tree. */
   depth: number;
   /**

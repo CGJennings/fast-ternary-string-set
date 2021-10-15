@@ -2,39 +2,43 @@
 
 A fast, space-efficient, serializable string set based on ternary search trees, with both exact and approximate membership tests.
 
-Features:
+## Features
 
- - Drop-in replacement for most code that uses a standard [JavaScript `Set`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set) of string elements.
- - All search results and iteration methods list elements in ascending sorted (lexicographic) order.
- - Includes several approximate matching methods:
-   1. List all elements that complete (start with) a given prefix.
-   2. List all elements that can be made from a given list of letters.
-   3. List all elements that match a pattern including "don't care" letters (as `.` in a regular expression).
-   4. List all elements within a specified [Hamming distance](https://en.wikipedia.org/wiki/Hamming_distance) of a pattern.
- - All matching, including approximate matching, is based on full code points and not char codes.
- - Supports standard set relations (equality, subset, superset) and operations (union, intersection, difference, symmetric difference).
- - Balances search time and memory consumption: stored strings share tree nodes and do not require a reference to the original strings.
- - The tree structure is encoded in a form that is friendly to common JS engine optimizations.
- - Elements are stored by Unicode code point; any valid Unicode string can be added to a set.
- - Sets can be serialized to a compact binary format (as an `ArrayBuffer`).
- - Written in fully documented TypeScript, targeting modern JavaScript engines.
+ - Drop-in replacement for nearly any use of a [JavaScript `Set`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set) of strings.
+ - Search and iteration methods return elements in ascending sorted (lexicographic) order.
+ - Set relations (equality, subset, superset) and operations (union, intersection, difference, symmetric difference).
+ - Several approximate matching methods:
+   1. List strings that complete a prefix.
+   2. List strings that can be made from a list of letters.
+   3. List strings that match a pattern including "don't care" letters (as `.` in a regular expression).
+   4. List strings within a certain [Hamming distance](https://en.wikipedia.org/wiki/Hamming_distance) of a pattern.
+ - Serialize sets to and from an `ArrayBuffer`.
+ - Time and space efficient:
+   - Leverages common JS engine optimizations under the hood.
+   - Elements share tree nodes and do not retain references to the original strings.
+   - Read-only sets can be *compacted* to save even more space.
+ - Well-documented TypeScript source, targeting modern JavaScript by default.
  - Backed by extensive test suites.
- - No other dependencies.
  - Use as a standalone/ECMAScript module or as a Node.js/CommonJS module.
+ - No other dependencies.
 
 ## Installation
 
-To install the latest stable version:
+To install the latest stable version with `npm`:
 
 ```bash
 npm install fast-ternary-string-set
 ```
 
-Or, if using `yarn`, `yarn add fast-ternary-string-set`.
+Or, if using `yarn`:
 
-Alternatively, to use it without Node.js, copy the main source file (`src/index.ts`) into any TypeScript project, then `import` the copied file into your code. (You will probably want to rename the file to something appropriate, such as `ternary-string-set.ts`.)
+```bash
+yarn add fast-ternary-string-set
+```
 
-## Examples of use
+To use it without Node.js, you can simply copy the main source file (`src/index.ts`) into any TypeScript project, rename to something sensible, and then `import` it into your code as usual.
+
+## Examples
 
 To load the module:
 
@@ -63,7 +67,7 @@ set.has(123.456);
 // => false (any non-string returns false)
 ```
 
-Create a new string set from an existing set or other `Iterable<string>`:
+Create a new string set from any `Iterable<string>`:
 
 ```js
 // otherSet could be any Iterable<string>, such as a string array
@@ -94,28 +98,28 @@ for (const el of set) {
 set.forEach((el) => console.log(el));
 ```
 
-Find all elements that start with `"sha"`:
+Get all elements that start with `"sha"`:
 
 ```js
 set.getCompletionsOf("sha");
 // => ["shade", "shadow", "shake", "shape", "shapes"] (for example)
 ```
 
-Find all elements that can be made from the letters of `"taco"`:
+Get all elements that can be made from the letters of `"taco"`:
 
 ```js
 set.getArrangementsOf("taco");
 // => ["act", "cat", "coat", "taco"] (for example)
 ```
 
-Find all elements within Hamming distance 1 of `"cat"`:
+Get all elements within Hamming distance 1 of `"cat"`:
 
 ```js
 set.getWithinHammingDistanceOf("cat", 1);
 // => ["bat", "can", "cap", "cat", "cot", "sat"] (for example)
 ```
 
-Find all elements that match `"b.t"`:
+Get all elements that match `"b.t"`:
 
 ```js
 set.getPartialMatchesOf("b.t");
@@ -140,7 +144,7 @@ s1.isSupersetOf(s2);
 // => false
 ```
 
-Serialize to or from a binary blob:
+Serialize to or from a buffer:
 
 ```js
 // write a set to an ArrayBuffer
@@ -150,27 +154,51 @@ const buff = set.toBuffer();
 const set = TernaryStringSet.fromBuffer(buff);
 ```
 
-## Differences from standard JS `Set`
+## Usage notes
+
+### Differences from standard JS `Set`
 
 `TernaryStringSet` supports a superset of the standard `Set` interface, but it is not a subclass of `Set`.
 
 JavaScript `Set` objects guarantee that they iterate over elements in the order that they are added.
 `TernaryStringSet`s always return results in sorted order.
 
-`TernaryStringSet`s can contain the empty string, but cannot contain non-strings. This includes `null` and `undefined`.
+`TernaryStringSet`s can contain the empty string, but cannot contain non-strings. Not even `null` or `undefined`.
 
-## Tips
+### Tree quality
 
-Adding strings to a ternary tree in sorted order produces a worst-case tree structure. This can be avoided by adding
-sorted strings using the `addAll` method, which produces an optimal tree structure given a sorted input array.
-Alternatively, the `balance` method can be called to rebuild the tree with optimal structure, but this can be expensive.
+Adding strings in sorted order produces a worst-case tree structure. This can be avoided by adding strings all at once using the constructor or `addAll()`. Given sorted input, both of these methods will produce an optimal tree structure. If this is not practical, adding strings in random order usually yields a near-optimal tree. Calling `balance()` will rebuild the tree in optimal form, but it can be expensive.
 
-After deleting a large number of strings, future search performance may be improved by calling `balance`.
+Similarly, after deleting a large number of strings, future search performance may be improved by calling `balance()`.
 
-An ideal use case for this data structure is one in which the tree will be generated ahead of time and then used to
-test elements or perform approximate matching. During the generation phase, strings can be added in arbitrary order,
-then the tree can be `balance`d and serialized to an `ArrayBuffer`. The set can then be used by loading the tree data
-directly from the loaded binary data, bypassing the need to load and add individual strings.
+Since most `TernaryStringSet` methods are recursive, extremely unbalanced trees can provoke "maximum call stack size exceeded" errors.
+
+### Matching by code point
+
+Some Unicode code points span two characters (char codes) in a JavaScript string. For example, the musical symbol 𝄞, code point U+1D11E, can be assigned to a JavaScript string as follows:
+
+```js
+const clefG = "\ud834\udd1e";
+```
+
+Even though it represents a single symbol, the above string has a length of two! To avoid surprises, `TernaryStringSet` matches by code point, not by char code. For example, since the above string is one code point, it would match `getPartialMatchesOf(".")` and not `getPartialMatchesOf("..")`.
+
+### Compaction
+
+Calling `compact()` can significantly reduce a set's memory footprint. For large sets of typical strings, typical results are a 50&ndash;80% reduction in size. However, no new strings can be added or deleted without undoing the compaction. Compaction is expensive, but can be a one-time or even ahead-of-time step for many use cases.
+
+### Serialization
+
+A common use case is to match user input against a fixed set of strings. For example, checking input against a spelling dictionary or suggesting completions for partial input. In such cases it is often desirable to build a set ahead of time, serialize it to a buffer, and then save the buffer data on a server where it can be downloaded as needed. Recreating a set directly from buffer data is much faster than downloading a file containing the strings and inserting them into a new set on the client.
+
+The following steps will make such ahead-of-time sets as small as possible:
+
+1. Create a set and insert the desired strings using `add()` or `addAll()`.
+2. Minimize the tree size by calling `balance()` followed by `compact()`.
+3. Create the buffer with `toBuffer()` and write the result to a file.
+4. Optionally, compress the result and configure the server to serve the compressed version where supported by the browser.
+
+To recreate the set, download or otherwise obtain the buffer data, then use `TernaryTreeSet.fromBuffer(data)`.
 
 ## Developing
 

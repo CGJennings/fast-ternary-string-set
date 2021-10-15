@@ -1,5 +1,5 @@
 import { TernaryStringSet } from "../index";
-import { words } from "./word-list-loader";
+import { words } from "./utils";
 
 let set: TernaryStringSet;
 
