@@ -662,6 +662,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @returns True if this set is a subset of, or equal to, the specified set.
    */
   isSubsetOf(rhs: TernaryStringSet): boolean {
+    if (this === rhs) return true;
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
