@@ -1,5 +1,5 @@
 import { TernaryStringSet } from "../index";
-import { words, wordSet } from "./word-list-loader";
+import { words, wordSet } from "./utils";
 
 const compactWords = wordSet();
 compactWords.compact();
