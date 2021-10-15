@@ -103,7 +103,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * Adding an already present string has no effect.
    * If inserting multiple strings in sorted (lexicographic) order, prefer
    * `addAll` over this method.
-   * 
+   *
    * @param s The non-null string to add.
    * @returns This set, allowing chained calls.
    * @throws TypeError If the argument is not a string.
@@ -975,7 +975,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * Private helper method that returns a clone of this set; but unlike using
    * the constructor to copy a set, the new set is guaranteed not to be compact.
    */
-  private __noncompactClone() {    
+  private __noncompactClone() {
     if (this.#compact) {
       return new TernaryStringSet(Array.from(this));
     } else {
@@ -990,7 +990,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * Any method that mutates the set, including
    * `add`, `addAll`, `balance`, and `delete`
    * can therefore cause the set to revert to an uncompacted state.
-   * 
+   *
    * Compaction and uncompaction are expensive operations, so rapid cycling
    * between these states should be avoided. Compaction is an excellent option
    * if the primary purpose of a set matching against a fixed collection
@@ -1054,7 +1054,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * As detailed under `addAll`, if the entire contents of the set were added by a single
    * call to `addAll` using a sorted array, the tree is already balanced and calling this
    * method will have no benefit.
-   * 
+   *
    * **Note:** This method undoes the effect of `compact()`. If you want to balance and
    * compact the tree, be sure to balance it first.
    */
@@ -1239,30 +1239,30 @@ function compactionPass(tree: number[]): number[] {
     if (ltMap == null) {
       nodeMap[tree[i]] = ltMap = [];
     }
-    let eqMap = ltMap[tree[i+1]];
+    let eqMap = ltMap[tree[i + 1]];
     if (eqMap == null) {
-      ltMap[tree[i+1]] = eqMap = [];
+      ltMap[tree[i + 1]] = eqMap = [];
     }
-    let gtMap = eqMap[tree[i+2]];
+    let gtMap = eqMap[tree[i + 2]];
     if (gtMap == null) {
-      eqMap[tree[i+2]] = gtMap = [];
+      eqMap[tree[i + 2]] = gtMap = [];
     }
-    let slot = gtMap[tree[i+3]];
+    let slot = gtMap[tree[i + 3]];
     if (slot == null) {
-      gtMap[tree[i+3]] = slot = nextSlot;
+      gtMap[tree[i + 3]] = slot = nextSlot;
       nextSlot += 4;
     }
     return slot;
   }
-  
+
   // create map of unique nodes
-  for (let i=0; i<tree.length; i += 4) {
+  for (let i = 0; i < tree.length; i += 4) {
     mapping(i);
   }
-  
+
   // rewrite tree
   const out: number[] = [];
-  for (let i=0; i<tree.length; i += 4) {
+  for (let i = 0; i < tree.length; i += 4) {
     const slot = mapping(i);
     // if the unique version of the node hasn't been written yet,
     // append it to the output array
@@ -1272,11 +1272,11 @@ function compactionPass(tree: number[]): number[] {
       out[slot] = tree[i];
       // write the pointers for each child branch, but use the new
       // slot for whatever child node is found there
-      out[slot+1] = mapping(tree[i+1]);
-      out[slot+2] = mapping(tree[i+2]);
-      out[slot+3] = mapping(tree[i+3]);
+      out[slot + 1] = mapping(tree[i + 1]);
+      out[slot + 2] = mapping(tree[i + 2]);
+      out[slot + 3] = mapping(tree[i + 3]);
     }
   }
-  
+
   return out;
 }
