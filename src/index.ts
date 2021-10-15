@@ -44,6 +44,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   #tree: number[];
   /** Tracks whether empty string is in the set as a special case. */
   #hasEmpty: boolean;
+  /** Tracks whether this tree has been compacted; if true this must be undone before mutating the tree. */
+  #compact: boolean;
   /** Tracks set size. */
   #size: number;
 
@@ -69,6 +71,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       if (source instanceof TernaryStringSet) {
         this.#tree = source.#tree.slice();
         this.#hasEmpty = source.#hasEmpty;
+        this.#compact = source.#compact;
         this.#size = source.#size;
       } else if (Array.isArray(source)) {
         this.addAll(source);
@@ -91,6 +94,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   clear(): void {
     this.#tree = [];
     this.#hasEmpty = false;
+    this.#compact = false;
     this.#size = 0;
   }
 
@@ -99,7 +103,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * Adding an already present string has no effect.
    * If inserting multiple strings in sorted (lexicographic) order, prefer
    * `addAll` over this method.
-   *
+   * 
    * @param s The non-null string to add.
    * @returns This set, allowing chained calls.
    * @throws TypeError If the argument is not a string.
@@ -117,6 +121,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         ++this.#size;
       }
     } else {
+      if (this.#compact && !this.has(s)) this.__loosen();
       this.addImpl(0, s, 0, s.codePointAt(0));
     }
     return this;
@@ -244,6 +249,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       return had;
     }
 
+    if (this.#compact && this.has(s)) this.__loosen();
     return this.deleteImpl(0, s, 0, s.codePointAt(0));
   }
 
@@ -710,7 +716,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (rhs.#size > this.#size) {
       return rhs.union(this);
     }
-    const union = new TernaryStringSet(this);
+    const union = this.__looseClone();
     if (!union.#hasEmpty && rhs.#hasEmpty) {
       union.#hasEmpty = true;
       ++union.#size;
@@ -735,7 +741,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (rhs.#size < this.#size) {
       return rhs.intersection(this);
     }
-    const intersect = new TernaryStringSet(this);
+    const intersect = this.__looseClone();
     if (intersect.#hasEmpty && !rhs.#hasEmpty) {
       intersect.#hasEmpty = false;
       --intersect.#size;
@@ -764,7 +770,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
-    const diff = new TernaryStringSet(this);
+    const diff = this.__looseClone();
     if (rhs.#hasEmpty && diff.#hasEmpty) {
       diff.#hasEmpty = false;
       --diff.#size;
@@ -791,7 +797,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
-    const diff = new TernaryStringSet(this);
+    const diff = this.__looseClone();
     diff.#hasEmpty = this.#hasEmpty !== rhs.#hasEmpty;
     if (this.#hasEmpty !== diff.#hasEmpty) {
       if (diff.#hasEmpty) {
@@ -958,6 +964,25 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
+   * Private helper that converts a compact tree back into a non-compact form.
+   */
+  private __loosen() {
+    if (this.#compact) this.balance();
+  }
+
+  /**
+   * Private helper method that returns a clone of this set; but unlike using
+   * the constructor to copy a set, the new set is guaranteed not to be compact.
+   */
+  private __looseClone() {    
+    if (this.#compact) {
+      return new TernaryStringSet(Array.from(this));
+    } else {
+      return new TernaryStringSet(this);
+    }
+  }
+
+  /**
    * Optimizes the layout of the underlying data structure to maximize search speed.
    * This may improve future search performance after adding or deleting a large
    * number of strings.
@@ -972,9 +997,13 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * As detailed under `addAll`, if the entire contents of the set were added by a single
    * call to `addAll` using a sorted array, the tree is already balanced and calling this
    * method will have no benefit.
+   * 
+   * **Note:** This method undoes the effect of `compact()`. If you want to balance and
+   * compact the tree, be sure to balance it first.
    */
   balance(): void {
     this.#tree = new TernaryStringSet(Array.from(this)).#tree;
+    this.#compact = false;
   }
 
   /**
