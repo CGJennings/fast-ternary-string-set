@@ -1097,54 +1097,72 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
   /**
    * Returns information about this set's underlying tree structure.
-   * This method is intended only for advanced use cases, such as:
-   *  - estimating the set's memory footprint;
-   *  - measuring the impact of some sequence of operations;
-   *  - making more informed decisions about whether to balance the tree;
-   *  - determining whether the tree can be packed into a custom format.
+   * This method is intended only for advanced use cases, such as
+   * testing, estimating the set's memory footprint or deciding
+   * whether to rebalance the tree.
    */
   get stats(): TernaryTreeStats {
-    let size = this.#hasEmpty ? 1 : 0;
-    let depth = 0;
-    let surrogates = 0;
-    this.visitNodes(0, 1, (n, d) => {
-      depth = Math.max(d, depth);
-      const cp = this.#tree[n];
-      if (cp & EOW) ++size;
-      if ((cp & CP_MASK) >= CP_MIN_SURROGATE) ++surrogates;
-    });
-    return {
-      depth,
-      nodes: this.#tree.length / 4,
-      size,
-      surrogates,
-    };
-  }
-  private visitNodes(
-    node: number,
-    depth: number,
-    visitFn: (node: number, depth: number) => unknown,
-  ) {
     const tree = this.#tree;
-    if (node >= tree.length) return;
-    visitFn(node, depth);
-    this.visitNodes(tree[node + 1], depth + 1, visitFn);
-    this.visitNodes(tree[node + 2], depth + 1, visitFn);
-    this.visitNodes(tree[node + 3], depth + 1, visitFn);
+    const breadth: number[] = [];
+    const nodes = this.#tree.length / 4;
+    let surrogates = 0;
+    let minCodePoint = nodes > 0 ? 0x10ffff : 0;
+    let maxCodePoint = 0;
+
+    (function traverse(n: number, d: number) {
+      if (n >= tree.length) return;
+
+      breadth[d] = breadth.length <= d ? 1 : breadth[d] + 1;
+
+      const cp = tree[n] & CP_MASK;
+      if (cp >= CP_MIN_SURROGATE) ++surrogates;
+      if (cp > maxCodePoint) maxCodePoint = cp;
+      if (cp < minCodePoint) minCodePoint = cp;
+
+      traverse(tree[n + 1], d + 1);
+      traverse(tree[n + 2], d + 1);
+      traverse(tree[n + 3], d + 1);
+    })(0, 0);
+
+    return {
+      size: this.#size,
+      nodes,
+      depth: breadth.length,
+      breadth,
+      minCodePoint,
+      maxCodePoint,
+      surrogates,
+      toString() {
+        return JSON.stringify(this)
+          .replace(/\{|\}/g, "")
+          .replace(/"(\w+)":/g, "\n$1: ");
+      },
+    };
   }
 }
 
-/** Statistical data about the tree structure obtained by reading the `stats` property. */
+/** Tree structure information obtained by reading the `stats` property. */
 export interface TernaryTreeStats {
+  /** The number of strings in the tree. Equivalent to the `size` property. */
+  size: number;
+  /**
+   * The total number of nodes in the tree. For a high-quality JavaScript engine, the
+   * set will consume approximately `nodes * 16` bytes of memory, plus some object overhead.
+   */
+  nodes: number;
   /** The maximum depth (height) of the tree. */
   depth: number;
   /**
-   * The total number of nodes in the tree. On a high-quality JavaScript engine, the
-   * entire tree will require approximately `nodes * 16` bytes of memory.
+   * Width of the tree at each level of tree depth, starting with the root at `breadth[0]`.
+   * A deep tree with small depth values will benefit most from being balanced.
    */
-  nodes: number;
-  /** The number of strings in the tree; equivalent to reading the `size` property. */
-  size: number;
+  breadth: number[];
+  /** The least code point contained in any string in the set. */
+  minCodePoint: number;
+  /** The greatest code point contained in any string in the set. */
+  maxCodePoint: number;
   /** The total number of nodes whose code point spans multiple char codes when stored in a string. */
   surrogates: number;
+  /** Returns the stats in string form. */
+  toString(): string;
 }
