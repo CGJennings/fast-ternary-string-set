@@ -121,7 +121,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         ++this.#size;
       }
     } else {
-      if (this.#compact && !this.has(s)) this.__loosen();
+      if (this.#compact && !this.has(s)) this.__decompact();
       this.addImpl(0, s, 0, s.codePointAt(0));
     }
     return this;
@@ -249,7 +249,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       return had;
     }
 
-    if (this.#compact && this.has(s)) this.__loosen();
+    if (this.#compact && this.has(s)) this.__decompact();
     return this.deleteImpl(0, s, 0, s.codePointAt(0));
   }
 
@@ -716,7 +716,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (rhs.#size > this.#size) {
       return rhs.union(this);
     }
-    const union = this.__looseClone();
+    const union = this.__noncompactClone();
     if (!union.#hasEmpty && rhs.#hasEmpty) {
       union.#hasEmpty = true;
       ++union.#size;
@@ -741,7 +741,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (rhs.#size < this.#size) {
       return rhs.intersection(this);
     }
-    const intersect = this.__looseClone();
+    const intersect = this.__noncompactClone();
     if (intersect.#hasEmpty && !rhs.#hasEmpty) {
       intersect.#hasEmpty = false;
       --intersect.#size;
@@ -770,7 +770,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
-    const diff = this.__looseClone();
+    const diff = this.__noncompactClone();
     if (rhs.#hasEmpty && diff.#hasEmpty) {
       diff.#hasEmpty = false;
       --diff.#size;
@@ -797,7 +797,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
-    const diff = this.__looseClone();
+    const diff = this.__noncompactClone();
     diff.#hasEmpty = this.#hasEmpty !== rhs.#hasEmpty;
     if (this.#hasEmpty !== diff.#hasEmpty) {
       if (diff.#hasEmpty) {
@@ -966,7 +966,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   /**
    * Private helper that converts a compact tree back into a non-compact form.
    */
-  private __loosen() {
+  private __decompact() {
     if (this.#compact) this.balance();
   }
 
@@ -974,12 +974,68 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * Private helper method that returns a clone of this set; but unlike using
    * the constructor to copy a set, the new set is guaranteed not to be compact.
    */
-  private __looseClone() {    
+  private __noncompactClone() {    
     if (this.#compact) {
       return new TernaryStringSet(Array.from(this));
     } else {
       return new TernaryStringSet(this);
     }
+  }
+
+  /**
+   * Compacts the set to reduce memory use and improve search performance.
+   * For large sets, a compacted set is typically *significantly* smaller
+   * than an uncompacted set. The tradeoff is that compact sets cannot be modified.
+   * Any method that mutates the set, including
+   * `add`, `addAll`, `balance`, and `delete`
+   * can therefore cause the set to revert to an uncompacted state.
+   * 
+   * Compaction and uncompaction are expensive operations, so rapid cycling
+   * between these states should be avoided. Compaction is an excellent option
+   * if the primary purpose of a set matching against a fixed collection
+   * of strings, such as a dictionary.
+   */
+  compact(): void {
+    if (this.#compact || this.#tree.length === 0) return;
+
+    // Theory of operation:
+    //
+    // In a ternary tree, all strings with the same prefix share the nodes
+    // that make up that prefix. The compact operation does much the same thing,
+    // but for suffixes. It does this by deduplicating identical tree nodes.
+    // For example, every string that ends in "e" and is not a prefix of any other
+    // string looks the same: an "e" node with three NUL pointers for its child branches.
+    // But these can be distributed throughout the tree. Consider a tree containing only
+    // "ape" and "haze": we could save space by having only a single copy of the "e" node
+    // and pointing to it from both the "p" node and the "z" node.
+    //
+    // To compact the tree, we iterate over each node in turn. If this is the first time
+    // we have seen this node, we assign it to the next available slot in the new,
+    // compacted array we will be create. If we have already seen the equivalent node,
+    // we do not assign it a slot since it will share the previously assigned slot.
+    // We then write out the new tree by iterating over the deduplicated nodes. When
+    // writing a node's child branch pointers, instead of using the original pointers
+    // we look up the new slot assigned to each child in the previous step.
+    //
+    // After performing the above step once, we will only have deduplicated the leaf nodes
+    // (because initially the only pointer that appears in multiple nodes is the NUL pointer).
+    // However, because the parents of those leaf nodes are now sharing pointers where they
+    // point to a deduplicated leaf node, there may now be duplicates among the parent nodes.
+    // Thus we can repeat the process above to dedupe the parent nodes. This may create
+    // duplicates in those parent nodes, and so on. The rewriting process can be repeated until
+    // the new array doesn't get any smaller, at which point there are no more duplicates.
+    //
+
+    let source = this.#tree;
+    for (;;) {
+      const compacted = compactionPass(source);
+      if (compacted.length === source.length) {
+        this.#tree = compacted;
+        break;
+      }
+      source = compacted;
+    }
+    this.#compact = true;
   }
 
   /**
@@ -1127,6 +1183,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     return {
       size: this.#size,
       nodes,
+      compact: this.#compact,
       depth: breadth.length,
       breadth,
       minCodePoint,
@@ -1150,6 +1207,8 @@ export interface TernaryTreeStats {
    * set will consume approximately `nodes * 16` bytes of memory, plus some object overhead.
    */
   nodes: number;
+  /** True if the tree structure is compacted. */
+  compact: boolean;
   /** The maximum depth (height) of the tree. */
   depth: number;
   /**
@@ -1165,4 +1224,58 @@ export interface TernaryTreeStats {
   surrogates: number;
   /** Returns the stats in string form. */
   toString(): string;
+}
+
+/** Performs a single compaction pass; see `compact()` method. */
+function compactionPass(tree: number[]): number[] {
+  // this uses nested sparse arrays to map node values to slots
+  // mapping(index of node in #tree) => index ("slot") of node in the compacted output
+  let nextSlot = 0;
+  const nodeMap: number[][][][] = [];
+  function mapping(i: number): number {
+    // nodeMap[value][ltPointer][eqPointer][gtPointer] = slot
+    let ltMap = nodeMap[tree[i]];
+    if (ltMap == null) {
+      nodeMap[tree[i]] = ltMap = [];
+    }
+    let eqMap = ltMap[tree[i+1]];
+    if (eqMap == null) {
+      ltMap[tree[i+1]] = eqMap = [];
+    }
+    let gtMap = eqMap[tree[i+2]];
+    if (gtMap == null) {
+      eqMap[tree[i+2]] = gtMap = [];
+    }
+    let slot = gtMap[tree[i+3]];
+    if (slot == null) {
+      gtMap[tree[i+3]] = slot = nextSlot;
+      nextSlot += 4;
+    }
+    return slot;
+  }
+  
+  // create map of unique nodes
+  for (let i=0; i<tree.length; i += 4) {
+    mapping(i);
+  }
+  
+  // rewrite tree
+  const out: number[] = [];
+  for (let i=0; i<tree.length; i += 4) {
+    const slot = mapping(i);
+    // if the unique version of the node hasn't been written yet,
+    // append it to the output array
+    if (slot >= out.length) {
+      if (slot > out.length) throw new Error("assertion");
+      // write the node value unchanged
+      out[slot] = tree[i];
+      // write the pointers for each child branch, but use the new
+      // slot for whatever child node is found there
+      out[slot+1] = mapping(tree[i+1]);
+      out[slot+2] = mapping(tree[i+2]);
+      out[slot+3] = mapping(tree[i+3]);
+    }
+  }
+  
+  return out;
 }
