@@ -1069,8 +1069,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   /**
    * Returns information about this set's underlying tree structure.
    * This method is intended only for advanced use cases, such as
-   * estimating the set's memory footprint or deciding whether to
-   * rebalance the tree.
+   * testing, estimating the set's memory footprint or deciding
+   * whether to rebalance the tree.
    */
   get stats(): TernaryTreeStats {
     const tree = this.#tree;
