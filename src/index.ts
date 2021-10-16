@@ -1029,33 +1029,41 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   compact(): void {
     if (this._compact || this._tree.length === 0) return;
 
-    // Theory of operation:
-    //
-    // In a ternary tree, all strings with the same prefix share the nodes
-    // that make up that prefix. The compact operation does much the same thing,
-    // but for suffixes. It does this by deduplicating identical tree nodes.
-    // For example, every string that ends in "e" and is not a prefix of any other
-    // string looks the same: an "e" node with three NUL pointers for its child branches.
-    // But these can be distributed throughout the tree. Consider a tree containing only
-    // "ape" and "haze": we could save space by having only a single copy of the "e" node
-    // and pointing to it from both the "p" node and the "z" node.
-    //
-    // To compact the tree, we iterate over each node in turn. If this is the first time
-    // we have seen this node, we assign it to the next available slot in the new,
-    // compacted array we will be create. If we have already seen the equivalent node,
-    // we do not assign it a slot since it will share the previously assigned slot.
-    // We then write out the new tree by iterating over the deduplicated nodes. When
-    // writing a node's child branch pointers, instead of using the original pointers
-    // we look up the new slot assigned to each child in the previous step.
-    //
-    // After performing the above step once, we will have deduplicated just the leaf nodes
-    // (because initially the only pointer that appears in multiple nodes is the NUL pointer).
-    // However, because the parents of those leaf nodes are now sharing pointers where they
-    // point to a deduplicated leaf node, there may now be duplicates among the parent nodes.
-    // Thus we can repeat the process above to dedupe the parent nodes. This in turn can result
-    // in duplicates in the grandparent nodes, and so on. Rewriting passes can be repeated until
-    // the output array is the same size as the input array, meaning that no duplicates were removed.
-    //
+    /*
+    Theory of operation:
+    
+    In a ternary tree, all strings with the same prefix share the nodes
+    that make up that prefix. The compact operation does much the same thing,
+    but for suffixes. It does this by deduplicating identical tree nodes.
+    For example, every string that ends in "e" and is not a prefix of any other
+    strings looks the same: an "e" node with three NUL child branch pointers.
+    But these can be distributed throughout the tree. Consider a tree containing only
+    "ape" and "haze": we could save space by having only a single copy of the "e" node
+    and pointing to it from both the "p" node and the "z" node.
+    
+    So: to compact the tree, we iterate over each node and build a map of all unique nodes.
+    The first time we come across a node, we add it to the map, mapping the node to
+    a number which is the next available slot in the new, compacted, output array we will write.
+
+    Once we have built the map, we iterate over the nodes again. This time we look up each node
+    in the previously built map to find the slot it was assigned in the output array. If the
+    slot is past the end of the array, then we haven't added it to the output yet. We can
+    write the node's value unchanged, but the three pointers to the child branches need to
+    be rewritten to point to the new, deduplicated equivalent of the nodes that they point to.
+    For each branch, if the pointer is NUL we write it unchanged. Otherwise we look up the node
+    that that branch points to in our unique node map to get its new slot number (i.e. array offset)
+    and write the translated address.
+
+    After doing this once, we will have deduplicated just the leaf nodes. In the original tree,
+    only nodes with no children can be duplicates, because their branches are all NUL.
+    But after rewriting the tree, some of the parents of those leaf nodes may now point to
+    shared leaf nodes, so they themselves might now have duplicates in other parts of the tree.
+    So, we can repeat the rewriting step above to remove these newly generated duplicates as well.
+    This may again lead to new duplicates, and so on: the rewriting can continue until the output
+    doesn't shrink anymore.
+
+    */
+    
 
     let source = this._tree;
     for (;;) {
@@ -1100,6 +1108,11 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     // create map of unique nodes
     for (let i = 0; i < tree.length; i += 4) {
       mapping(i);
+    }
+
+    // check if tree will shrink before bothering to rewrite it
+    if (nextSlot === tree.length) {
+      return tree;
     }
 
     // rewrite tree
