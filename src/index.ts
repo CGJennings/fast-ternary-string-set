@@ -375,7 +375,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
 
     // continue from end of prefix by taking equal branch
-    this._visit(this._tree[node + 2], prefix, (s) => {
+    this._visitCodePoints(this._tree[node + 2], prefix, (s) => {
       results.push(String.fromCodePoint(...s));
     });
     return results;
@@ -494,7 +494,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
     // optimize cases where any string the same length as the pattern will match
     if (distance >= pattern.length) {
-      this._visit(0, [], (prefix) => {
+      this._visitCodePoints(0, [], (prefix) => {
         if (prefix.length === pattern.length) {
           matches.push(String.fromCodePoint(...prefix));
         }
@@ -574,12 +574,16 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     callbackFn: (value: string, key: string, set: TernaryStringSet) => void,
     thisArg?: unknown,
   ): void {
-    let thiz: unknown;
-    if (arguments.length >= 2) thiz = thisArg;
+    if (typeof callbackFn !== "function") {
+      throw new TypeError("callbackFn must be a function");
+    }
+    if (arguments.length >= 2) {
+      callbackFn = callbackFn.bind(thisArg);
+    }
 
-    this._visit(0, [], (prefix) => {
+    this._visitCodePoints(0, [], (prefix) => {
       const s = String.fromCodePoint(...prefix);
-      callbackFn.call(thiz, s, s, this);
+      callbackFn(s, s, this);
     });
   }
 
@@ -684,7 +688,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     // ```
 
     let subset = true;
-    this._visit(0, [], (s) => {
+    this._visitCodePoints(0, [], (s) => {
       if (rhs._hasCodePoints(0, s, 0) < 0) {
         subset = false;
         return false;
@@ -728,7 +732,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       union._hasEmpty = true;
       ++union._size;
     }
-    rhs._visit(0, [], (s) => {
+    rhs._visitCodePoints(0, [], (s) => {
       union._addCodePoints(0, s, 0);
     });
     return union;
@@ -754,7 +758,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       --intersect._size;
     }
     intersect._hasEmpty &&= rhs._hasEmpty;
-    intersect._visit(0, [], (s, node) => {
+    intersect._visitCodePoints(0, [], (s, node) => {
       // delete if not also in rhs
       if (rhs._hasCodePoints(0, s, 0) < 0) {
         intersect._tree[node] &= CP_MASK;
@@ -782,7 +786,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       diff._hasEmpty = false;
       --diff._size;
     }
-    diff._visit(0, [], (s, node) => {
+    diff._visitCodePoints(0, [], (s, node) => {
       // delete if in rhs
       if (rhs._hasCodePoints(0, s, 0) >= 0) {
         diff._tree[node] &= CP_MASK;
@@ -813,7 +817,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         --diff._size;
       }
     }
-    rhs._visit(0, [], (s) => {
+    rhs._visitCodePoints(0, [], (s) => {
       // if s is also in diff, delete in diff; otherwise add to diff
       const node = diff._hasCodePoints(0, s, 0);
       if (node >= 0) {
@@ -845,151 +849,6 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * A private helper method that calls a function for each string in the
-   * subtree rooted at the specified node index. Strings are passed to
-   * the function as an array of code points. Thus the string
-   * `"ABC"` would be passed as `[65, 66, 67]`. If the function
-   * returns `false`, tree traversal ends immediately.
-   *
-   * Does not visit the empty string.
-   *
-   * @param node The starting node index (0 for tree root).
-   * @param prefix The array to have string code points appended to it.
-   * @param visitFn The function to invoke for each string.
-   */
-  private _visit(
-    node: number,
-    prefix: number[],
-    visitFn: (prefix: number[], node: number) => void | boolean,
-  ) {
-    const tree = this._tree;
-    if (node >= tree.length) return;
-    this._visit(tree[node + 1], prefix, visitFn);
-    prefix.push(tree[node] & CP_MASK);
-    if (tree[node] & EOS) {
-      if (visitFn(prefix, node) === false) return;
-    }
-    this._visit(tree[node + 2], prefix, visitFn);
-    prefix.pop();
-    this._visit(tree[node + 3], prefix, visitFn);
-  }
-
-  /**
-   * Private helper method similar to `has()`, but it searches for a string specified
-   * as an array of numeric code points. If the string is found, the node index of the
-   * node where the string ends is returned. If the string is not found, a negative number
-   * is returned that is one less than the node where the search failed. To convert
-   * this to the node where the search failed, use `-node - 1`. If this node is past
-   * the last node in the tree, then the specified string is not in the tree at all.
-   * Otherwise, the specified string is a prefix of other strings in the set but
-   * is not itself in the set.
-   *
-   * Does not handle testing for the empty string.
-   *
-   * @param node The subtree from which to begin searching.
-   * @param s The array of code points to search for.
-   * @param i The index of the code point currently being searched for.
-   * @returns The node index where the string ends, or a negative value indicating the node
-   *     where searching failed, as described above.
-   */
-  private _hasCodePoints(node: number, s: number[], i: number): number {
-    const tree = this._tree;
-    if (node >= tree.length) return -node - 1;
-
-    const cp = s[i];
-    const treeCp = tree[node] & CP_MASK;
-    if (cp < treeCp) {
-      return this._hasCodePoints(tree[node + 1], s, i);
-    } else if (cp > treeCp) {
-      return this._hasCodePoints(tree[node + 3], s, i);
-    } else {
-      if (++i >= s.length) {
-        return (tree[node] & EOS) === EOS ? node : -node - 1;
-      } else {
-        return this._hasCodePoints(tree[node + 2], s, i);
-      }
-    }
-  }
-
-  /**
-   * Private helper method similar to `add()`, but it takes a string specified
-   * as an array of numeric code points.
-   *
-   * Does not handle adding empty strings.
-   *
-   * @param node The subtree from which to begin adding.
-   * @param s The array of code points to add for.
-   * @param i The index of the code point currently being added.
-   */
-  private _addCodePoints(node: number, s: number[], i: number): number {
-    const tree = this._tree;
-    const cp = s[i];
-
-    if (node >= tree.length) {
-      node = tree.length;
-      if (node >= NODE_CEILING) {
-        throw new RangeError("cannot add more strings");
-      }
-      tree.push(cp, NUL, NUL, NUL);
-    }
-
-    const treeCp = tree[node] & CP_MASK;
-    if (cp < treeCp) {
-      tree[node + 1] = this._addCodePoints(tree[node + 1], s, i);
-    } else if (cp > treeCp) {
-      tree[node + 3] = this._addCodePoints(tree[node + 3], s, i);
-    } else {
-      i += cp >= CP_MIN_SURROGATE ? 2 : 1;
-      if (i >= s.length) {
-        if ((tree[node] & EOS) === 0) {
-          tree[node] |= EOS;
-          ++this._size;
-        }
-      } else {
-        tree[node + 2] = this._addCodePoints(tree[node + 2], s, i);
-      }
-    }
-
-    return node;
-  }
-
-  /**
-   * Private helper method that returns a string as an array of numeric code points.
-   * (This is not equivalent to `[...s]`, which returns strings.)
-   *
-   * @param s The string to conver.
-   * @returns An array of the code points that comprise the string.
-   */
-  private _toCodePoints(s: string): number[] {
-    const cps = [];
-    for (let i = 0; i < s.length; ) {
-      const cp = s.codePointAt(i++);
-      if (cp >= CP_MIN_SURROGATE) ++i;
-      cps.push(cp);
-    }
-    return cps;
-  }
-
-  /**
-   * Private helper that converts a compact tree back into a non-compact form.
-   */
-  private _decompact() {
-    if (this._compact) this.balance();
-  }
-
-  /**
-   * Private helper method that returns a clone of this set; but unlike using
-   * the constructor to copy a set, the new set is guaranteed not to be compact.
-   */
-  private _cloneDecompacted() {
-    if (this._compact) {
-      return new TernaryStringSet(Array.from(this));
-    } else {
-      return new TernaryStringSet(this);
-    }
-  }
-
-  /**
    * Optimizes the layout of the underlying data structure to maximize search speed.
    * This may improve future search performance after adding or deleting a large
    * number of strings.
@@ -1014,7 +873,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Compacts the set to reduce memory use and improve search performance.
+   * Compacts the set to reduce its memory footprint and improve search performance.
    * For large sets, a compacted set is typically *significantly* smaller
    * than an uncompacted set. The tradeoff is that compact sets cannot be modified.
    * Any method that mutates the set, including
@@ -1022,7 +881,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * can therefore cause the set to revert to an uncompacted state.
    *
    * Compaction and uncompaction are expensive operations, so rapid cycling
-   * between these states should be avoided. Compaction is an excellent option
+   * between these states should be avoided. It is an excellent option
    * if the primary purpose of a set matching against a fixed collection
    * of strings, such as a dictionary.
    */
@@ -1030,6 +889,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (this._compact || this._tree.length === 0) return;
 
     /*
+
     Theory of operation:
     
     In a ternary tree, all strings with the same prefix share the nodes
@@ -1061,9 +921,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     So, we can repeat the rewriting step above to remove these newly generated duplicates as well.
     This may again lead to new duplicates, and so on: the rewriting can continue until the output
     doesn't shrink anymore.
-
     */
-    
 
     let source = this._tree;
     for (;;) {
@@ -1079,8 +937,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
   /** Performs a single compaction pass; see `compact()` method. */
   private _compactImpl(tree: number[]): number[] {
-    // this uses nested sparse arrays to map node values to "slots"
-    // mapping(index of node in input tree) => index of node ("slot") in compacted output
+    // this uses nested sparse arrays to map node values to "slots" (node's index in new array)
     let nextSlot = 0;
     const nodeMap: number[][][][] = [];
     function mapping(i: number): number {
@@ -1139,6 +996,9 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   /**
    * Returns a buffer whose contents can be used to recreate this set.
    * The returned data is independent of the platform on which it is created.
+   * The buffer content and length will depend on the state of the set's
+   * underlying structure. For this reason you may wish to `balance()`
+   * and/or `compact()` the set first.
    *
    * @returns A non-null buffer.
    */
@@ -1169,7 +1029,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (USE_BRANCH16) treeFlags |= BF_BRANCH16;
     view.setUint8(3, treeFlags);
 
-    // fifth though eigth bytes store size (in v1, stored node count)
+    // fifth though eighth bytes store size (in v1, stored node count)
     view.setUint32(4, this._size, false);
 
     // remainder of buffer stores tree content
@@ -1279,6 +1139,152 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
     return newTree;
   }
+
+  /**
+   * For each string in the subtree rooted at the specified node,
+   * the callback function is invoked with an array of the numeric
+   * code points for that string. For example, the string `"ABC"`
+   * would be passed to the callback as `[65, 66, 67]`. This never
+   * visits the empty string, so that must be handled separately
+   * if desired.
+   *
+   * @param node The starting node index (0 for tree root).
+   * @param prefix The non-null array that will hold string code points;
+   *     any existing elements are retained as a prefix of every string.
+   * @param visitFn The non-null function to invoke for each string; returning
+   *     `false` will stop and return without visiting more strings.
+   */
+   private _visitCodePoints(
+    node: number,
+    prefix: number[],
+    visitFn: (prefix: number[], node: number) => void | boolean,
+  ) {
+    const tree = this._tree;
+    if (node >= tree.length) return;
+    this._visitCodePoints(tree[node + 1], prefix, visitFn);
+    prefix.push(tree[node] & CP_MASK);
+    if (tree[node] & EOS) {
+      if (visitFn(prefix, node) === false) return;
+    }
+    this._visitCodePoints(tree[node + 2], prefix, visitFn);
+    prefix.pop();
+    this._visitCodePoints(tree[node + 3], prefix, visitFn);
+  }
+
+  /**
+   * Tests whether a string specified as an array of numeric code points is in the set.
+   * Returns a numeric result `n` as follows:
+   *   - If `n >= 0`, the string was found and it ends at the node indicated by the result.
+   *   - If `n < 0`, the string was not found. Compute `s = -n - 1` and then:
+   *     - If `s >= tree.length` then not only is the string not present, but it is also
+   *       not a prefix of *any* string in the set.
+   *     - Otherwise, `s` is the index of the node where the string *would* end *if* it was
+   *       in the set.
+   *
+   * Does not handle testing for the empty string.
+   *
+   * @param node The subtree from which to begin searching (0 for root).
+   * @param s The non-null array of code points to search for.
+   * @param i The index of the code point currently being searched for (0 to search from start of string).
+   * @returns The node index where the string ends, or a negative value indicating
+   *     failure (see above for details).
+   */
+  private _hasCodePoints(node: number, s: number[], i: number): number {
+    const tree = this._tree;
+    if (node >= tree.length) return -node - 1;
+
+    const cp = s[i];
+    const treeCp = tree[node] & CP_MASK;
+    if (cp < treeCp) {
+      return this._hasCodePoints(tree[node + 1], s, i);
+    } else if (cp > treeCp) {
+      return this._hasCodePoints(tree[node + 3], s, i);
+    } else {
+      if (++i >= s.length) {
+        return (tree[node] & EOS) === EOS ? node : -node - 1;
+      } else {
+        return this._hasCodePoints(tree[node + 2], s, i);
+      }
+    }
+  }
+
+  /**
+   * Adds a string described as an array of numeric code points.
+   *
+   * Does not handle adding empty strings.
+   * 
+   * Does not check if the tree needs to be decompacted.
+   *
+   * @param node The subtree from which to begin adding (0 for root).
+   * @param s The non-null array of code points to add for.
+   * @param i The array index of the code point to start from (0 to add entire string).
+   */
+  private _addCodePoints(node: number, s: number[], i: number): number {
+    const tree = this._tree;
+    const cp = s[i];
+
+    if (node >= tree.length) {
+      node = tree.length;
+      if (node >= NODE_CEILING) {
+        throw new RangeError("cannot add more strings");
+      }
+      tree.push(cp, NUL, NUL, NUL);
+    }
+
+    const treeCp = tree[node] & CP_MASK;
+    if (cp < treeCp) {
+      tree[node + 1] = this._addCodePoints(tree[node + 1], s, i);
+    } else if (cp > treeCp) {
+      tree[node + 3] = this._addCodePoints(tree[node + 3], s, i);
+    } else {
+      i += cp >= CP_MIN_SURROGATE ? 2 : 1;
+      if (i >= s.length) {
+        if ((tree[node] & EOS) === 0) {
+          tree[node] |= EOS;
+          ++this._size;
+        }
+      } else {
+        tree[node + 2] = this._addCodePoints(tree[node + 2], s, i);
+      }
+    }
+
+    return node;
+  }
+
+  /**
+   * Converts a string to an array of numeric code points.
+   * (This is not equivalent to `[...s]`, which returns strings.)
+   *
+   * @param s A non-null string.
+   * @returns An array of the code points comprising the string.
+   */
+  private _toCodePoints(s: string): number[] {
+    const cps = [];
+    for (let i = 0; i < s.length; ) {
+      const cp = s.codePointAt(i++);
+      if (cp >= CP_MIN_SURROGATE) ++i;
+      cps.push(cp);
+    }
+    return cps;
+  }
+
+  /**
+   * If the tree is currently compacted, converts it a non-compact form.
+   */
+  private _decompact() {
+    if (this._compact) this.balance();
+  }
+
+  /**
+   * Returns a copy of this set that is also guaranteed not to be compact.
+   */
+  private _cloneDecompacted() {
+    if (this._compact) {
+      return new TernaryStringSet(Array.from(this));
+    } else {
+      return new TernaryStringSet(this);
+    }
+  }  
 
   /**
    * Returns information about this set's underlying tree structure.
