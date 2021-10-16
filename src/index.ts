@@ -47,13 +47,13 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * this structure usually offers better time/space performance than an equivalent tree
    * based on linked objects.
    */
-  #tree: number[];
+  private _tree: number[];
   /** Tracks whether empty string is in the set as a special case. */
-  #hasEmpty: boolean;
+  private _hasEmpty: boolean;
   /** Tracks whether this tree has been compacted; if true this must be undone before mutating the tree. */
-  #compact: boolean;
+  private _compact: boolean;
   /** Tracks set size. */
-  #size: number;
+  private _size: number;
 
   /**
    * Creates a new set. The set will be empty unless the optional iterable `source` object
@@ -75,10 +75,10 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         throw new TypeError("source object is not iterable");
       }
       if (source instanceof TernaryStringSet) {
-        this.#tree = source.#tree.slice();
-        this.#hasEmpty = source.#hasEmpty;
-        this.#compact = source.#compact;
-        this.#size = source.#size;
+        this._tree = source._tree.slice();
+        this._hasEmpty = source._hasEmpty;
+        this._compact = source._compact;
+        this._size = source._size;
       } else if (Array.isArray(source)) {
         this.addAll(source);
       } else {
@@ -93,15 +93,15 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @returns The non-negative integer number of string elements in the set.
    */
   get size(): number {
-    return this.#size;
+    return this._size;
   }
 
   /** Removes all strings from this set. */
   clear(): void {
-    this.#tree = [];
-    this.#hasEmpty = false;
-    this.#compact = false;
-    this.#size = 0;
+    this._tree = [];
+    this._hasEmpty = false;
+    this._compact = false;
+    this._size = 0;
   }
 
   /**
@@ -122,19 +122,19 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       s = String(s);
     }
     if (s.length === 0) {
-      if (!this.#hasEmpty) {
-        this.#hasEmpty = true;
-        ++this.#size;
+      if (!this._hasEmpty) {
+        this._hasEmpty = true;
+        ++this._size;
       }
     } else {
-      if (this.#compact && !this.has(s)) this.__decompact();
-      this.addImpl(0, s, 0, s.codePointAt(0));
+      if (this._compact && !this.has(s)) this._decompact();
+      this._addImpl(0, s, 0, s.codePointAt(0));
     }
     return this;
   }
 
-  private addImpl(node: number, s: string, i: number, cp: number): number {
-    const tree = this.#tree;
+  private _addImpl(node: number, s: string, i: number, cp: number): number {
+    const tree = this._tree;
 
     if (node >= tree.length) {
       node = tree.length;
@@ -146,18 +146,18 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
     const treeCp = tree[node] & CP_MASK;
     if (cp < treeCp) {
-      tree[node + 1] = this.addImpl(tree[node + 1], s, i, cp);
+      tree[node + 1] = this._addImpl(tree[node + 1], s, i, cp);
     } else if (cp > treeCp) {
-      tree[node + 3] = this.addImpl(tree[node + 3], s, i, cp);
+      tree[node + 3] = this._addImpl(tree[node + 3], s, i, cp);
     } else {
       i += cp >= CP_MIN_SURROGATE ? 2 : 1;
       if (i >= s.length) {
         if ((tree[node] & EOW) === 0) {
           tree[node] |= EOW;
-          ++this.#size;
+          ++this._size;
         }
       } else {
-        tree[node + 2] = this.addImpl(tree[node + 2], s, i, s.codePointAt(i));
+        tree[node + 2] = this._addImpl(tree[node + 2], s, i, s.codePointAt(i));
       }
     }
 
@@ -206,27 +206,27 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       }
       s = String(s);
     }
-    if (s.length === 0) return this.#hasEmpty;
+    if (s.length === 0) return this._hasEmpty;
 
-    return this.hasImpl(0, s, 0, s.codePointAt(0));
+    return this._hasImpl(0, s, 0, s.codePointAt(0));
   }
 
-  private hasImpl(node: number, s: string, i: number, cp: number): boolean {
-    const tree = this.#tree;
+  private _hasImpl(node: number, s: string, i: number, cp: number): boolean {
+    const tree = this._tree;
 
     if (node >= tree.length) return false;
 
     const treeCp = tree[node] & CP_MASK;
     if (cp < treeCp) {
-      return this.hasImpl(tree[node + 1], s, i, cp);
+      return this._hasImpl(tree[node + 1], s, i, cp);
     } else if (cp > treeCp) {
-      return this.hasImpl(tree[node + 3], s, i, cp);
+      return this._hasImpl(tree[node + 3], s, i, cp);
     } else {
       i += cp >= CP_MIN_SURROGATE ? 2 : 1;
       if (i >= s.length) {
         return (tree[node] & EOW) === EOW;
       } else {
-        return this.hasImpl(tree[node + 2], s, i, s.codePointAt(i));
+        return this._hasImpl(tree[node + 2], s, i, s.codePointAt(i));
       }
     }
   }
@@ -247,39 +247,39 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       s = String(s);
     }
     if (s.length === 0) {
-      const had = this.#hasEmpty;
+      const had = this._hasEmpty;
       if (had) {
-        this.#hasEmpty = false;
-        --this.#size;
+        this._hasEmpty = false;
+        --this._size;
       }
       return had;
     }
 
-    if (this.#compact && this.has(s)) this.__decompact();
-    return this.deleteImpl(0, s, 0, s.codePointAt(0));
+    if (this._compact && this.has(s)) this._decompact();
+    return this._deleteImpl(0, s, 0, s.codePointAt(0));
   }
 
-  private deleteImpl(node: number, s: string, i: number, cp: number): boolean {
-    const tree = this.#tree;
+  private _deleteImpl(node: number, s: string, i: number, cp: number): boolean {
+    const tree = this._tree;
 
     if (node >= tree.length) return false;
 
     const treeCp = tree[node] & CP_MASK;
     if (cp < treeCp) {
-      return this.deleteImpl(tree[node + 1], s, i, cp);
+      return this._deleteImpl(tree[node + 1], s, i, cp);
     } else if (cp > treeCp) {
-      return this.deleteImpl(tree[node + 3], s, i, cp);
+      return this._deleteImpl(tree[node + 3], s, i, cp);
     } else {
       i += cp >= CP_MIN_SURROGATE ? 2 : 1;
       if (i >= s.length) {
         const had = (tree[node] & EOW) === EOW;
         if (had) {
           tree[node] &= CP_MASK;
-          --this.#size;
+          --this._size;
         }
         return had;
       } else {
-        return this.deleteImpl(tree[node + 2], s, i, s.codePointAt(i));
+        return this._deleteImpl(tree[node + 2], s, i, s.codePointAt(i));
       }
     }
   }
@@ -310,21 +310,21 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       availChars[cp] = availChars[cp] ? availChars[cp] + 1 : 1;
     }
 
-    const matches: string[] = this.#hasEmpty ? [""] : [];
-    this.getArrangementsOfImpl(0, availChars, [], matches);
+    const matches: string[] = this._hasEmpty ? [""] : [];
+    this._getArrangementsImpl(0, availChars, [], matches);
     return matches;
   }
 
-  private getArrangementsOfImpl(
+  private _getArrangementsImpl(
     node: number,
     availChars: number[],
     prefix: number[],
     matches: string[],
   ) {
-    const tree = this.#tree;
+    const tree = this._tree;
     if (node >= tree.length) return;
 
-    this.getArrangementsOfImpl(tree[node + 1], availChars, prefix, matches);
+    this._getArrangementsImpl(tree[node + 1], availChars, prefix, matches);
 
     const cp = tree[node] & CP_MASK;
     if (availChars[cp] > 0) {
@@ -333,12 +333,12 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       if (tree[node] & EOW) {
         matches.push(String.fromCharCode(...prefix));
       }
-      this.getArrangementsOfImpl(tree[node + 2], availChars, prefix, matches);
+      this._getArrangementsImpl(tree[node + 2], availChars, prefix, matches);
       prefix.pop();
       ++availChars[cp];
     }
 
-    this.getArrangementsOfImpl(tree[node + 3], availChars, prefix, matches);
+    this._getArrangementsImpl(tree[node + 3], availChars, prefix, matches);
   }
 
   /**
@@ -360,12 +360,12 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
 
     const results: string[] = [];
-    const prefix = this.__cp(pattern);
-    let node = this.__has(0, prefix, 0);
+    const prefix = this._toCodePoints(pattern);
+    let node = this._hasCodePoints(0, prefix, 0);
     if (node < 0) {
       node = -node - 1;
       // prefix not in tree, therefore no children are either
-      if (node >= this.#tree.length) {
+      if (node >= this._tree.length) {
         return results;
       }
       // prefix in tree, but is not itself in the set
@@ -375,7 +375,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
 
     // continue from end of prefix by taking equal branch
-    this.__visit(this.#tree[node + 2], prefix, (s) => {
+    this._visit(this._tree[node + 2], prefix, (s) => {
       results.push(String.fromCodePoint(...s));
     });
     return results;
@@ -402,16 +402,16 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (dontCareChar.length === 0) throw new TypeError("empty dontCareChar");
 
     if (pattern.length === 0) {
-      return this.#hasEmpty ? [""] : [];
+      return this._hasEmpty ? [""] : [];
     }
 
     const dc = dontCareChar.codePointAt(0);
     const matches: string[] = [];
-    this.getPartialMatchesOfImpl(0, pattern, 0, dc, [], matches);
+    this._getPartialMatchesImpl(0, pattern, 0, dc, [], matches);
     return matches;
   }
 
-  private getPartialMatchesOfImpl(
+  private _getPartialMatchesImpl(
     node: number,
     pattern: string,
     i: number,
@@ -419,13 +419,13 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     prefix: number[],
     matches: string[],
   ) {
-    const tree = this.#tree;
+    const tree = this._tree;
     if (node >= tree.length) return;
 
     const cp = pattern.codePointAt(i);
     const treeCp = tree[node] & CP_MASK;
     if (cp < treeCp || cp === dc) {
-      this.getPartialMatchesOfImpl(
+      this._getPartialMatchesImpl(
         tree[node + 1],
         pattern,
         i,
@@ -442,7 +442,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
           matches.push(String.fromCodePoint(...prefix));
         }
       } else {
-        this.getPartialMatchesOfImpl(
+        this._getPartialMatchesImpl(
           tree[node + 2],
           pattern,
           i_,
@@ -454,7 +454,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       prefix.pop();
     }
     if (cp > treeCp || cp === dc) {
-      this.getPartialMatchesOfImpl(
+      this._getPartialMatchesImpl(
         tree[node + 3],
         pattern,
         i,
@@ -494,7 +494,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
     // optimize cases where any string the same length as the pattern will match
     if (distance >= pattern.length) {
-      this.__visit(0, [], (prefix) => {
+      this._visit(0, [], (prefix) => {
         if (prefix.length === pattern.length) {
           matches.push(String.fromCodePoint(...prefix));
         }
@@ -502,11 +502,11 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       return matches;
     }
 
-    this.getWithinHammingDistanceOfImpl(0, pattern, 0, distance, [], matches);
+    this._getWithinHammingImpl(0, pattern, 0, distance, [], matches);
     return matches;
   }
 
-  private getWithinHammingDistanceOfImpl(
+  private _getWithinHammingImpl(
     node: number,
     pattern: string,
     i: number,
@@ -514,13 +514,13 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     prefix: number[],
     matches: string[],
   ) {
-    const tree = this.#tree;
+    const tree = this._tree;
     if (node >= tree.length || dist < 0) return;
 
     const cp = pattern.codePointAt(i);
     const treeCp = tree[node] & CP_MASK;
     if (cp < treeCp || dist > 0) {
-      this.getWithinHammingDistanceOfImpl(
+      this._getWithinHammingImpl(
         tree[node + 1],
         pattern,
         i,
@@ -539,7 +539,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     } else {
       const i_ = i + (cp >= CP_MIN_SURROGATE ? 2 : 1);
       const dist_ = dist - (cp === treeCp ? 0 : 1);
-      this.getWithinHammingDistanceOfImpl(
+      this._getWithinHammingImpl(
         tree[node + 2],
         pattern,
         i_,
@@ -551,7 +551,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     prefix.pop();
 
     if (cp > treeCp || dist > 0) {
-      this.getWithinHammingDistanceOfImpl(
+      this._getWithinHammingImpl(
         tree[node + 3],
         pattern,
         i,
@@ -577,7 +577,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     let thiz: unknown;
     if (arguments.length >= 2) thiz = thisArg;
 
-    this.__visit(0, [], (prefix) => {
+    this._visit(0, [], (prefix) => {
       const s = String.fromCodePoint(...prefix);
       callbackFn.call(thiz, s, s, this);
     });
@@ -605,7 +605,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @returns An non-null iterator over the strings in this set.
    */
   values(): IterableIterator<string> {
-    const tree = this.#tree;
+    const tree = this._tree;
     function* itor(node: number, prefix: number[]): Generator<string> {
       if (node < 0) {
         node = 0;
@@ -619,7 +619,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       prefix.pop();
       yield* itor(tree[node + 3], prefix);
     }
-    return itor(this.#hasEmpty ? -1 : 0, []);
+    return itor(this._hasEmpty ? -1 : 0, []);
   }
 
   /**
@@ -654,7 +654,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   equals(rhs: any): boolean {
     if (!(rhs instanceof TernaryStringSet)) return false;
-    if (this.#size !== rhs.#size) return false;
+    if (this._size !== rhs._size) return false;
     return this.isSubsetOf(rhs);
   }
 
@@ -672,8 +672,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
-    if (this.#size > rhs.#size) return false;
-    if (this.#hasEmpty && !rhs.#hasEmpty) return false;
+    if (this._size > rhs._size) return false;
+    if (this._hasEmpty && !rhs._hasEmpty) return false;
 
     // What follows is a faster equivalent to the following code:
     // ```
@@ -684,8 +684,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     // ```
 
     let subset = true;
-    this.__visit(0, [], (s) => {
-      if (rhs.__has(0, s, 0) < 0) {
+    this._visit(0, [], (s) => {
+      if (rhs._hasCodePoints(0, s, 0) < 0) {
         subset = false;
         return false;
       }
@@ -720,16 +720,16 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
-    if (rhs.#size > this.#size) {
+    if (rhs._size > this._size) {
       return rhs.union(this);
     }
-    const union = this.__noncompactClone();
-    if (!union.#hasEmpty && rhs.#hasEmpty) {
-      union.#hasEmpty = true;
-      ++union.#size;
+    const union = this._cloneDecompacted();
+    if (!union._hasEmpty && rhs._hasEmpty) {
+      union._hasEmpty = true;
+      ++union._size;
     }
-    rhs.__visit(0, [], (s) => {
-      union.__add(0, s, 0);
+    rhs._visit(0, [], (s) => {
+      union._addCodePoints(0, s, 0);
     });
     return union;
   }
@@ -745,20 +745,20 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
-    if (rhs.#size < this.#size) {
+    if (rhs._size < this._size) {
       return rhs.intersection(this);
     }
-    const intersect = this.__noncompactClone();
-    if (intersect.#hasEmpty && !rhs.#hasEmpty) {
-      intersect.#hasEmpty = false;
-      --intersect.#size;
+    const intersect = this._cloneDecompacted();
+    if (intersect._hasEmpty && !rhs._hasEmpty) {
+      intersect._hasEmpty = false;
+      --intersect._size;
     }
-    intersect.#hasEmpty &&= rhs.#hasEmpty;
-    intersect.__visit(0, [], (s, node) => {
+    intersect._hasEmpty &&= rhs._hasEmpty;
+    intersect._visit(0, [], (s, node) => {
       // delete if not also in rhs
-      if (rhs.__has(0, s, 0) < 0) {
-        intersect.#tree[node] &= CP_MASK;
-        --intersect.#size;
+      if (rhs._hasCodePoints(0, s, 0) < 0) {
+        intersect._tree[node] &= CP_MASK;
+        --intersect._size;
       }
     });
     return intersect;
@@ -777,16 +777,16 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
-    const diff = this.__noncompactClone();
-    if (rhs.#hasEmpty && diff.#hasEmpty) {
-      diff.#hasEmpty = false;
-      --diff.#size;
+    const diff = this._cloneDecompacted();
+    if (rhs._hasEmpty && diff._hasEmpty) {
+      diff._hasEmpty = false;
+      --diff._size;
     }
-    diff.__visit(0, [], (s, node) => {
+    diff._visit(0, [], (s, node) => {
       // delete if in rhs
-      if (rhs.__has(0, s, 0) >= 0) {
-        diff.#tree[node] &= CP_MASK;
-        --diff.#size;
+      if (rhs._hasCodePoints(0, s, 0) >= 0) {
+        diff._tree[node] &= CP_MASK;
+        --diff._size;
       }
     });
     return diff;
@@ -804,23 +804,23 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
-    const diff = this.__noncompactClone();
-    diff.#hasEmpty = this.#hasEmpty !== rhs.#hasEmpty;
-    if (this.#hasEmpty !== diff.#hasEmpty) {
-      if (diff.#hasEmpty) {
-        ++diff.#size;
+    const diff = this._cloneDecompacted();
+    diff._hasEmpty = this._hasEmpty !== rhs._hasEmpty;
+    if (this._hasEmpty !== diff._hasEmpty) {
+      if (diff._hasEmpty) {
+        ++diff._size;
       } else {
-        --diff.#size;
+        --diff._size;
       }
     }
-    rhs.__visit(0, [], (s) => {
+    rhs._visit(0, [], (s) => {
       // if s is also in diff, delete in diff; otherwise add to diff
-      const node = diff.__has(0, s, 0);
+      const node = diff._hasCodePoints(0, s, 0);
       if (node >= 0) {
-        diff.#tree[node] &= CP_MASK;
-        --diff.#size;
+        diff._tree[node] &= CP_MASK;
+        --diff._size;
       } else {
-        diff.__add(0, s, 0);
+        diff._addCodePoints(0, s, 0);
       }
     });
     return diff;
@@ -857,27 +857,27 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param prefix The array to have string code points appended to it.
    * @param visitFn The function to invoke for each string.
    */
-  private __visit(
+  private _visit(
     node: number,
     prefix: number[],
     visitFn: (prefix: number[], node: number) => void | boolean,
   ) {
-    const tree = this.#tree;
+    const tree = this._tree;
     if (node >= tree.length) return;
-    this.__visit(tree[node + 1], prefix, visitFn);
+    this._visit(tree[node + 1], prefix, visitFn);
     prefix.push(tree[node] & CP_MASK);
     if (tree[node] & EOW) {
       if (visitFn(prefix, node) === false) return;
     }
-    this.__visit(tree[node + 2], prefix, visitFn);
+    this._visit(tree[node + 2], prefix, visitFn);
     prefix.pop();
-    this.__visit(tree[node + 3], prefix, visitFn);
+    this._visit(tree[node + 3], prefix, visitFn);
   }
 
   /**
    * Private helper method similar to `has()`, but it searches for a string specified
-   * as an array of code points. If the string is found, the node index of the node
-   * where the string ends is returned. If the string is not found, a negative number
+   * as an array of numeric code points. If the string is found, the node index of the
+   * node where the string ends is returned. If the string is not found, a negative number
    * is returned that is one less than the node where the search failed. To convert
    * this to the node where the search failed, use `-node - 1`. If this node is past
    * the last node in the tree, then the specified string is not in the tree at all.
@@ -892,28 +892,28 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @returns The node index where the string ends, or a negative value indicating the node
    *     where searching failed, as described above.
    */
-  private __has(node: number, s: number[], i: number): number {
-    const tree = this.#tree;
+  private _hasCodePoints(node: number, s: number[], i: number): number {
+    const tree = this._tree;
     if (node >= tree.length) return -node - 1;
 
     const cp = s[i];
     const treeCp = tree[node] & CP_MASK;
     if (cp < treeCp) {
-      return this.__has(tree[node + 1], s, i);
+      return this._hasCodePoints(tree[node + 1], s, i);
     } else if (cp > treeCp) {
-      return this.__has(tree[node + 3], s, i);
+      return this._hasCodePoints(tree[node + 3], s, i);
     } else {
       if (++i >= s.length) {
         return (tree[node] & EOW) === EOW ? node : -node - 1;
       } else {
-        return this.__has(tree[node + 2], s, i);
+        return this._hasCodePoints(tree[node + 2], s, i);
       }
     }
   }
 
   /**
    * Private helper method similar to `add()`, but it takes a string specified
-   * as an array of code points.
+   * as an array of numeric code points.
    *
    * Does not handle adding empty strings.
    *
@@ -921,8 +921,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param s The array of code points to add for.
    * @param i The index of the code point currently being added.
    */
-  private __add(node: number, s: number[], i: number): number {
-    const tree = this.#tree;
+  private _addCodePoints(node: number, s: number[], i: number): number {
+    const tree = this._tree;
     const cp = s[i];
 
     if (node >= tree.length) {
@@ -935,18 +935,18 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
     const treeCp = tree[node] & CP_MASK;
     if (cp < treeCp) {
-      tree[node + 1] = this.__add(tree[node + 1], s, i);
+      tree[node + 1] = this._addCodePoints(tree[node + 1], s, i);
     } else if (cp > treeCp) {
-      tree[node + 3] = this.__add(tree[node + 3], s, i);
+      tree[node + 3] = this._addCodePoints(tree[node + 3], s, i);
     } else {
       i += cp >= CP_MIN_SURROGATE ? 2 : 1;
       if (i >= s.length) {
         if ((tree[node] & EOW) === 0) {
           tree[node] |= EOW;
-          ++this.#size;
+          ++this._size;
         }
       } else {
-        tree[node + 2] = this.__add(tree[node + 2], s, i);
+        tree[node + 2] = this._addCodePoints(tree[node + 2], s, i);
       }
     }
 
@@ -960,7 +960,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param s The string to conver.
    * @returns An array of the code points that comprise the string.
    */
-  private __cp(s: string): number[] {
+  private _toCodePoints(s: string): number[] {
     const cps = [];
     for (let i = 0; i < s.length; ) {
       const cp = s.codePointAt(i++);
@@ -973,16 +973,16 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   /**
    * Private helper that converts a compact tree back into a non-compact form.
    */
-  private __decompact() {
-    if (this.#compact) this.balance();
+  private _decompact() {
+    if (this._compact) this.balance();
   }
 
   /**
    * Private helper method that returns a clone of this set; but unlike using
    * the constructor to copy a set, the new set is guaranteed not to be compact.
    */
-  private __noncompactClone() {
-    if (this.#compact) {
+  private _cloneDecompacted() {
+    if (this._compact) {
       return new TernaryStringSet(Array.from(this));
     } else {
       return new TernaryStringSet(this);
@@ -1009,8 +1009,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * compact the tree, be sure to balance it first.
    */
   balance(): void {
-    this.#tree = new TernaryStringSet(Array.from(this)).#tree;
-    this.#compact = false;
+    this._tree = new TernaryStringSet(Array.from(this))._tree;
+    this._compact = false;
   }
 
   /**
@@ -1027,7 +1027,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * of strings, such as a dictionary.
    */
   compact(): void {
-    if (this.#compact || this.#tree.length === 0) return;
+    if (this._compact || this._tree.length === 0) return;
 
     // Theory of operation:
     //
@@ -1057,20 +1057,20 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     // the output array is the same size as the input array, meaning that no duplicates were removed.
     //
 
-    let source = this.#tree;
+    let source = this._tree;
     for (;;) {
-      const compacted = this.compactImpl(source);
+      const compacted = this._compactImpl(source);
       if (compacted.length === source.length) {
-        this.#tree = compacted;
+        this._tree = compacted;
         break;
       }
       source = compacted;
     }
-    this.#compact = true;
+    this._compact = true;
   }
 
   /** Performs a single compaction pass; see `compact()` method. */
-  private compactImpl(tree: number[]): number[] {
+  private _compactImpl(tree: number[]): number[] {
     // this uses nested sparse arrays to map node values to "slots"
     // mapping(index of node in input tree) => index of node ("slot") in compacted output
     let nextSlot = 0;
@@ -1130,13 +1130,13 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @returns A non-null buffer.
    */
   toBuffer(): ArrayBuffer {
-    const tree = this.#tree;
+    const tree = this._tree;
     // use 16-bit ints for branches if node count is small enough
     const USE_BRANCH16 = tree.length < 0xffff;
 
     // allocate space for header + node count + tree nodes
-    let buffSize = this.#tree.length * 4;
-    if (USE_BRANCH16) buffSize = (this.#tree.length / 4) * 10;
+    let buffSize = this._tree.length * 4;
+    if (USE_BRANCH16) buffSize = (this._tree.length / 4) * 10;
     const buffer = new ArrayBuffer(BUFFER_HEAD_SIZE + buffSize);
     const view = new DataView(buffer);
 
@@ -1151,13 +1151,13 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     //   - presence of empty string
     //   - whether set is compacted
     let treeFlags = 0;
-    if (this.#hasEmpty) treeFlags |= BF_HAS_EMPTY;
-    if (this.#compact) treeFlags |= BF_COMPACT;
+    if (this._hasEmpty) treeFlags |= BF_HAS_EMPTY;
+    if (this._compact) treeFlags |= BF_COMPACT;
     if (USE_BRANCH16) treeFlags |= BF_BRANCH16;
     view.setUint8(3, treeFlags);
 
     // fifth though eigth bytes store size (in v1, stored node count)
-    view.setUint32(4, this.#size, false);
+    view.setUint32(4, this._size, false);
 
     // remainder of buffer stores tree content
     if (USE_BRANCH16) {
@@ -1226,10 +1226,10 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     const treeSize = view.getUint32(4, false);
 
     const newTree = new TernaryStringSet();
-    newTree.#hasEmpty = (treeFlags & BF_HAS_EMPTY) === BF_HAS_EMPTY;
-    newTree.#compact = (treeFlags & BF_COMPACT) === BF_COMPACT;
+    newTree._hasEmpty = (treeFlags & BF_HAS_EMPTY) === BF_HAS_EMPTY;
+    newTree._compact = (treeFlags & BF_COMPACT) === BF_COMPACT;
 
-    const tree = newTree.#tree;
+    const tree = newTree._tree;
     if (USE_BRANCH16) {
       for (let byte = BUFFER_HEAD_SIZE; byte < view.byteLength; byte += 10) {
         let n;
@@ -1248,18 +1248,20 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
 
     if (version >= 2) {
-      newTree.#size = treeSize;
+      newTree._size = treeSize;
     } else {
-      if (newTree.#compact) {
+      if (newTree._compact) {
         throw new TypeError("bad buffer (v1 compact)");
       }
-      // version 1 did not store size, need to count from EOW flags;
-      // this is accurate since version 1 can't be compact
-      let size = newTree.#hasEmpty ? 1 : 0;
+      // version 1 did not store size, so we need to count
+      // how many end-of-string markers there are; this
+      // can be done with iteration rather than traversal
+      // since version 1 trees cannot be compact
+      let size = newTree._hasEmpty ? 1 : 0;
       for (let node = 0; node < tree.length; node += 4) {
         if (tree[node] & EOW) ++size;
       }
-      newTree.#size = size;
+      newTree._size = size;
     }
 
     return newTree;
@@ -1267,14 +1269,12 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
   /**
    * Returns information about this set's underlying tree structure.
-   * This method is intended only for advanced use cases, such as
-   * testing, estimating the set's memory footprint or deciding
-   * whether to rebalance the tree.
+   * This method is intended only for testing and performance analysis.
    */
   get stats(): TernaryTreeStats {
-    const tree = this.#tree;
+    const tree = this._tree;
     const breadth: number[] = [];
-    const nodes = this.#tree.length / 4;
+    const nodes = this._tree.length / 4;
     let surrogates = 0;
     let minCodePoint = nodes > 0 ? 0x10ffff : 0;
     let maxCodePoint = 0;
@@ -1295,9 +1295,9 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     })(0, 0);
 
     return {
-      size: this.#size,
+      size: this._size,
       nodes,
-      compact: this.#compact,
+      compact: this._compact,
       depth: breadth.length,
       breadth,
       minCodePoint,
