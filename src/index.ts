@@ -878,15 +878,15 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   /**
    * Compacts the set to reduce its memory footprint and improve search performance.
    * For large sets, a compacted set is typically *significantly* smaller
-   * than an uncompacted set. The tradeoff is that compact sets cannot be modified.
+   * than a non-compacted set. The tradeoff is that compact sets cannot be modified.
    * Any method that mutates the set, including
    * `add`, `addAll`, `balance`, and `delete`
-   * can therefore cause the set to revert to an uncompacted state.
+   * can therefore cause the set to revert to an non-compacted state.
    *
-   * Compaction and uncompaction are expensive operations, so rapid cycling
-   * between these states should be avoided. It is an excellent option
-   * if the primary purpose of a set matching against a fixed collection
-   * of strings, such as a dictionary.
+   * Compaction is an excellent option if the primary purpose of a set matching
+   * against a fixed collection of strings, such as a dictionary. Since
+   * compaction and decompaction are expensive operations, it is less attractive
+   * in use cases where the set will be intermittently modified.
    */
   compact(): void {
     if (this._compact || this._tree.length === 0) return;
@@ -936,6 +936,16 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       source = compacted;
     }
     this._compact = true;
+  }
+
+  /**
+   * Returns whether the set is currently compact.
+   * 
+   * @returns True if the set is compacted, in which case mutating the set could have
+   *     significant performance implications.
+   */
+  get compacted(): boolean {
+    return this._compact;
   }
 
   /** Performs a single compaction pass; see `compact()` method. */

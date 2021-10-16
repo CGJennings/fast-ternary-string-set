@@ -102,40 +102,40 @@ test("Decompaction", () => {
     "flustering",
   ]);
   compactOriginal.compact();
-  expect(compactOriginal.stats.compact).toBeTruthy();
+  expect(compactOriginal.compacted).toBeTruthy();
 
   // copying a compact set yields a compact copy
   set = new TernaryStringSet(compactOriginal);
-  expect(set.stats.compact).toBeTruthy();
+  expect(set.compacted).toBeTruthy();
 
   // adding a string already in the set has no effect
   set.add("apple");
-  expect(set.stats.compact).toBeTruthy();
+  expect(set.compacted).toBeTruthy();
   // adding a string not in the set undoes compaction
   set.add("carts");
-  expect(set.stats.compact).toBeFalsy();
+  expect(set.compacted).toBeFalsy();
   // as does adding via addAll
   set = new TernaryStringSet(compactOriginal);
   set.addAll(["carts"]);
-  expect(set.stats.compact).toBeFalsy();
+  expect(set.compacted).toBeFalsy();
 
   // likewise, deleting a string not in the set has no effect
   // while actually deleting a string undoes compaction
   set = new TernaryStringSet(compactOriginal);
   set.delete("zzzzz");
-  expect(set.stats.compact).toBeTruthy();
+  expect(set.compacted).toBeTruthy();
   set.delete("apple");
-  expect(set.stats.compact).toBeFalsy();
+  expect(set.compacted).toBeFalsy();
 
   // balance() undoes compaction
   set = new TernaryStringSet(compactOriginal);
   set.balance();
-  expect(set.stats.compact).toBeFalsy();
+  expect(set.compacted).toBeFalsy();
 
   // clear() trivially resets the compaction state
   set = new TernaryStringSet(compactOriginal);
   set.clear();
-  expect(set.stats.compact).toBeFalsy();
+  expect(set.compacted).toBeFalsy();
 });
 
 test("Non-mutating methods do not decompact", () => {
@@ -154,7 +154,7 @@ test("Non-mutating methods do not decompact", () => {
   set.keys();
   set.size;
   set.values();
-  expect(set.stats.compact).toBeTruthy();
+  expect(set.compacted).toBeTruthy();
 });
 
 test("Operation results are never compacted", () => {
@@ -170,12 +170,12 @@ test("Operation results are never compacted", () => {
   compactOriginal.compact();
 
   set = new TernaryStringSet(["ear", "guest"]);
-  expect(compactOriginal.union(set).stats.compact).toBeFalsy();
-  expect(set.union(compactOriginal).stats.compact).toBeFalsy();
-  expect(compactOriginal.intersection(set).stats.compact).toBeFalsy();
-  expect(set.intersection(compactOriginal).stats.compact).toBeFalsy();
-  expect(compactOriginal.subtract(set).stats.compact).toBeFalsy();
-  expect(set.subtract(compactOriginal).stats.compact).toBeFalsy();
-  expect(compactOriginal.symmetricDifference(set).stats.compact).toBeFalsy();
-  expect(set.symmetricDifference(compactOriginal).stats.compact).toBeFalsy();
+  expect(compactOriginal.union(set).compacted).toBeFalsy();
+  expect(set.union(compactOriginal).compacted).toBeFalsy();
+  expect(compactOriginal.intersection(set).compacted).toBeFalsy();
+  expect(set.intersection(compactOriginal).compacted).toBeFalsy();
+  expect(compactOriginal.subtract(set).compacted).toBeFalsy();
+  expect(set.subtract(compactOriginal).compacted).toBeFalsy();
+  expect(compactOriginal.symmetricDifference(set).compacted).toBeFalsy();
+  expect(set.symmetricDifference(compactOriginal).compacted).toBeFalsy();
 });
