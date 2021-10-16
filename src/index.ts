@@ -580,7 +580,10 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (arguments.length >= 2) {
       callbackFn = callbackFn.bind(thisArg);
     }
-
+    if (this._hasEmpty) {
+      const s = "";
+      callbackFn(s, s, this);
+    }
     this._visitCodePoints(0, [], (prefix) => {
       const s = String.fromCodePoint(...prefix);
       callbackFn(s, s, this);
