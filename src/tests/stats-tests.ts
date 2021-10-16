@@ -111,7 +111,7 @@ test("stats for base cases", () => {
   expect(st.maxCodePoint).toBe(66);
   expect(st.surrogates).toBe(0);
 
-  // a set with exactly one word must have a node for each letter
+  // a set with exactly one string must have a node for each letter
   // all following the equals branches
   set.clear();
   set.add("blisters");

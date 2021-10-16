@@ -185,7 +185,7 @@ Even though it represents a single symbol, the above string has a length of two!
 
 ### Compaction
 
-Calling `compact()` can significantly reduce a set's memory footprint. For large sets of typical strings, typical results are a 50&ndash;80% reduction in size. However, no new strings can be added or deleted without undoing the compaction. Compaction is expensive, but can be a one-time or even ahead-of-time step for many use cases.
+Calling `compact()` can significantly reduce a set's memory footprint. For large sets of typical strings, typical results are a 50–80% reduction in size. However, no new strings can be added or deleted without undoing the compaction. Compaction is expensive, but can be a one-time or even ahead-of-time step for many use cases.
 
 ### Serialization
 
@@ -222,10 +222,14 @@ The project includes an extensive suite of tests under `src/tests`. To run all t
 npm test
 ```
 
+HTML documentation can be prepared automatically using TypeDoc:
+
+```bash
+npm run doc
+```
+
 Before submitting a pull request, format, lint, and run all tests:
 
 ```bash
-npm run format
-npm run lint
-npm test
+npm run format && npm run lint && npm test
 ```

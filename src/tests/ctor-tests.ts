@@ -1,19 +1,5 @@
 import { TernaryStringSet } from "../index";
-
-/** Simple set equality test that does not rely on `equals()`. */
-function sameSet(lhs: TernaryStringSet, rhs: TernaryStringSet) {
-  if (lhs.size !== rhs.size) return false;
-  let eq = true;
-  const a = Array.from(lhs),
-    b = Array.from(rhs);
-  for (let i = 0; i < a.length; ++i) {
-    if (a[i] !== b[i]) {
-      eq = false;
-      break;
-    }
-  }
-  return eq;
-}
+import { sameSet } from "./utils";
 
 test("No-arg constructor yields empty set", () => {
   expect(new TernaryStringSet().size).toBe(0);

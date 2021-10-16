@@ -41,6 +41,9 @@ test("Accurate for many words/addAll", () => {
   expect(set.size).toBe(0);
   set = wordSet();
   expect(set.size).toBe(words.length);
+  set.balance();
+  set.compact();
+  expect(set.size).toBe(words.length);
   let i = 0;
   for (const el of set) {
     set.delete(el);
@@ -49,5 +52,5 @@ test("Accurate for many words/addAll", () => {
   for (const el of words) {
     set.delete(el);
     expect(set.size).toBe(0);
-  }
+  }  
 });

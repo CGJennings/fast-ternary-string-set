@@ -3,9 +3,9 @@ const NUL = ~(1 << 31);
 /** First node index that would run off of the end of the array. */
 const NODE_CEILING = NUL - 3;
 /** End-of-string flag: set on node values when that node also marks the end of a string. */
-const EOW = 1 << 21;
+const EOS = 1 << 21;
 /** Mask to extract the code point from a node value, ignoring flags. */
-const CP_MASK = EOW - 1;
+const CP_MASK = EOS - 1;
 /** Smallest code point that requires a surrogate pair. */
 const CP_MIN_SURROGATE = 0x10000;
 /** Version number for the data buffer format. */
@@ -27,10 +27,9 @@ const BF_BRANCH16 = 4;
  *
  * The string set can store any valid Unicode string, including the empty
  * string, strings that include characters from the supplementary (or "astral")
- * planes, and so on. Strings with code points beyond last Unicode code point,
- * U+10FFFF, are *not* supported.
+ * planes, and so on.
  *
- * Strings are stored using a *ternary search tree*, which has excellent performance
+ * Strings are stored using a *ternary search tree*, which has well-balanced performance
  * characteristics when properly constructed (it is important to avoid adding strings
  * in sorted order).
  */
@@ -47,13 +46,13 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * this structure usually offers better time/space performance than an equivalent tree
    * based on linked objects.
    */
-  #tree: number[];
+  private _tree: number[];
   /** Tracks whether empty string is in the set as a special case. */
-  #hasEmpty: boolean;
+  private _hasEmpty: boolean;
   /** Tracks whether this tree has been compacted; if true this must be undone before mutating the tree. */
-  #compact: boolean;
+  private _compact: boolean;
   /** Tracks set size. */
-  #size: number;
+  private _size: number;
 
   /**
    * Creates a new set. The set will be empty unless the optional iterable `source` object
@@ -75,10 +74,10 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         throw new TypeError("source object is not iterable");
       }
       if (source instanceof TernaryStringSet) {
-        this.#tree = source.#tree.slice();
-        this.#hasEmpty = source.#hasEmpty;
-        this.#compact = source.#compact;
-        this.#size = source.#size;
+        this._tree = source._tree.slice();
+        this._hasEmpty = source._hasEmpty;
+        this._compact = source._compact;
+        this._size = source._size;
       } else if (Array.isArray(source)) {
         this.addAll(source);
       } else {
@@ -93,15 +92,15 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @returns The non-negative integer number of string elements in the set.
    */
   get size(): number {
-    return this.#size;
+    return this._size;
   }
 
   /** Removes all strings from this set. */
   clear(): void {
-    this.#tree = [];
-    this.#hasEmpty = false;
-    this.#compact = false;
-    this.#size = 0;
+    this._tree = [];
+    this._hasEmpty = false;
+    this._compact = false;
+    this._size = 0;
   }
 
   /**
@@ -122,19 +121,19 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       s = String(s);
     }
     if (s.length === 0) {
-      if (!this.#hasEmpty) {
-        this.#hasEmpty = true;
-        ++this.#size;
+      if (!this._hasEmpty) {
+        this._hasEmpty = true;
+        ++this._size;
       }
     } else {
-      if (this.#compact && !this.has(s)) this.__decompact();
-      this.addImpl(0, s, 0, s.codePointAt(0));
+      if (this._compact && !this.has(s)) this._decompact();
+      this._addImpl(0, s, 0, s.codePointAt(0));
     }
     return this;
   }
 
-  private addImpl(node: number, s: string, i: number, cp: number): number {
-    const tree = this.#tree;
+  private _addImpl(node: number, s: string, i: number, cp: number): number {
+    const tree = this._tree;
 
     if (node >= tree.length) {
       node = tree.length;
@@ -146,18 +145,18 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
     const treeCp = tree[node] & CP_MASK;
     if (cp < treeCp) {
-      tree[node + 1] = this.addImpl(tree[node + 1], s, i, cp);
+      tree[node + 1] = this._addImpl(tree[node + 1], s, i, cp);
     } else if (cp > treeCp) {
-      tree[node + 3] = this.addImpl(tree[node + 3], s, i, cp);
+      tree[node + 3] = this._addImpl(tree[node + 3], s, i, cp);
     } else {
       i += cp >= CP_MIN_SURROGATE ? 2 : 1;
       if (i >= s.length) {
-        if ((tree[node] & EOW) === 0) {
-          tree[node] |= EOW;
-          ++this.#size;
+        if ((tree[node] & EOS) === 0) {
+          tree[node] |= EOS;
+          ++this._size;
         }
       } else {
-        tree[node + 2] = this.addImpl(tree[node + 2], s, i, s.codePointAt(i));
+        tree[node + 2] = this._addImpl(tree[node + 2], s, i, s.codePointAt(i));
       }
     }
 
@@ -206,27 +205,27 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       }
       s = String(s);
     }
-    if (s.length === 0) return this.#hasEmpty;
+    if (s.length === 0) return this._hasEmpty;
 
-    return this.hasImpl(0, s, 0, s.codePointAt(0));
+    return this._hasImpl(0, s, 0, s.codePointAt(0));
   }
 
-  private hasImpl(node: number, s: string, i: number, cp: number): boolean {
-    const tree = this.#tree;
+  private _hasImpl(node: number, s: string, i: number, cp: number): boolean {
+    const tree = this._tree;
 
     if (node >= tree.length) return false;
 
     const treeCp = tree[node] & CP_MASK;
     if (cp < treeCp) {
-      return this.hasImpl(tree[node + 1], s, i, cp);
+      return this._hasImpl(tree[node + 1], s, i, cp);
     } else if (cp > treeCp) {
-      return this.hasImpl(tree[node + 3], s, i, cp);
+      return this._hasImpl(tree[node + 3], s, i, cp);
     } else {
       i += cp >= CP_MIN_SURROGATE ? 2 : 1;
       if (i >= s.length) {
-        return (tree[node] & EOW) === EOW;
+        return (tree[node] & EOS) === EOS;
       } else {
-        return this.hasImpl(tree[node + 2], s, i, s.codePointAt(i));
+        return this._hasImpl(tree[node + 2], s, i, s.codePointAt(i));
       }
     }
   }
@@ -247,39 +246,39 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       s = String(s);
     }
     if (s.length === 0) {
-      const had = this.#hasEmpty;
+      const had = this._hasEmpty;
       if (had) {
-        this.#hasEmpty = false;
-        --this.#size;
+        this._hasEmpty = false;
+        --this._size;
       }
       return had;
     }
 
-    if (this.#compact && this.has(s)) this.__decompact();
-    return this.deleteImpl(0, s, 0, s.codePointAt(0));
+    if (this._compact && this.has(s)) this._decompact();
+    return this._deleteImpl(0, s, 0, s.codePointAt(0));
   }
 
-  private deleteImpl(node: number, s: string, i: number, cp: number): boolean {
-    const tree = this.#tree;
+  private _deleteImpl(node: number, s: string, i: number, cp: number): boolean {
+    const tree = this._tree;
 
     if (node >= tree.length) return false;
 
     const treeCp = tree[node] & CP_MASK;
     if (cp < treeCp) {
-      return this.deleteImpl(tree[node + 1], s, i, cp);
+      return this._deleteImpl(tree[node + 1], s, i, cp);
     } else if (cp > treeCp) {
-      return this.deleteImpl(tree[node + 3], s, i, cp);
+      return this._deleteImpl(tree[node + 3], s, i, cp);
     } else {
       i += cp >= CP_MIN_SURROGATE ? 2 : 1;
       if (i >= s.length) {
-        const had = (tree[node] & EOW) === EOW;
+        const had = (tree[node] & EOS) === EOS;
         if (had) {
           tree[node] &= CP_MASK;
-          --this.#size;
+          --this._size;
         }
         return had;
       } else {
-        return this.deleteImpl(tree[node + 2], s, i, s.codePointAt(i));
+        return this._deleteImpl(tree[node + 2], s, i, s.codePointAt(i));
       }
     }
   }
@@ -310,35 +309,35 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       availChars[cp] = availChars[cp] ? availChars[cp] + 1 : 1;
     }
 
-    const matches: string[] = this.#hasEmpty ? [""] : [];
-    this.getArrangementsOfImpl(0, availChars, [], matches);
+    const matches: string[] = this._hasEmpty ? [""] : [];
+    this._getArrangementsImpl(0, availChars, [], matches);
     return matches;
   }
 
-  private getArrangementsOfImpl(
+  private _getArrangementsImpl(
     node: number,
     availChars: number[],
     prefix: number[],
     matches: string[],
   ) {
-    const tree = this.#tree;
+    const tree = this._tree;
     if (node >= tree.length) return;
 
-    this.getArrangementsOfImpl(tree[node + 1], availChars, prefix, matches);
+    this._getArrangementsImpl(tree[node + 1], availChars, prefix, matches);
 
     const cp = tree[node] & CP_MASK;
     if (availChars[cp] > 0) {
       --availChars[cp];
       prefix.push(cp);
-      if (tree[node] & EOW) {
+      if (tree[node] & EOS) {
         matches.push(String.fromCharCode(...prefix));
       }
-      this.getArrangementsOfImpl(tree[node + 2], availChars, prefix, matches);
+      this._getArrangementsImpl(tree[node + 2], availChars, prefix, matches);
       prefix.pop();
       ++availChars[cp];
     }
 
-    this.getArrangementsOfImpl(tree[node + 3], availChars, prefix, matches);
+    this._getArrangementsImpl(tree[node + 3], availChars, prefix, matches);
   }
 
   /**
@@ -356,26 +355,26 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     pattern = String(pattern);
 
     if (pattern.length === 0) {
-      return Array.from(this);
+      return this.toArray();
     }
 
     const results: string[] = [];
-    const prefix = this.__cp(pattern);
-    let node = this.__has(0, prefix, 0);
+    const prefix = this._toCodePoints(pattern);
+    let node = this._hasCodePoints(0, prefix, 0);
     if (node < 0) {
       node = -node - 1;
       // prefix not in tree, therefore no children are either
-      if (node >= this.#tree.length) {
+      if (node >= this._tree.length) {
         return results;
       }
       // prefix in tree, but is not itself in the set
     } else {
       // prefix in tree, and also in set
-      results.push(String.fromCodePoint(...prefix));
+      results.push(pattern);
     }
 
     // continue from end of prefix by taking equal branch
-    this.__visit(this.#tree[node + 2], prefix, (s) => {
+    this._visitCodePoints(this._tree[node + 2], prefix, (s) => {
       results.push(String.fromCodePoint(...s));
     });
     return results;
@@ -402,16 +401,16 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (dontCareChar.length === 0) throw new TypeError("empty dontCareChar");
 
     if (pattern.length === 0) {
-      return this.#hasEmpty ? [""] : [];
+      return this._hasEmpty ? [""] : [];
     }
 
     const dc = dontCareChar.codePointAt(0);
     const matches: string[] = [];
-    this.getPartialMatchesOfImpl(0, pattern, 0, dc, [], matches);
+    this._getPartialMatchesImpl(0, pattern, 0, dc, [], matches);
     return matches;
   }
 
-  private getPartialMatchesOfImpl(
+  private _getPartialMatchesImpl(
     node: number,
     pattern: string,
     i: number,
@@ -419,13 +418,13 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     prefix: number[],
     matches: string[],
   ) {
-    const tree = this.#tree;
+    const tree = this._tree;
     if (node >= tree.length) return;
 
     const cp = pattern.codePointAt(i);
     const treeCp = tree[node] & CP_MASK;
     if (cp < treeCp || cp === dc) {
-      this.getPartialMatchesOfImpl(
+      this._getPartialMatchesImpl(
         tree[node + 1],
         pattern,
         i,
@@ -438,11 +437,11 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       const i_ = i + (cp >= CP_MIN_SURROGATE ? 2 : 1);
       prefix.push(treeCp);
       if (i_ >= pattern.length) {
-        if (tree[node] & EOW) {
+        if (tree[node] & EOS) {
           matches.push(String.fromCodePoint(...prefix));
         }
       } else {
-        this.getPartialMatchesOfImpl(
+        this._getPartialMatchesImpl(
           tree[node + 2],
           pattern,
           i_,
@@ -454,7 +453,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       prefix.pop();
     }
     if (cp > treeCp || cp === dc) {
-      this.getPartialMatchesOfImpl(
+      this._getPartialMatchesImpl(
         tree[node + 3],
         pattern,
         i,
@@ -494,7 +493,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
     // optimize cases where any string the same length as the pattern will match
     if (distance >= pattern.length) {
-      this.__visit(0, [], (prefix) => {
+      this._visitCodePoints(0, [], (prefix) => {
         if (prefix.length === pattern.length) {
           matches.push(String.fromCodePoint(...prefix));
         }
@@ -502,11 +501,11 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       return matches;
     }
 
-    this.getWithinHammingDistanceOfImpl(0, pattern, 0, distance, [], matches);
+    this._getWithinHammingImpl(0, pattern, 0, distance, [], matches);
     return matches;
   }
 
-  private getWithinHammingDistanceOfImpl(
+  private _getWithinHammingImpl(
     node: number,
     pattern: string,
     i: number,
@@ -514,13 +513,13 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     prefix: number[],
     matches: string[],
   ) {
-    const tree = this.#tree;
+    const tree = this._tree;
     if (node >= tree.length || dist < 0) return;
 
     const cp = pattern.codePointAt(i);
     const treeCp = tree[node] & CP_MASK;
     if (cp < treeCp || dist > 0) {
-      this.getWithinHammingDistanceOfImpl(
+      this._getWithinHammingImpl(
         tree[node + 1],
         pattern,
         i,
@@ -531,7 +530,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
 
     prefix.push(treeCp);
-    if (tree[node] & EOW && pattern.length === prefix.length) {
+    if (tree[node] & EOS && pattern.length === prefix.length) {
       if (dist > 0 || cp === treeCp) {
         matches.push(String.fromCodePoint(...prefix));
       }
@@ -539,7 +538,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     } else {
       const i_ = i + (cp >= CP_MIN_SURROGATE ? 2 : 1);
       const dist_ = dist - (cp === treeCp ? 0 : 1);
-      this.getWithinHammingDistanceOfImpl(
+      this._getWithinHammingImpl(
         tree[node + 2],
         pattern,
         i_,
@@ -551,7 +550,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     prefix.pop();
 
     if (cp > treeCp || dist > 0) {
-      this.getWithinHammingDistanceOfImpl(
+      this._getWithinHammingImpl(
         tree[node + 3],
         pattern,
         i,
@@ -574,12 +573,19 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     callbackFn: (value: string, key: string, set: TernaryStringSet) => void,
     thisArg?: unknown,
   ): void {
-    let thiz: unknown;
-    if (arguments.length >= 2) thiz = thisArg;
-
-    this.__visit(0, [], (prefix) => {
+    if (typeof callbackFn !== "function") {
+      throw new TypeError("callbackFn must be a function");
+    }
+    if (arguments.length >= 2) {
+      callbackFn = callbackFn.bind(thisArg);
+    }
+    if (this._hasEmpty) {
+      const s = "";
+      callbackFn(s, s, this);
+    }
+    this._visitCodePoints(0, [], (prefix) => {
       const s = String.fromCodePoint(...prefix);
-      callbackFn.call(thiz, s, s, this);
+      callbackFn(s, s, this);
     });
   }
 
@@ -605,7 +611,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @returns An non-null iterator over the strings in this set.
    */
   values(): IterableIterator<string> {
-    const tree = this.#tree;
+    const tree = this._tree;
     function* itor(node: number, prefix: number[]): Generator<string> {
       if (node < 0) {
         node = 0;
@@ -614,12 +620,12 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       if (node >= tree.length) return;
       yield* itor(tree[node + 1], prefix);
       prefix.push(tree[node] & CP_MASK);
-      if (tree[node] & EOW) yield String.fromCodePoint(...prefix);
+      if (tree[node] & EOS) yield String.fromCodePoint(...prefix);
       yield* itor(tree[node + 2], prefix);
       prefix.pop();
       yield* itor(tree[node + 3], prefix);
     }
-    return itor(this.#hasEmpty ? -1 : 0, []);
+    return itor(this._hasEmpty ? -1 : 0, []);
   }
 
   /**
@@ -654,7 +660,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   equals(rhs: any): boolean {
     if (!(rhs instanceof TernaryStringSet)) return false;
-    if (this.#size !== rhs.#size) return false;
+    if (this._size !== rhs._size) return false;
     return this.isSubsetOf(rhs);
   }
 
@@ -672,8 +678,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
-    if (this.#size > rhs.#size) return false;
-    if (this.#hasEmpty && !rhs.#hasEmpty) return false;
+    if (this._size > rhs._size) return false;
+    if (this._hasEmpty && !rhs._hasEmpty) return false;
 
     // What follows is a faster equivalent to the following code:
     // ```
@@ -684,8 +690,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     // ```
 
     let subset = true;
-    this.__visit(0, [], (s) => {
-      if (rhs.__has(0, s, 0) < 0) {
+    this._visitCodePoints(0, [], (s) => {
+      if (rhs._hasCodePoints(0, s, 0) < 0) {
         subset = false;
         return false;
       }
@@ -720,16 +726,16 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
-    if (rhs.#size > this.#size) {
+    if (rhs._size > this._size) {
       return rhs.union(this);
     }
-    const union = this.__noncompactClone();
-    if (!union.#hasEmpty && rhs.#hasEmpty) {
-      union.#hasEmpty = true;
-      ++union.#size;
+    const union = this._cloneDecompacted();
+    if (!union._hasEmpty && rhs._hasEmpty) {
+      union._hasEmpty = true;
+      ++union._size;
     }
-    rhs.__visit(0, [], (s) => {
-      union.__add(0, s, 0);
+    rhs._visitCodePoints(0, [], (s) => {
+      union._addCodePoints(0, s, 0);
     });
     return union;
   }
@@ -745,20 +751,20 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
-    if (rhs.#size < this.#size) {
+    if (rhs._size < this._size) {
       return rhs.intersection(this);
     }
-    const intersect = this.__noncompactClone();
-    if (intersect.#hasEmpty && !rhs.#hasEmpty) {
-      intersect.#hasEmpty = false;
-      --intersect.#size;
+    const intersect = this._cloneDecompacted();
+    if (intersect._hasEmpty && !rhs._hasEmpty) {
+      intersect._hasEmpty = false;
+      --intersect._size;
     }
-    intersect.#hasEmpty &&= rhs.#hasEmpty;
-    intersect.__visit(0, [], (s, node) => {
+    intersect._hasEmpty &&= rhs._hasEmpty;
+    intersect._visitCodePoints(0, [], (s, node) => {
       // delete if not also in rhs
-      if (rhs.__has(0, s, 0) < 0) {
-        intersect.#tree[node] &= CP_MASK;
-        --intersect.#size;
+      if (rhs._hasCodePoints(0, s, 0) < 0) {
+        intersect._tree[node] &= CP_MASK;
+        --intersect._size;
       }
     });
     return intersect;
@@ -777,16 +783,16 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
-    const diff = this.__noncompactClone();
-    if (rhs.#hasEmpty && diff.#hasEmpty) {
-      diff.#hasEmpty = false;
-      --diff.#size;
+    const diff = this._cloneDecompacted();
+    if (rhs._hasEmpty && diff._hasEmpty) {
+      diff._hasEmpty = false;
+      --diff._size;
     }
-    diff.__visit(0, [], (s, node) => {
+    diff._visitCodePoints(0, [], (s, node) => {
       // delete if in rhs
-      if (rhs.__has(0, s, 0) >= 0) {
-        diff.#tree[node] &= CP_MASK;
-        --diff.#size;
+      if (rhs._hasCodePoints(0, s, 0) >= 0) {
+        diff._tree[node] &= CP_MASK;
+        --diff._size;
       }
     });
     return diff;
@@ -804,23 +810,23 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
-    const diff = this.__noncompactClone();
-    diff.#hasEmpty = this.#hasEmpty !== rhs.#hasEmpty;
-    if (this.#hasEmpty !== diff.#hasEmpty) {
-      if (diff.#hasEmpty) {
-        ++diff.#size;
+    const diff = this._cloneDecompacted();
+    diff._hasEmpty = this._hasEmpty !== rhs._hasEmpty;
+    if (this._hasEmpty !== diff._hasEmpty) {
+      if (diff._hasEmpty) {
+        ++diff._size;
       } else {
-        --diff.#size;
+        --diff._size;
       }
     }
-    rhs.__visit(0, [], (s) => {
+    rhs._visitCodePoints(0, [], (s) => {
       // if s is also in diff, delete in diff; otherwise add to diff
-      const node = diff.__has(0, s, 0);
+      const node = diff._hasCodePoints(0, s, 0);
       if (node >= 0) {
-        diff.#tree[node] &= CP_MASK;
-        --diff.#size;
+        diff._tree[node] &= CP_MASK;
+        --diff._size;
       } else {
-        diff.__add(0, s, 0);
+        diff._addCodePoints(0, s, 0);
       }
     });
     return diff;
@@ -845,157 +851,12 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * A private helper method that calls a function for each string in the
-   * subtree rooted at the specified node index. Strings are passed to
-   * the function as an array of code points. Thus the string
-   * `"ABC"` would be passed as `[65, 66, 67]`. If the function
-   * returns `false`, tree traversal ends immediately.
-   *
-   * Does not visit the empty string.
-   *
-   * @param node The starting node index (0 for tree root).
-   * @param prefix The array to have string code points appended to it.
-   * @param visitFn The function to invoke for each string.
-   */
-  private __visit(
-    node: number,
-    prefix: number[],
-    visitFn: (prefix: number[], node: number) => void | boolean,
-  ) {
-    const tree = this.#tree;
-    if (node >= tree.length) return;
-    this.__visit(tree[node + 1], prefix, visitFn);
-    prefix.push(tree[node] & CP_MASK);
-    if (tree[node] & EOW) {
-      if (visitFn(prefix, node) === false) return;
-    }
-    this.__visit(tree[node + 2], prefix, visitFn);
-    prefix.pop();
-    this.__visit(tree[node + 3], prefix, visitFn);
-  }
-
-  /**
-   * Private helper method similar to `has()`, but it searches for a string specified
-   * as an array of code points. If the string is found, the node index of the node
-   * where the string ends is returned. If the string is not found, a negative number
-   * is returned that is one less than the node where the search failed. To convert
-   * this to the node where the search failed, use `-node - 1`. If this node is past
-   * the last node in the tree, then the specified string is not in the tree at all.
-   * Otherwise, the specified string is a prefix of other strings in the set but
-   * is not itself in the set.
-   *
-   * Does not handle testing for the empty string.
-   *
-   * @param node The subtree from which to begin searching.
-   * @param s The array of code points to search for.
-   * @param i The index of the code point currently being searched for.
-   * @returns The node index where the string ends, or a negative value indicating the node
-   *     where searching failed, as described above.
-   */
-  private __has(node: number, s: number[], i: number): number {
-    const tree = this.#tree;
-    if (node >= tree.length) return -node - 1;
-
-    const cp = s[i];
-    const treeCp = tree[node] & CP_MASK;
-    if (cp < treeCp) {
-      return this.__has(tree[node + 1], s, i);
-    } else if (cp > treeCp) {
-      return this.__has(tree[node + 3], s, i);
-    } else {
-      if (++i >= s.length) {
-        return (tree[node] & EOW) === EOW ? node : -node - 1;
-      } else {
-        return this.__has(tree[node + 2], s, i);
-      }
-    }
-  }
-
-  /**
-   * Private helper method similar to `add()`, but it takes a string specified
-   * as an array of code points.
-   *
-   * Does not handle adding empty strings.
-   *
-   * @param node The subtree from which to begin adding.
-   * @param s The array of code points to add for.
-   * @param i The index of the code point currently being added.
-   */
-  private __add(node: number, s: number[], i: number): number {
-    const tree = this.#tree;
-    const cp = s[i];
-
-    if (node >= tree.length) {
-      node = tree.length;
-      if (node >= NODE_CEILING) {
-        throw new RangeError("cannot add more strings");
-      }
-      tree.push(cp, NUL, NUL, NUL);
-    }
-
-    const treeCp = tree[node] & CP_MASK;
-    if (cp < treeCp) {
-      tree[node + 1] = this.__add(tree[node + 1], s, i);
-    } else if (cp > treeCp) {
-      tree[node + 3] = this.__add(tree[node + 3], s, i);
-    } else {
-      i += cp >= CP_MIN_SURROGATE ? 2 : 1;
-      if (i >= s.length) {
-        if ((tree[node] & EOW) === 0) {
-          tree[node] |= EOW;
-          ++this.#size;
-        }
-      } else {
-        tree[node + 2] = this.__add(tree[node + 2], s, i);
-      }
-    }
-
-    return node;
-  }
-
-  /**
-   * Private helper method that returns a string as an array of numeric code points.
-   * (This is not equivalent to `[...s]`, which returns strings.)
-   *
-   * @param s The string to conver.
-   * @returns An array of the code points that comprise the string.
-   */
-  private __cp(s: string): number[] {
-    const cps = [];
-    for (let i = 0; i < s.length; ) {
-      const cp = s.codePointAt(i++);
-      if (cp >= CP_MIN_SURROGATE) ++i;
-      cps.push(cp);
-    }
-    return cps;
-  }
-
-  /**
-   * Private helper that converts a compact tree back into a non-compact form.
-   */
-  private __decompact() {
-    if (this.#compact) this.balance();
-  }
-
-  /**
-   * Private helper method that returns a clone of this set; but unlike using
-   * the constructor to copy a set, the new set is guaranteed not to be compact.
-   */
-  private __noncompactClone() {
-    if (this.#compact) {
-      return new TernaryStringSet(Array.from(this));
-    } else {
-      return new TernaryStringSet(this);
-    }
-  }
-
-  /**
    * Optimizes the layout of the underlying data structure to maximize search speed.
    * This may improve future search performance after adding or deleting a large
    * number of strings.
    *
    * It is not normally necessary to call this method as long as care was taken not
-   * to add large numbers of words in lexicographic order. That said, two scenarios
+   * to add large numbers of strings in lexicographic order. That said, two scenarios
    * where it may be particularly effective are:
    *  - If the set will be used in phases, with strings being added in one phase
    *    followed by a phase of extensive search operations.
@@ -1009,70 +870,86 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * compact the tree, be sure to balance it first.
    */
   balance(): void {
-    this.#tree = new TernaryStringSet(Array.from(this)).#tree;
-    this.#compact = false;
+    this._tree = new TernaryStringSet(this.toArray())._tree;
+    this._compact = false;
   }
 
   /**
-   * Compacts the set to reduce memory use and improve search performance.
+   * Compacts the set to reduce its memory footprint and improve search performance.
    * For large sets, a compacted set is typically *significantly* smaller
-   * than an uncompacted set. The tradeoff is that compact sets cannot be modified.
+   * than a non-compacted set. The tradeoff is that compact sets cannot be modified.
    * Any method that mutates the set, including
    * `add`, `addAll`, `balance`, and `delete`
-   * can therefore cause the set to revert to an uncompacted state.
+   * can therefore cause the set to revert to an non-compacted state.
    *
-   * Compaction and uncompaction are expensive operations, so rapid cycling
-   * between these states should be avoided. Compaction is an excellent option
-   * if the primary purpose of a set matching against a fixed collection
-   * of strings, such as a dictionary.
+   * Compaction is an excellent option if the primary purpose of a set matching
+   * against a fixed collection of strings, such as a dictionary. Since
+   * compaction and decompaction are expensive operations, it is less attractive
+   * in use cases where the set will be intermittently modified.
    */
   compact(): void {
-    if (this.#compact || this.#tree.length === 0) return;
+    if (this._compact || this._tree.length === 0) return;
 
-    // Theory of operation:
-    //
-    // In a ternary tree, all strings with the same prefix share the nodes
-    // that make up that prefix. The compact operation does much the same thing,
-    // but for suffixes. It does this by deduplicating identical tree nodes.
-    // For example, every string that ends in "e" and is not a prefix of any other
-    // string looks the same: an "e" node with three NUL pointers for its child branches.
-    // But these can be distributed throughout the tree. Consider a tree containing only
-    // "ape" and "haze": we could save space by having only a single copy of the "e" node
-    // and pointing to it from both the "p" node and the "z" node.
-    //
-    // To compact the tree, we iterate over each node in turn. If this is the first time
-    // we have seen this node, we assign it to the next available slot in the new,
-    // compacted array we will be create. If we have already seen the equivalent node,
-    // we do not assign it a slot since it will share the previously assigned slot.
-    // We then write out the new tree by iterating over the deduplicated nodes. When
-    // writing a node's child branch pointers, instead of using the original pointers
-    // we look up the new slot assigned to each child in the previous step.
-    //
-    // After performing the above step once, we will have deduplicated just the leaf nodes
-    // (because initially the only pointer that appears in multiple nodes is the NUL pointer).
-    // However, because the parents of those leaf nodes are now sharing pointers where they
-    // point to a deduplicated leaf node, there may now be duplicates among the parent nodes.
-    // Thus we can repeat the process above to dedupe the parent nodes. This in turn can result
-    // in duplicates in the grandparent nodes, and so on. Rewriting passes can be repeated until
-    // the output array is the same size as the input array, meaning that no duplicates were removed.
-    //
+    /*
 
-    let source = this.#tree;
+    Theory of operation:
+    
+    In a ternary tree, all strings with the same prefix share the nodes
+    that make up that prefix. The compact operation does much the same thing,
+    but for suffixes. It does this by deduplicating identical tree nodes.
+    For example, every string that ends in "e" and is not a prefix of any other
+    strings looks the same: an "e" node with three NUL child branch pointers.
+    But these can be distributed throughout the tree. Consider a tree containing only
+    "ape" and "haze": we could save space by having only a single copy of the "e" node
+    and pointing to it from both the "p" node and the "z" node.
+    
+    So: to compact the tree, we iterate over each node and build a map of all unique nodes.
+    The first time we come across a node, we add it to the map, mapping the node to
+    a number which is the next available slot in the new, compacted, output array we will write.
+
+    Once we have built the map, we iterate over the nodes again. This time we look up each node
+    in the previously built map to find the slot it was assigned in the output array. If the
+    slot is past the end of the array, then we haven't added it to the output yet. We can
+    write the node's value unchanged, but the three pointers to the child branches need to
+    be rewritten to point to the new, deduplicated equivalent of the nodes that they point to.
+    For each branch, if the pointer is NUL we write it unchanged. Otherwise we look up the node
+    that that branch points to in our unique node map to get its new slot number (i.e. array offset)
+    and write the translated address.
+
+    After doing this once, we will have deduplicated just the leaf nodes. In the original tree,
+    only nodes with no children can be duplicates, because their branches are all NUL.
+    But after rewriting the tree, some of the parents of those leaf nodes may now point to
+    shared leaf nodes, so they themselves might now have duplicates in other parts of the tree.
+    So, we can repeat the rewriting step above to remove these newly generated duplicates as well.
+    This may again lead to new duplicates, and so on: the rewriting can continue until the output
+    doesn't shrink anymore.
+    */
+
+    let source = this._tree;
     for (;;) {
-      const compacted = this.compactImpl(source);
+      const compacted = this._compactImpl(source);
       if (compacted.length === source.length) {
-        this.#tree = compacted;
+        this._tree = compacted;
         break;
       }
       source = compacted;
     }
-    this.#compact = true;
+    this._compact = true;
+  }
+
+  /**
+   * Returns whether the set is currently compact.
+   * 
+   * @returns True if the set is compacted, in which case mutating the set could have
+   *     significant performance implications.
+   */
+  get compacted(): boolean {
+    return this._compact;
   }
 
   /** Performs a single compaction pass; see `compact()` method. */
-  private compactImpl(tree: number[]): number[] {
-    // this uses nested sparse arrays to map node values to "slots"
-    // mapping(index of node in input tree) => index of node ("slot") in compacted output
+  private _compactImpl(tree: number[]): number[] {
+    // this uses nested sparse arrays to map node values to "slots" (node's index in new array)
     let nextSlot = 0;
     const nodeMap: number[][][][] = [];
     function mapping(i: number): number {
@@ -1102,6 +979,11 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       mapping(i);
     }
 
+    // check if tree will shrink before bothering to rewrite it
+    if (nextSlot === tree.length) {
+      return tree;
+    }
+
     // rewrite tree
     const out: number[] = [];
     for (let i = 0; i < tree.length; i += 4) {
@@ -1124,19 +1006,36 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
+   * Returns a new array of every element in the set. This is equivalent
+   * to `Array.from(this)`, but this method is more efficient.
+   * 
+   * @returns A non-null array of the elements of the set in lexicographic order.
+   */
+   toArray(): string[] {
+    const a = this._hasEmpty ? [""]: [];
+    this._visitCodePoints(0, [], (s) => {
+      a[a.length] = String.fromCodePoint(...s);
+    });
+    return a;
+  }
+
+  /**
    * Returns a buffer whose contents can be used to recreate this set.
    * The returned data is independent of the platform on which it is created.
+   * The buffer content and length will depend on the state of the set's
+   * underlying structure. For this reason you may wish to `balance()`
+   * and/or `compact()` the set first.
    *
    * @returns A non-null buffer.
    */
   toBuffer(): ArrayBuffer {
-    const tree = this.#tree;
+    const tree = this._tree;
     // use 16-bit ints for branches if node count is small enough
     const USE_BRANCH16 = tree.length < 0xffff;
 
     // allocate space for header + node count + tree nodes
-    let buffSize = this.#tree.length * 4;
-    if (USE_BRANCH16) buffSize = (this.#tree.length / 4) * 10;
+    let buffSize = this._tree.length * 4;
+    if (USE_BRANCH16) buffSize = (this._tree.length / 4) * 10;
     const buffer = new ArrayBuffer(BUFFER_HEAD_SIZE + buffSize);
     const view = new DataView(buffer);
 
@@ -1151,13 +1050,13 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     //   - presence of empty string
     //   - whether set is compacted
     let treeFlags = 0;
-    if (this.#hasEmpty) treeFlags |= BF_HAS_EMPTY;
-    if (this.#compact) treeFlags |= BF_COMPACT;
+    if (this._hasEmpty) treeFlags |= BF_HAS_EMPTY;
+    if (this._compact) treeFlags |= BF_COMPACT;
     if (USE_BRANCH16) treeFlags |= BF_BRANCH16;
     view.setUint8(3, treeFlags);
 
-    // fifth though eigth bytes store size (in v1, stored node count)
-    view.setUint32(4, this.#size, false);
+    // fifth though eighth bytes store size (in v1, stored node count)
+    view.setUint32(4, this._size, false);
 
     // remainder of buffer stores tree content
     if (USE_BRANCH16) {
@@ -1226,10 +1125,10 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     const treeSize = view.getUint32(4, false);
 
     const newTree = new TernaryStringSet();
-    newTree.#hasEmpty = (treeFlags & BF_HAS_EMPTY) === BF_HAS_EMPTY;
-    newTree.#compact = (treeFlags & BF_COMPACT) === BF_COMPACT;
+    newTree._hasEmpty = (treeFlags & BF_HAS_EMPTY) === BF_HAS_EMPTY;
+    newTree._compact = (treeFlags & BF_COMPACT) === BF_COMPACT;
 
-    const tree = newTree.#tree;
+    const tree = newTree._tree;
     if (USE_BRANCH16) {
       for (let byte = BUFFER_HEAD_SIZE; byte < view.byteLength; byte += 10) {
         let n;
@@ -1248,33 +1147,179 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
 
     if (version >= 2) {
-      newTree.#size = treeSize;
+      newTree._size = treeSize;
     } else {
-      if (newTree.#compact) {
+      if (newTree._compact) {
         throw new TypeError("bad buffer (v1 compact)");
       }
-      // version 1 did not store size, need to count from EOW flags;
-      // this is accurate since version 1 can't be compact
-      let size = newTree.#hasEmpty ? 1 : 0;
+      // version 1 did not store size, so we need to count
+      // how many end-of-string markers there are; this
+      // can be done with iteration rather than traversal
+      // since version 1 trees cannot be compact
+      let size = newTree._hasEmpty ? 1 : 0;
       for (let node = 0; node < tree.length; node += 4) {
-        if (tree[node] & EOW) ++size;
+        if (tree[node] & EOS) ++size;
       }
-      newTree.#size = size;
+      newTree._size = size;
     }
 
     return newTree;
   }
 
   /**
+   * For each string in the subtree rooted at the specified node,
+   * the callback function is invoked with an array of the numeric
+   * code points for that string. For example, the string `"ABC"`
+   * would be passed to the callback as `[65, 66, 67]`. This never
+   * visits the empty string, so that must be handled separately
+   * if desired.
+   *
+   * @param node The starting node index (0 for tree root).
+   * @param prefix The non-null array that will hold string code points;
+   *     any existing elements are retained as a prefix of every string.
+   * @param visitFn The non-null function to invoke for each string; returning
+   *     `false` will stop and return without visiting more strings.
+   */
+   private _visitCodePoints(
+    node: number,
+    prefix: number[],
+    visitFn: (prefix: number[], node: number) => void | boolean,
+  ) {
+    const tree = this._tree;
+    if (node >= tree.length) return;
+    this._visitCodePoints(tree[node + 1], prefix, visitFn);
+    prefix.push(tree[node] & CP_MASK);
+    if (tree[node] & EOS) {
+      if (visitFn(prefix, node) === false) return;
+    }
+    this._visitCodePoints(tree[node + 2], prefix, visitFn);
+    prefix.pop();
+    this._visitCodePoints(tree[node + 3], prefix, visitFn);
+  }
+
+  /**
+   * Tests whether a string specified as an array of numeric code points is in the set.
+   * Returns a numeric result `n` as follows:
+   *   - If `n >= 0`, the string was found and it ends at the node indicated by the result.
+   *   - If `n < 0`, the string was not found. Compute `s = -n - 1` and then:
+   *     - If `s >= tree.length` then not only is the string not present, but it is also
+   *       not a prefix of *any* string in the set.
+   *     - Otherwise, `s` is the index of the node where the string *would* end *if* it was
+   *       in the set.
+   *
+   * Does not handle testing for the empty string.
+   *
+   * @param node The subtree from which to begin searching (0 for root).
+   * @param s The non-null array of code points to search for.
+   * @param i The index of the code point currently being searched for (0 to search from start of string).
+   * @returns The node index where the string ends, or a negative value indicating
+   *     failure (see above for details).
+   */
+  private _hasCodePoints(node: number, s: number[], i: number): number {
+    const tree = this._tree;
+    if (node >= tree.length) return -node - 1;
+
+    const cp = s[i];
+    const treeCp = tree[node] & CP_MASK;
+    if (cp < treeCp) {
+      return this._hasCodePoints(tree[node + 1], s, i);
+    } else if (cp > treeCp) {
+      return this._hasCodePoints(tree[node + 3], s, i);
+    } else {
+      if (++i >= s.length) {
+        return (tree[node] & EOS) === EOS ? node : -node - 1;
+      } else {
+        return this._hasCodePoints(tree[node + 2], s, i);
+      }
+    }
+  }
+
+  /**
+   * Adds a string described as an array of numeric code points.
+   *
+   * Does not handle adding empty strings.
+   * 
+   * Does not check if the tree needs to be decompacted.
+   *
+   * @param node The subtree from which to begin adding (0 for root).
+   * @param s The non-null array of code points to add for.
+   * @param i The array index of the code point to start from (0 to add entire string).
+   */
+  private _addCodePoints(node: number, s: number[], i: number): number {
+    const tree = this._tree;
+    const cp = s[i];
+
+    if (node >= tree.length) {
+      node = tree.length;
+      if (node >= NODE_CEILING) {
+        throw new RangeError("cannot add more strings");
+      }
+      tree.push(cp, NUL, NUL, NUL);
+    }
+
+    const treeCp = tree[node] & CP_MASK;
+    if (cp < treeCp) {
+      tree[node + 1] = this._addCodePoints(tree[node + 1], s, i);
+    } else if (cp > treeCp) {
+      tree[node + 3] = this._addCodePoints(tree[node + 3], s, i);
+    } else {
+      i += cp >= CP_MIN_SURROGATE ? 2 : 1;
+      if (i >= s.length) {
+        if ((tree[node] & EOS) === 0) {
+          tree[node] |= EOS;
+          ++this._size;
+        }
+      } else {
+        tree[node + 2] = this._addCodePoints(tree[node + 2], s, i);
+      }
+    }
+
+    return node;
+  }
+
+  /**
+   * Converts a string to an array of numeric code points.
+   * (This is not equivalent to `[...s]`, which returns strings.)
+   *
+   * @param s A non-null string.
+   * @returns An array of the code points comprising the string.
+   */
+  private _toCodePoints(s: string): number[] {
+    const cps = [];
+    for (let i = 0; i < s.length; ) {
+      const cp = s.codePointAt(i++);
+      if (cp >= CP_MIN_SURROGATE) ++i;
+      cps.push(cp);
+    }
+    return cps;
+  }
+
+  /**
+   * If the tree is currently compacted, converts it a non-compact form.
+   */
+  private _decompact() {
+    if (this._compact) this.balance();
+  }
+
+  /**
+   * Returns a copy of this set that is also guaranteed not to be compact.
+   */
+  private _cloneDecompacted() {
+    if (this._compact) {
+      return new TernaryStringSet(this.toArray());
+    } else {
+      return new TernaryStringSet(this);
+    }
+  }  
+
+  /**
    * Returns information about this set's underlying tree structure.
-   * This method is intended only for advanced use cases, such as
-   * testing, estimating the set's memory footprint or deciding
-   * whether to rebalance the tree.
+   * This method is intended only for testing and performance analysis.
    */
   get stats(): TernaryTreeStats {
-    const tree = this.#tree;
+    const tree = this._tree;
     const breadth: number[] = [];
-    const nodes = this.#tree.length / 4;
+    const nodes = this._tree.length / 4;
     let surrogates = 0;
     let minCodePoint = nodes > 0 ? 0x10ffff : 0;
     let maxCodePoint = 0;
@@ -1295,9 +1340,9 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     })(0, 0);
 
     return {
-      size: this.#size,
+      size: this._size,
       nodes,
-      compact: this.#compact,
+      compact: this._compact,
       depth: breadth.length,
       breadth,
       minCodePoint,

@@ -1,5 +1,5 @@
 import { TernaryStringSet } from "../index";
-import { words, wordSet } from "./utils";
+import { words, wordSet, shuffle } from "./utils";
 
 let set: TernaryStringSet;
 
@@ -7,7 +7,7 @@ beforeEach(() => {
   set = new TernaryStringSet();
 });
 
-test("Add/delete empty string", () => {
+test("Delete empty string", () => {
   set.add("").add("horse");
   expect(set.size).toBe(2);
   expect(set.has("")).toBe(true);
@@ -47,15 +47,3 @@ test("Delete multiple", () => {
   }
   expect(set.size).toBe(0);
 });
-
-function shuffle<T>(array: T[]): T[] {
-  let i = array.length,
-    toSwap;
-  while (i > 0) {
-    toSwap = Math.floor(Math.random() * i);
-    const temp = array[--i];
-    array[i] = array[toSwap];
-    array[toSwap] = temp;
-  }
-  return array;
-}
