@@ -356,7 +356,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     pattern = String(pattern);
 
     if (pattern.length === 0) {
-      return Array.from(this);
+      return this.toArray();
     }
 
     const results: string[] = [];
@@ -371,7 +371,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       // prefix in tree, but is not itself in the set
     } else {
       // prefix in tree, and also in set
-      results.push(String.fromCodePoint(...prefix));
+      results.push(pattern);
     }
 
     // continue from end of prefix by taking equal branch
@@ -871,7 +871,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * compact the tree, be sure to balance it first.
    */
   balance(): void {
-    this._tree = new TernaryStringSet(Array.from(this))._tree;
+    this._tree = new TernaryStringSet(this.toArray())._tree;
     this._compact = false;
   }
 
@@ -994,6 +994,20 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
 
     return out;
+  }
+
+  /**
+   * Returns a new array of every element in the set. This is equivalent
+   * to `Array.from(this)`, but this method is more efficient.
+   * 
+   * @returns A non-null array of the elements of the set in lexicographic order.
+   */
+   toArray(): string[] {
+    const a = this._hasEmpty ? [""]: [];
+    this._visitCodePoints(0, [], (s) => {
+      a[a.length] = String.fromCodePoint(...s);
+    });
+    return a;
   }
 
   /**
@@ -1283,7 +1297,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    */
   private _cloneDecompacted() {
     if (this._compact) {
-      return new TernaryStringSet(Array.from(this));
+      return new TernaryStringSet(this.toArray());
     } else {
       return new TernaryStringSet(this);
     }
