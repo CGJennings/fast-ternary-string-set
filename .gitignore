@@ -4,6 +4,9 @@ node_modules/
 # Output
 /lib
 
+# Generated documentation
+/docs
+
 # Logs
 logs
 *.log
