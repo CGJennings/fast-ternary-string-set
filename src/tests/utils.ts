@@ -10,7 +10,10 @@ export const words = Object.freeze(text.split("\n"));
 const sourceTree = new TernaryStringSet(words);
 sourceTree.balance();
 
-/** Creates a new set containing the word list. Pass false if you will not mutate the set. */
+/**
+ * Creates a new set containing the word list.
+ * Pass false if you will **not** mutate the set to get a shared instance.
+ */
 export function wordSet(mutable = true): TernaryStringSet {
   return mutable ? new TernaryStringSet(sourceTree) : sourceTree;
 }
@@ -29,7 +32,3 @@ export function readBuffer(filename: string): ArrayBuffer {
   const file = join(__dirname, filename + ".bin");
   return readFileSync(file).buffer;
 }
-
-// let z = wordSet();
-// z.compact();
-// writeBuffer(z, "version3");

@@ -3,9 +3,9 @@ const NUL = ~(1 << 31);
 /** First node index that would run off of the end of the array. */
 const NODE_CEILING = NUL - 3;
 /** End-of-string flag: set on node values when that node also marks the end of a string. */
-const EOW = 1 << 21;
+const EOS = 1 << 21;
 /** Mask to extract the code point from a node value, ignoring flags. */
-const CP_MASK = EOW - 1;
+const CP_MASK = EOS - 1;
 /** Smallest code point that requires a surrogate pair. */
 const CP_MIN_SURROGATE = 0x10000;
 /** Version number for the data buffer format. */
@@ -152,8 +152,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     } else {
       i += cp >= CP_MIN_SURROGATE ? 2 : 1;
       if (i >= s.length) {
-        if ((tree[node] & EOW) === 0) {
-          tree[node] |= EOW;
+        if ((tree[node] & EOS) === 0) {
+          tree[node] |= EOS;
           ++this._size;
         }
       } else {
@@ -224,7 +224,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     } else {
       i += cp >= CP_MIN_SURROGATE ? 2 : 1;
       if (i >= s.length) {
-        return (tree[node] & EOW) === EOW;
+        return (tree[node] & EOS) === EOS;
       } else {
         return this._hasImpl(tree[node + 2], s, i, s.codePointAt(i));
       }
@@ -272,7 +272,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     } else {
       i += cp >= CP_MIN_SURROGATE ? 2 : 1;
       if (i >= s.length) {
-        const had = (tree[node] & EOW) === EOW;
+        const had = (tree[node] & EOS) === EOS;
         if (had) {
           tree[node] &= CP_MASK;
           --this._size;
@@ -330,7 +330,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (availChars[cp] > 0) {
       --availChars[cp];
       prefix.push(cp);
-      if (tree[node] & EOW) {
+      if (tree[node] & EOS) {
         matches.push(String.fromCharCode(...prefix));
       }
       this._getArrangementsImpl(tree[node + 2], availChars, prefix, matches);
@@ -438,7 +438,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       const i_ = i + (cp >= CP_MIN_SURROGATE ? 2 : 1);
       prefix.push(treeCp);
       if (i_ >= pattern.length) {
-        if (tree[node] & EOW) {
+        if (tree[node] & EOS) {
           matches.push(String.fromCodePoint(...prefix));
         }
       } else {
@@ -531,7 +531,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
 
     prefix.push(treeCp);
-    if (tree[node] & EOW && pattern.length === prefix.length) {
+    if (tree[node] & EOS && pattern.length === prefix.length) {
       if (dist > 0 || cp === treeCp) {
         matches.push(String.fromCodePoint(...prefix));
       }
@@ -614,7 +614,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       if (node >= tree.length) return;
       yield* itor(tree[node + 1], prefix);
       prefix.push(tree[node] & CP_MASK);
-      if (tree[node] & EOW) yield String.fromCodePoint(...prefix);
+      if (tree[node] & EOS) yield String.fromCodePoint(...prefix);
       yield* itor(tree[node + 2], prefix);
       prefix.pop();
       yield* itor(tree[node + 3], prefix);
@@ -866,7 +866,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (node >= tree.length) return;
     this._visit(tree[node + 1], prefix, visitFn);
     prefix.push(tree[node] & CP_MASK);
-    if (tree[node] & EOW) {
+    if (tree[node] & EOS) {
       if (visitFn(prefix, node) === false) return;
     }
     this._visit(tree[node + 2], prefix, visitFn);
@@ -904,7 +904,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       return this._hasCodePoints(tree[node + 3], s, i);
     } else {
       if (++i >= s.length) {
-        return (tree[node] & EOW) === EOW ? node : -node - 1;
+        return (tree[node] & EOS) === EOS ? node : -node - 1;
       } else {
         return this._hasCodePoints(tree[node + 2], s, i);
       }
@@ -941,8 +941,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     } else {
       i += cp >= CP_MIN_SURROGATE ? 2 : 1;
       if (i >= s.length) {
-        if ((tree[node] & EOW) === 0) {
-          tree[node] |= EOW;
+        if ((tree[node] & EOS) === 0) {
+          tree[node] |= EOS;
           ++this._size;
         }
       } else {
@@ -995,7 +995,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * number of strings.
    *
    * It is not normally necessary to call this method as long as care was taken not
-   * to add large numbers of words in lexicographic order. That said, two scenarios
+   * to add large numbers of strings in lexicographic order. That said, two scenarios
    * where it may be particularly effective are:
    *  - If the set will be used in phases, with strings being added in one phase
    *    followed by a phase of extensive search operations.
@@ -1259,7 +1259,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       // since version 1 trees cannot be compact
       let size = newTree._hasEmpty ? 1 : 0;
       for (let node = 0; node < tree.length; node += 4) {
-        if (tree[node] & EOW) ++size;
+        if (tree[node] & EOS) ++size;
       }
       newTree._size = size;
     }
