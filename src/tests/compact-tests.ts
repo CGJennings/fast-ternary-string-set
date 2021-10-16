@@ -10,7 +10,7 @@ beforeEach(() => {
   set = new TernaryStringSet();
 });
 
-test("Trivial compaction", () => {
+test("Compacting empty set is OK", () => {
   // compacting an empty set or set with only "" has no effect
   // since these sets have no tree
   set.compact();
@@ -19,7 +19,9 @@ test("Trivial compaction", () => {
   set.compact();
   expect(set.stats.nodes).toBe(0);
   expect(set.has("")).toBeTruthy();
+});
 
+test("Trivial compaction of tree with no dupes is OK", () => {
   // for compaction to have an effect, there must be
   // strings with common suffixes
   set.clear();
@@ -90,7 +92,7 @@ test("Dictionary compaction", () => {
   }
 });
 
-test("Decompaction", () => {
+test("Automatic decompaction on mutation", () => {
   // attempting to mutate a compact set must leave it uncompacted
   const compactOriginal = set;
   compactOriginal.addAll([

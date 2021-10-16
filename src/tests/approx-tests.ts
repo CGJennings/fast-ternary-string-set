@@ -198,6 +198,13 @@ test("partial matches empty string handling", () => {
   expect(set.getPartialMatchesOf("b")).toEqual(["b"]);
 });
 
+test("partial matches with non-default don't care", () =>{
+  set.addAll(["c.t", "cat", "cot", "cup", "cut"]);
+  expect(set.getPartialMatchesOf("c?t", "?")).toEqual(["c.t", "cat", "cot", "cut"]);
+  expect(set.getPartialMatchesOf("c??", "?")).toEqual(["c.t", "cat", "cot", "cup", "cut"]);
+  expect(set.getPartialMatchesOf("##p", "#")).toEqual(["cup"]);
+});
+
 test("Hamming dist 0 is exact match", () => {
   set.addAll(["a", "aa", "aaa", "aaaa", "aac", "abc", "xyz"]);
   expect(set.getWithinHammingDistanceOf("abc", 0)).toEqual(["abc"]);

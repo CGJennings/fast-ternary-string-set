@@ -20,15 +20,43 @@ export function wordSet(mutable = true): TernaryStringSet {
 
 text = null; // allow GC of the source text
 
-/** Write a set into the test directory for use in future tests. */
+/** Writes a set into the test directory for use in future tests. */
 export function writeBuffer(set: TernaryStringSet, filename: string): void {
   const buff = Buffer.from(set.toBuffer());
   const file = join(__dirname, filename + ".bin");
   writeFileSync(file, buff);
 }
 
-/** Read a set from the test directory. */
+/** Reads a set from the test directory. */
 export function readBuffer(filename: string): ArrayBuffer {
   const file = join(__dirname, filename + ".bin");
   return readFileSync(file).buffer;
+}
+
+/** Shuffles an array into random order. */
+export function shuffle<T>(array: T[]): T[] {
+  let i = array.length,
+    toSwap;
+  while (i > 0) {
+    toSwap = Math.floor(Math.random() * i);
+    const temp = array[--i];
+    array[i] = array[toSwap];
+    array[toSwap] = temp;
+  }
+  return array;
+}
+
+/** Simple set equality test that does not rely on `equals()`. */
+export function sameSet(lhs: TernaryStringSet, rhs: TernaryStringSet): boolean {
+  if (lhs.size !== rhs.size) return false;
+  let eq = true;
+  const a = Array.from(lhs),
+    b = Array.from(rhs);
+  for (let i = 0; i < a.length; ++i) {
+    if (a[i] !== b[i]) {
+      eq = false;
+      break;
+    }
+  }
+  return eq;
 }

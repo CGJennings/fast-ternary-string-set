@@ -21,6 +21,24 @@ test("Add empty string", () => {
   expect(set.size).toBe(1);
   expect(set.has("")).toBe(true);
   expect(set.has("c")).toBe(false);
+  expect(set.toArray()).toEqual([""]);
+  const a: string[] = [];
+  set.forEach((s) => a.push(s));
+  expect(a).toEqual([""]);
+  expect(Array.from(set.entries())).toEqual([["",""]]);
+});
+
+test("Add length 1 string", () => {
+  set.add("a");
+  expect(set.has("a")).toBe(true);
+  expect(set.has("")).toBe(false);
+  expect(set.has("c")).toBe(false);
+  expect(set.has("aa")).toBe(false);
+  expect(set.toArray()).toEqual(["a"]);
+  const a: string[] = [];
+  set.forEach((s) => a.push(s));
+  expect(a).toEqual(["a"]);
+  expect(Array.from(set.entries())).toEqual([["a","a"]]);  
 });
 
 test("Add singleton", () => {
@@ -34,14 +52,11 @@ test("Add singleton", () => {
   expect(set.has("ca")).toBe(false);
   expect(set.has("caa")).toBe(false);
   expect(set.has("cats")).toBe(false);
-});
-
-test("Add length 1 string", () => {
-  set.add("a");
-  expect(set.has("a")).toBe(true);
-  expect(set.has("")).toBe(false);
-  expect(set.has("c")).toBe(false);
-  expect(set.has("aa")).toBe(false);
+  expect(set.toArray()).toEqual(["cat"]);
+  const a: string[] = [];
+  set.forEach((s) => a.push(s));
+  expect(a).toEqual(["cat"]);
+  expect(Array.from(set.entries())).toEqual([["cat","cat"]]);
 });
 
 test("Add multiple strings", () => {
@@ -78,7 +93,7 @@ test("Add all with length 3", () => {
   expect(set.size).toBe(3);
 });
 
-test("Add all with duplicate words", () => {
+test("Adding duplicate words yields correct size", () => {
   set.addAll([
     "ape",
     "crab",

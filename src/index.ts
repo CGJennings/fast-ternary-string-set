@@ -27,10 +27,9 @@ const BF_BRANCH16 = 4;
  *
  * The string set can store any valid Unicode string, including the empty
  * string, strings that include characters from the supplementary (or "astral")
- * planes, and so on. Strings with code points beyond last Unicode code point,
- * U+10FFFF, are *not* supported.
+ * planes, and so on.
  *
- * Strings are stored using a *ternary search tree*, which has excellent performance
+ * Strings are stored using a *ternary search tree*, which has well-balanced performance
  * characteristics when properly constructed (it is important to avoid adding strings
  * in sorted order).
  */

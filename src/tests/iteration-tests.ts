@@ -25,16 +25,6 @@ test("Symbol.iterator visits each word", () => {
   expect(i).toBe(words.length);
 });
 
-function iteratorToArray<T>(it: Iterator<T>): T[] {
-  const array: T[] = [];
-  let next = it.next();
-  while (!next.done) {
-    array[array.length] = next.value;
-    next = it.next();
-  }
-  return array;
-}
-
 test("iterator includes empty string if present", () => {
   expect([...set]).toEqual([]);
   set.add("");
@@ -43,25 +33,33 @@ test("iterator includes empty string if present", () => {
   expect([...set]).toEqual(["", "sturgeon"]);
 });
 
+test("toArray() and Array.from() are equivalent", () => {
+  expect(set.toArray()).toEqual(Array.from(set));
+  set.add("");
+  expect(set.toArray()).toEqual(Array.from(set));
+  set = wordSet(false);
+  expect(set.toArray()).toEqual(Array.from(set));
+})
+
 test("keys(), values(), and Symbol.iterator are equivalent", () => {
-  const words = ["alpha", "beta", "delta", "epsilon", "gamma"];
+  const words = ["", "alpha", "beta", "delta", "epsilon", "gamma"];
   set.addAll(words);
   expect([...set]).toEqual(words);
-  expect(iteratorToArray(set.keys())).toEqual(words);
-  expect(iteratorToArray(set.values())).toEqual(words);
+  expect(Array.from(set.keys())).toEqual(words);
+  expect(Array.from(set.values())).toEqual(words);
   expect(set.values()).toEqual(set.keys());
 });
 
 test("entries() returns [string, string] doubled values", () => {
-  expect(iteratorToArray(set.entries())).toEqual([]);
+  expect(Array.from(set.entries())).toEqual([]);
 
-  const words = ["alpha", "beta", "delta", "epsilon", "gamma"];
+  const words = ["", "alpha", "beta", "delta", "epsilon", "gamma"];
   set.addAll(words);
-  expect(iteratorToArray(set.entries())).toEqual(words.map((s) => [s, s]));
+  expect(Array.from(set.entries())).toEqual(words.map((s) => [s, s]));
 });
 
 test("forEach() passes string, string doubled values", () => {
-  const words = ["alpha", "beta", "delta", "epsilon", "gamma"];
+  const words = ["", "alpha", "beta", "delta", "epsilon", "gamma"];
   const result: string[] = [];
   set.addAll(words);
   set.forEach((k, v, t) => {
