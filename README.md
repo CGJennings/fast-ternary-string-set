@@ -4,6 +4,8 @@
 
 A fast, space-efficient, serializable string set based on ternary search trees, with both exact and approximate membership tests.
 
+[API Docs](https://cgjennings.github.io/fast-ternary-string-set/classes/TernaryStringSet.html)
+
 ## Features
 
  - Drop-in replacement for nearly any use of a [JavaScript `Set`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set) of strings.
