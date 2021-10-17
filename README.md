@@ -1,5 +1,7 @@
 # Fast ternary string set
 
+![CI status badge](https://github.com/CGJennings/fast-ternary-string-set/actions/workflows/ci.yml/badge.svg)
+
 A fast, space-efficient, serializable string set based on ternary search trees, with both exact and approximate membership tests.
 
 ## Features
@@ -40,23 +42,24 @@ To use it without Node.js, you can simply copy the main source file (`src/index.
 
 ## Examples
 
-To load the module:
+[Complete API docs are available.](https://cgjennings.github.io/fast-ternary-string-set/classes/TernaryStringSet.html) Here are some examples of common tasks to get you started:
+
+Loading the module:
 
 ```js
+// From node with CommonJS-style modules:
 const { TernaryStringSet } = require("fast-ternary-string-set");
-```
-
-Or, from TypeScript:
-
-```js
+// From TypeScript:
 import { TernaryStringSet } from "fast-ternary-string-set";
 ```
 
-Create a new string set and add some strings:
+Create a new set and add some strings:
 
 ```js
 const set = new TernaryStringSet();
 set.add("dog").add("cat").add("eagle");
+// or alternatively
+set.addAll(["aardvark", "beaver", "dog", "fish", "hamster"]);
 set.has("cat");
 // => true
 set.delete("cat");
@@ -76,16 +79,6 @@ let otherSet = new Set(["fish", "hippo"]);
 let set = new TernaryStringSet(otherSet);
 set.has("hippo");
 // => true
-```
-
-Add an entire array of string elements:
-
-```js
-const stringArray = [
-    "aardvark", "beaver", "cat",
-    "dog", "eagle", /* ..., */ "zebra"
-];
-set.addAll(stringArray);
 ```
 
 Iterate over all elements in sorted order:
@@ -154,6 +147,28 @@ const buff = set.toBuffer();
 const set = TernaryStringSet.fromBuffer(buff);
 ```
 
+A simple spelling checker:
+
+```js
+// make-dict.js
+// create dictionary set from a source list
+const words = fs.readFileSync("./wordlist.txt", "utf8").split("\n");
+const dict = new TernaryStringSet(words).add("");
+dict.balance();
+dict.compact();
+fs.writeFileSync("./dict.bin", dict.toBuffer());
+
+// check-spelling.js
+// load the dictionary created by make-dict.js
+const dict = TernaryStringSet.fromBuffer(fs.readFileSync("./dict.bin"));
+const toCheck = "In a time long past lived a cat named Captain Peanut."
+toCheck.toLowerCase().split(/\W+/).forEach((word) => {
+    if (!dict.has(word)) {
+        console.log(`misspelled: ${word}`);
+    }
+});
+```
+
 ## Usage notes
 
 ### Differences from standard JS `Set`
@@ -181,7 +196,7 @@ Some Unicode code points span two characters (char codes) in a JavaScript string
 const clefG = "\ud834\udd1e";
 ```
 
-Even though it represents a single symbol, the above string has a length of two! To avoid surprises, `TernaryStringSet` matches by code point, not by char code. For example, since the above string is one code point, it would match `getPartialMatchesOf(".")` and not `getPartialMatchesOf("..")`.
+Even though it represents a single symbol, the above string has a length of two. To avoid surprises, `TernaryStringSet` matches by code point, not by char code. For example, since the above string is one code point, it would match `getPartialMatchesOf(".")` and not `getPartialMatchesOf("..")`.
 
 ### Compaction
 
