@@ -52,5 +52,5 @@ test("Accurate for many words/addAll", () => {
   for (const el of words) {
     set.delete(el);
     expect(set.size).toBe(0);
-  }  
+  }
 });

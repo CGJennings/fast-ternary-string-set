@@ -21,7 +21,17 @@ test("balanced tree is better constructed", () => {
 });
 
 test("contents preserved after balancing", () => {
-  const words = ["", "a", "ape", "apple", "apples", "bee", "bees", "car", "cars"];
+  const words = [
+    "",
+    "a",
+    "ape",
+    "apple",
+    "apples",
+    "bee",
+    "bees",
+    "car",
+    "cars",
+  ];
   // add words in worst possible order
   for (const s of words) {
     set.add(s);
@@ -31,9 +41,9 @@ test("contents preserved after balancing", () => {
 });
 
 test("balancing empty tree is safe", () => {
-  expect(()=>set.balance()).not.toThrow();
+  expect(() => set.balance()).not.toThrow();
   expect(set.size).toBe(0);
   set.add("");
-  expect(()=>set.balance()).not.toThrow();
+  expect(() => set.balance()).not.toThrow();
   expect(set.size).toBe(1);
 });

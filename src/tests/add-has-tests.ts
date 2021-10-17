@@ -25,7 +25,7 @@ test("Add empty string", () => {
   const a: string[] = [];
   set.forEach((s) => a.push(s));
   expect(a).toEqual([""]);
-  expect(Array.from(set.entries())).toEqual([["",""]]);
+  expect(Array.from(set.entries())).toEqual([["", ""]]);
 });
 
 test("Add length 1 string", () => {
@@ -38,7 +38,7 @@ test("Add length 1 string", () => {
   const a: string[] = [];
   set.forEach((s) => a.push(s));
   expect(a).toEqual(["a"]);
-  expect(Array.from(set.entries())).toEqual([["a","a"]]);  
+  expect(Array.from(set.entries())).toEqual([["a", "a"]]);
 });
 
 test("Add singleton", () => {
@@ -56,7 +56,7 @@ test("Add singleton", () => {
   const a: string[] = [];
   set.forEach((s) => a.push(s));
   expect(a).toEqual(["cat"]);
-  expect(Array.from(set.entries())).toEqual([["cat","cat"]]);
+  expect(Array.from(set.entries())).toEqual([["cat", "cat"]]);
 });
 
 test("Add multiple strings", () => {

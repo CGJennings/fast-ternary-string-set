@@ -39,7 +39,7 @@ test("toArray() and Array.from() are equivalent", () => {
   expect(set.toArray()).toEqual(Array.from(set));
   set = wordSet(false);
   expect(set.toArray()).toEqual(Array.from(set));
-})
+});
 
 test("keys(), values(), and Symbol.iterator are equivalent", () => {
   const words = ["", "alpha", "beta", "delta", "epsilon", "gamma"];

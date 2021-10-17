@@ -939,7 +939,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
   /**
    * Returns whether the set is currently compact.
-   * 
+   *
    * @returns True if the set is compacted, in which case mutating the set could have
    *     significant performance implications.
    */
@@ -1008,11 +1008,11 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   /**
    * Returns a new array of every element in the set. This is equivalent
    * to `Array.from(this)`, but this method is more efficient.
-   * 
+   *
    * @returns A non-null array of the elements of the set in lexicographic order.
    */
-   toArray(): string[] {
-    const a = this._hasEmpty ? [""]: [];
+  toArray(): string[] {
+    const a = this._hasEmpty ? [""] : [];
     this._visitCodePoints(0, [], (s) => {
       a[a.length] = String.fromCodePoint(...s);
     });
@@ -1180,7 +1180,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param visitFn The non-null function to invoke for each string; returning
    *     `false` will stop and return without visiting more strings.
    */
-   private _visitCodePoints(
+  private _visitCodePoints(
     node: number,
     prefix: number[],
     visitFn: (prefix: number[], node: number) => void | boolean,
@@ -1238,7 +1238,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * Adds a string described as an array of numeric code points.
    *
    * Does not handle adding empty strings.
-   * 
+   *
    * Does not check if the tree needs to be decompacted.
    *
    * @param node The subtree from which to begin adding (0 for root).
@@ -1310,7 +1310,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     } else {
       return new TernaryStringSet(this);
     }
-  }  
+  }
 
   /**
    * Returns information about this set's underlying tree structure.
