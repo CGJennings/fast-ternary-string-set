@@ -1,0 +1,149 @@
+<!DOCTYPE html><html class="default no-js"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>fast-ternary-string-set</title><meta name="description" content="Documentation for fast-ternary-string-set"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script async src="assets/search.js" id="search-script"></script></head><body><header><div class="tsd-page-toolbar"><div class="container"><div class="table-wrap"><div class="table-cell" id="tsd-search" data-base="."><div class="field"><label for="tsd-search-field" class="tsd-widget search no-caption">Search</label><input type="text" id="tsd-search-field"/></div><ul class="results"><li class="state loading">Preparing search index...</li><li class="state failure">The search index is not available</li></ul><a href="index.html" class="title">fast-ternary-string-set</a></div><div class="table-cell" id="tsd-widgets"><div id="tsd-filter"><a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a><div class="tsd-filter-group"><div class="tsd-select" id="tsd-filter-visibility"><span class="tsd-select-label">All</span><ul class="tsd-select-list"><li data-value="public">Public</li><li data-value="protected">Public/Protected</li><li data-value="private" class="selected">All</li></ul></div> <input type="checkbox" id="tsd-filter-inherited" checked/><label class="tsd-widget" for="tsd-filter-inherited">Inherited</label><input type="checkbox" id="tsd-filter-externals" checked/><label class="tsd-widget" for="tsd-filter-externals">Externals</label></div></div><a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a></div></div></div></div><div class="tsd-page-title"><div class="container"><h1>fast-ternary-string-set</h1></div></div></header><div class="container container-main"><div class="row"><div class="col-8 col-content"><div class="tsd-panel tsd-typography">
+<a href="#fast-ternary-string-set" id="fast-ternary-string-set" style="color: inherit; text-decoration: none;">
+  <h1>Fast ternary string set</h1>
+</a>
+<p>A fast, space-efficient, serializable string set based on ternary search trees, with both exact and approximate membership tests.</p>
+
+<a href="#features" id="features" style="color: inherit; text-decoration: none;">
+  <h2>Features</h2>
+</a>
+<ul>
+<li>Drop-in replacement for nearly any use of a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set">JavaScript <code>Set</code></a> of strings.</li>
+<li>Search and iteration methods return elements in ascending sorted (lexicographic) order.</li>
+<li>Set relations (equality, subset, superset) and operations (union, intersection, difference, symmetric difference).</li>
+<li>Several approximate matching methods:<ol>
+<li>List strings that complete a prefix.</li>
+<li>List strings that can be made from a list of letters.</li>
+<li>List strings that match a pattern including &quot;don&#39;t care&quot; letters (as <code>.</code> in a regular expression).</li>
+<li>List strings within a certain <a href="https://en.wikipedia.org/wiki/Hamming_distance">Hamming distance</a> of a pattern.</li>
+</ol>
+</li>
+<li>Serialize sets to and from an <code>ArrayBuffer</code>.</li>
+<li>Time and space efficient:<ul>
+<li>Leverages common JS engine optimizations under the hood.</li>
+<li>Elements share tree nodes and do not retain references to the original strings.</li>
+<li>Read-only sets can be <em>compacted</em> to save even more space.</li>
+</ul>
+</li>
+<li>Well-documented TypeScript source, targeting modern JavaScript by default.</li>
+<li>Backed by extensive test suites.</li>
+<li>Use as a standalone/ECMAScript module or as a Node.js/CommonJS module.</li>
+<li>No other dependencies.</li>
+</ul>
+
+<a href="#installation" id="installation" style="color: inherit; text-decoration: none;">
+  <h2>Installation</h2>
+</a>
+<p>To install the latest stable version with <code>npm</code>:</p>
+<pre><code class="language-bash"><span class="hl-0">npm install fast-ternary-string-set</span>
+</code></pre>
+<p>Or, if using <code>yarn</code>:</p>
+<pre><code class="language-bash"><span class="hl-0">yarn add fast-ternary-string-set</span>
+</code></pre>
+<p>To use it without Node.js, you can simply copy the main source file (<code>src/index.ts</code>) into any TypeScript project, rename to something sensible, and then <code>import</code> it into your code as usual.</p>
+
+<a href="#examples" id="examples" style="color: inherit; text-decoration: none;">
+  <h2>Examples</h2>
+</a>
+<p>To load the module:</p>
+<pre><code class="language-js"><span class="hl-1">const</span><span class="hl-0"> { </span><span class="hl-2">TernaryStringSet</span><span class="hl-0"> } = </span><span class="hl-3">require</span><span class="hl-0">(</span><span class="hl-4">&quot;fast-ternary-string-set&quot;</span><span class="hl-0">);</span>
+</code></pre>
+<p>Or, from TypeScript:</p>
+<pre><code class="language-js"><span class="hl-5">import</span><span class="hl-0"> { </span><span class="hl-6">TernaryStringSet</span><span class="hl-0"> } </span><span class="hl-5">from</span><span class="hl-0"> </span><span class="hl-4">&quot;fast-ternary-string-set&quot;</span><span class="hl-0">;</span>
+</code></pre>
+<p>Create a new string set and add some strings:</p>
+<pre><code class="language-js"><span class="hl-1">const</span><span class="hl-0"> </span><span class="hl-2">set</span><span class="hl-0"> = </span><span class="hl-1">new</span><span class="hl-0"> </span><span class="hl-3">TernaryStringSet</span><span class="hl-0">();</span><br/><span class="hl-6">set</span><span class="hl-0">.</span><span class="hl-3">add</span><span class="hl-0">(</span><span class="hl-4">&quot;dog&quot;</span><span class="hl-0">).</span><span class="hl-3">add</span><span class="hl-0">(</span><span class="hl-4">&quot;cat&quot;</span><span class="hl-0">).</span><span class="hl-3">add</span><span class="hl-0">(</span><span class="hl-4">&quot;eagle&quot;</span><span class="hl-0">);</span><br/><span class="hl-6">set</span><span class="hl-0">.</span><span class="hl-3">has</span><span class="hl-0">(</span><span class="hl-4">&quot;cat&quot;</span><span class="hl-0">);</span><br/><span class="hl-7">// =&gt; true</span><br/><span class="hl-6">set</span><span class="hl-0">.</span><span class="hl-3">delete</span><span class="hl-0">(</span><span class="hl-4">&quot;cat&quot;</span><span class="hl-0">);</span><br/><span class="hl-7">// =&gt; true since &quot;cat&quot; was in the set</span><br/><span class="hl-6">set</span><span class="hl-0">.</span><span class="hl-3">has</span><span class="hl-0">(</span><span class="hl-4">&quot;cat&quot;</span><span class="hl-0">);</span><br/><span class="hl-7">// =&gt; false</span><br/><span class="hl-6">set</span><span class="hl-0">.</span><span class="hl-3">has</span><span class="hl-0">(</span><span class="hl-8">123.456</span><span class="hl-0">);</span><br/><span class="hl-7">// =&gt; false (any non-string returns false)</span>
+</code></pre>
+<p>Create a new string set from any <code>Iterable&lt;string&gt;</code>:</p>
+<pre><code class="language-js"><span class="hl-7">// otherSet could be any Iterable&lt;string&gt;, such as a string array</span><br/><span class="hl-7">// or even another TernaryStringSet</span><br/><span class="hl-1">let</span><span class="hl-0"> </span><span class="hl-6">otherSet</span><span class="hl-0"> = </span><span class="hl-1">new</span><span class="hl-0"> </span><span class="hl-9">Set</span><span class="hl-0">([</span><span class="hl-4">&quot;fish&quot;</span><span class="hl-0">, </span><span class="hl-4">&quot;hippo&quot;</span><span class="hl-0">]);</span><br/><span class="hl-1">let</span><span class="hl-0"> </span><span class="hl-6">set</span><span class="hl-0"> = </span><span class="hl-1">new</span><span class="hl-0"> </span><span class="hl-3">TernaryStringSet</span><span class="hl-0">(</span><span class="hl-6">otherSet</span><span class="hl-0">);</span><br/><span class="hl-6">set</span><span class="hl-0">.</span><span class="hl-3">has</span><span class="hl-0">(</span><span class="hl-4">&quot;hippo&quot;</span><span class="hl-0">);</span><br/><span class="hl-7">// =&gt; true</span>
+</code></pre>
+<p>Add an entire array of string elements:</p>
+<pre><code class="language-js"><span class="hl-1">const</span><span class="hl-0"> </span><span class="hl-2">stringArray</span><span class="hl-0"> = [</span><br/><span class="hl-0">    </span><span class="hl-4">&quot;aardvark&quot;</span><span class="hl-0">, </span><span class="hl-4">&quot;beaver&quot;</span><span class="hl-0">, </span><span class="hl-4">&quot;cat&quot;</span><span class="hl-0">,</span><br/><span class="hl-0">    </span><span class="hl-4">&quot;dog&quot;</span><span class="hl-0">, </span><span class="hl-4">&quot;eagle&quot;</span><span class="hl-0">, </span><span class="hl-7">/* ..., */</span><span class="hl-0"> </span><span class="hl-4">&quot;zebra&quot;</span><br/><span class="hl-0">];</span><br/><span class="hl-6">set</span><span class="hl-0">.</span><span class="hl-3">addAll</span><span class="hl-0">(</span><span class="hl-6">stringArray</span><span class="hl-0">);</span>
+</code></pre>
+<p>Iterate over all elements in sorted order:</p>
+<pre><code class="language-js"><span class="hl-5">for</span><span class="hl-0"> (</span><span class="hl-1">const</span><span class="hl-0"> </span><span class="hl-2">el</span><span class="hl-0"> </span><span class="hl-1">of</span><span class="hl-0"> </span><span class="hl-6">set</span><span class="hl-0">) {</span><br/><span class="hl-0">    </span><span class="hl-6">console</span><span class="hl-0">.</span><span class="hl-3">log</span><span class="hl-0">(</span><span class="hl-6">el</span><span class="hl-0">);</span><br/><span class="hl-0">}</span><br/><span class="hl-7">// or equivalently:</span><br/><span class="hl-6">set</span><span class="hl-0">.</span><span class="hl-3">forEach</span><span class="hl-0">((</span><span class="hl-6">el</span><span class="hl-0">) </span><span class="hl-1">=&gt;</span><span class="hl-0"> </span><span class="hl-6">console</span><span class="hl-0">.</span><span class="hl-3">log</span><span class="hl-0">(</span><span class="hl-6">el</span><span class="hl-0">));</span>
+</code></pre>
+<p>Get all elements that start with <code>&quot;sha&quot;</code>:</p>
+<pre><code class="language-js"><span class="hl-6">set</span><span class="hl-0">.</span><span class="hl-3">getCompletionsOf</span><span class="hl-0">(</span><span class="hl-4">&quot;sha&quot;</span><span class="hl-0">);</span><br/><span class="hl-7">// =&gt; [&quot;shade&quot;, &quot;shadow&quot;, &quot;shake&quot;, &quot;shape&quot;, &quot;shapes&quot;] (for example)</span>
+</code></pre>
+<p>Get all elements that can be made from the letters of <code>&quot;taco&quot;</code>:</p>
+<pre><code class="language-js"><span class="hl-6">set</span><span class="hl-0">.</span><span class="hl-3">getArrangementsOf</span><span class="hl-0">(</span><span class="hl-4">&quot;taco&quot;</span><span class="hl-0">);</span><br/><span class="hl-7">// =&gt; [&quot;act&quot;, &quot;cat&quot;, &quot;coat&quot;, &quot;taco&quot;] (for example)</span>
+</code></pre>
+<p>Get all elements within Hamming distance 1 of <code>&quot;cat&quot;</code>:</p>
+<pre><code class="language-js"><span class="hl-6">set</span><span class="hl-0">.</span><span class="hl-3">getWithinHammingDistanceOf</span><span class="hl-0">(</span><span class="hl-4">&quot;cat&quot;</span><span class="hl-0">, </span><span class="hl-8">1</span><span class="hl-0">);</span><br/><span class="hl-7">// =&gt; [&quot;bat&quot;, &quot;can&quot;, &quot;cap&quot;, &quot;cat&quot;, &quot;cot&quot;, &quot;sat&quot;] (for example)</span>
+</code></pre>
+<p>Get all elements that match <code>&quot;b.t&quot;</code>:</p>
+<pre><code class="language-js"><span class="hl-6">set</span><span class="hl-0">.</span><span class="hl-3">getPartialMatchesOf</span><span class="hl-0">(</span><span class="hl-4">&quot;b.t&quot;</span><span class="hl-0">);</span><br/><span class="hl-7">// =&gt; [&quot;bat&quot;, &quot;bet&quot;, &quot;bit&quot;, &quot;bot&quot;, &quot;but&quot;] (for example)</span>
+</code></pre>
+<p>Compare sets:</p>
+<pre><code class="language-js"><span class="hl-1">let</span><span class="hl-0"> </span><span class="hl-6">s1</span><span class="hl-0"> = </span><span class="hl-1">new</span><span class="hl-0"> </span><span class="hl-3">TernaryStringSet</span><span class="hl-0">([</span><span class="hl-4">&quot;a&quot;</span><span class="hl-0">, </span><span class="hl-4">&quot;b&quot;</span><span class="hl-0">, </span><span class="hl-4">&quot;c&quot;</span><span class="hl-0">]);</span><br/><span class="hl-1">let</span><span class="hl-0"> </span><span class="hl-6">s2</span><span class="hl-0"> = </span><span class="hl-1">new</span><span class="hl-0"> </span><span class="hl-3">TernaryStringSet</span><span class="hl-0">(</span><span class="hl-6">s1</span><span class="hl-0">);</span><br/><span class="hl-6">s1</span><span class="hl-0">.</span><span class="hl-3">equals</span><span class="hl-0">(</span><span class="hl-6">s2</span><span class="hl-0">);</span><br/><span class="hl-7">// =&gt; true</span><br/><span class="hl-6">s1</span><span class="hl-0">.</span><span class="hl-3">isSubsetOf</span><span class="hl-0">(</span><span class="hl-6">s2</span><span class="hl-0">);</span><br/><span class="hl-7">// =&gt; true</span><br/><span class="hl-6">s2</span><span class="hl-0">.</span><span class="hl-3">add</span><span class="hl-0">(</span><span class="hl-4">&quot;d&quot;</span><span class="hl-0">);</span><br/><span class="hl-6">s1</span><span class="hl-0">.</span><span class="hl-3">equals</span><span class="hl-0">(</span><span class="hl-6">s2</span><span class="hl-0">);</span><br/><span class="hl-7">// =&gt; false</span><br/><span class="hl-6">s1</span><span class="hl-0">.</span><span class="hl-3">isSubsetOf</span><span class="hl-0">(</span><span class="hl-6">s2</span><span class="hl-0">);</span><br/><span class="hl-7">// =&gt; true</span><br/><span class="hl-6">s1</span><span class="hl-0">.</span><span class="hl-3">isSupersetOf</span><span class="hl-0">(</span><span class="hl-6">s2</span><span class="hl-0">);</span><br/><span class="hl-7">// =&gt; false</span>
+</code></pre>
+<p>Serialize to or from a buffer:</p>
+<pre><code class="language-js"><span class="hl-7">// write a set to an ArrayBuffer</span><br/><span class="hl-1">const</span><span class="hl-0"> </span><span class="hl-2">buff</span><span class="hl-0"> = </span><span class="hl-6">set</span><span class="hl-0">.</span><span class="hl-3">toBuffer</span><span class="hl-0">();</span><br/><br/><span class="hl-7">// create a new set from a previously saved ArrayBuffer</span><br/><span class="hl-1">const</span><span class="hl-0"> </span><span class="hl-2">set</span><span class="hl-0"> = </span><span class="hl-6">TernaryStringSet</span><span class="hl-0">.</span><span class="hl-3">fromBuffer</span><span class="hl-0">(</span><span class="hl-6">buff</span><span class="hl-0">);</span>
+</code></pre>
+
+<a href="#usage-notes" id="usage-notes" style="color: inherit; text-decoration: none;">
+  <h2>Usage notes</h2>
+</a>
+
+<a href="#differences-from-standard-js-set" id="differences-from-standard-js-set" style="color: inherit; text-decoration: none;">
+  <h3>Differences from standard JS <code>Set</code></h3>
+</a>
+<p><code>TernaryStringSet</code> supports a superset of the standard <code>Set</code> interface, but it is not a subclass of <code>Set</code>.</p>
+<p>JavaScript <code>Set</code> objects guarantee that they iterate over elements in the order that they are added.
+<code>TernaryStringSet</code>s always return results in sorted order.</p>
+<p><code>TernaryStringSet</code>s can contain the empty string, but cannot contain non-strings. Not even <code>null</code> or <code>undefined</code>.</p>
+
+<a href="#tree-quality" id="tree-quality" style="color: inherit; text-decoration: none;">
+  <h3>Tree quality</h3>
+</a>
+<p>Adding strings in sorted order produces a worst-case tree structure. This can be avoided by adding strings all at once using the constructor or <code>addAll()</code>. Given sorted input, both of these methods will produce an optimal tree structure. If this is not practical, adding strings in random order usually yields a near-optimal tree. Calling <code>balance()</code> will rebuild the tree in optimal form, but it can be expensive.</p>
+<p>Similarly, after deleting a large number of strings, future search performance may be improved by calling <code>balance()</code>.</p>
+<p>Since most <code>TernaryStringSet</code> methods are recursive, extremely unbalanced trees can provoke &quot;maximum call stack size exceeded&quot; errors.</p>
+
+<a href="#matching-by-code-point" id="matching-by-code-point" style="color: inherit; text-decoration: none;">
+  <h3>Matching by code point</h3>
+</a>
+<p>Some Unicode code points span two characters (char codes) in a JavaScript string. For example, the musical symbol 𝄞, code point U+1D11E, can be assigned to a JavaScript string as follows:</p>
+<pre><code class="language-js"><span class="hl-1">const</span><span class="hl-0"> </span><span class="hl-2">clefG</span><span class="hl-0"> = </span><span class="hl-4">&quot;</span><span class="hl-10">\ud834\udd1e</span><span class="hl-4">&quot;</span><span class="hl-0">;</span>
+</code></pre>
+<p>Even though it represents a single symbol, the above string has a length of two! To avoid surprises, <code>TernaryStringSet</code> matches by code point, not by char code. For example, since the above string is one code point, it would match <code>getPartialMatchesOf(&quot;.&quot;)</code> and not <code>getPartialMatchesOf(&quot;..&quot;)</code>.</p>
+
+<a href="#compaction" id="compaction" style="color: inherit; text-decoration: none;">
+  <h3>Compaction</h3>
+</a>
+<p>Calling <code>compact()</code> can significantly reduce a set&#39;s memory footprint. For large sets of typical strings, typical results are a 50–80% reduction in size. However, no new strings can be added or deleted without undoing the compaction. Compaction is expensive, but can be a one-time or even ahead-of-time step for many use cases.</p>
+
+<a href="#serialization" id="serialization" style="color: inherit; text-decoration: none;">
+  <h3>Serialization</h3>
+</a>
+<p>A common use case is to match user input against a fixed set of strings. For example, checking input against a spelling dictionary or suggesting completions for partial input. In such cases it is often desirable to build a set ahead of time, serialize it to a buffer, and then save the buffer data on a server where it can be downloaded as needed. Recreating a set directly from buffer data is much faster than downloading a file containing the strings and inserting them into a new set on the client.</p>
+<p>The following steps will make such ahead-of-time sets as small as possible:</p>
+<ol>
+<li>Create a set and insert the desired strings using <code>add()</code> or <code>addAll()</code>.</li>
+<li>Minimize the tree size by calling <code>balance()</code> followed by <code>compact()</code>.</li>
+<li>Create the buffer with <code>toBuffer()</code> and write the result to a file.</li>
+<li>Optionally, compress the result and configure the server to serve the compressed version where supported by the browser.</li>
+</ol>
+<p>To recreate the set, download or otherwise obtain the buffer data, then use <code>TernaryTreeSet.fromBuffer(data)</code>.</p>
+
+<a href="#developing" id="developing" style="color: inherit; text-decoration: none;">
+  <h2>Developing</h2>
+</a>
+<p>Building from source requires Node.js. Clone the repository, then install development dependencies:</p>
+<pre><code class="language-bash"><span class="hl-0">npm install</span>
+</code></pre>
+<p>The TypeScript source is found under <code>src</code>. Compiled output is written to <code>lib</code>. To build the project:</p>
+<pre><code class="language-bash"><span class="hl-0">npm run build</span>
+</code></pre>
+<p>The included <code>tsconfig.json</code> targets ES2015 (ES6). To target old JavaScript engines or browsers you will need to modify this configuration and/or use a tool like Babel.</p>
+<p>The project includes an extensive suite of tests under <code>src/tests</code>. To run all tests:</p>
+<pre><code class="language-bash"><span class="hl-0">npm </span><span class="hl-3">test</span>
+</code></pre>
+<p>HTML documentation can be prepared automatically using TypeDoc:</p>
+<pre><code class="language-bash"><span class="hl-0">npm run doc</span>
+</code></pre>
+<p>Before submitting a pull request, format, lint, and run all tests:</p>
+<pre><code class="language-bash"><span class="hl-0">npm run format &amp;&amp; npm run lint &amp;&amp; npm </span><span class="hl-3">test</span>
+</code></pre>
+</div></div><div class="col-4 col-menu menu-sticky-wrap menu-highlight"><nav class="tsd-navigation primary"><ul><li class="current"><a href="modules.html">Exports</a></li></ul></nav><nav class="tsd-navigation secondary menu-sticky"><ul><li class="tsd-kind-class"><a href="classes/TernaryStringSet.html" class="tsd-kind-icon">Ternary<wbr/>String<wbr/>Set</a></li><li class="tsd-kind-interface"><a href="interfaces/TernaryTreeStats.html" class="tsd-kind-icon">Ternary<wbr/>Tree<wbr/>Stats</a></li></ul></nav></div></div></div><footer class="with-border-bottom"><div class="container"><h2>Legend</h2><div class="tsd-legend-group"><ul class="tsd-legend"><li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li><li class="tsd-kind-method tsd-parent-kind-interface"><span class="tsd-kind-icon">Method</span></li></ul><ul class="tsd-legend"><li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li><li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li></ul><ul class="tsd-legend"><li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static method</span></li></ul></div><h2>Settings</h2><p>Theme <select id="theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></p></div></footer><div class="container tsd-generator"><p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></div><div class="overlay"></div><script src="assets/main.js"></script></body></html>
