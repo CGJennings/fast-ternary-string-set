@@ -112,7 +112,7 @@
 <a href="#compaction" id="compaction" style="color: inherit; text-decoration: none;">
   <h3>Compaction</h3>
 </a>
-<p>Calling <code>compact()</code> can significantly reduce a set&#39;s memory footprint. For large sets of typical strings, typical results are a 50–80% reduction in size. However, no new strings can be added or deleted without undoing the compaction. Compaction is expensive, but can be a one-time or even ahead-of-time step for many use cases.</p>
+<p>Calling <code>compact()</code> can significantly reduce a set&#39;s memory footprint. For large sets of typical strings, this can reduce the set&#39;s footprint by 50–80%. However, no new strings can be added or deleted without first undoing the compaction. Compaction is relatively expensive, but can be a one-time or even ahead-of-time step for many use cases.</p>
 
 <a href="#serialization" id="serialization" style="color: inherit; text-decoration: none;">
   <h3>Serialization</h3>
@@ -146,4 +146,99 @@
 <p>Before submitting a pull request, format, lint, and run all tests:</p>
 <pre><code class="language-bash"><span class="hl-0">npm run format &amp;&amp; npm run lint &amp;&amp; npm </span><span class="hl-4">test</span>
 </code></pre>
+
+<a href="#serialization-format" id="serialization-format" style="color: inherit; text-decoration: none;">
+  <h2>Serialization format</h2>
+</a>
+<p>The methods <code>toBuffer()</code> and <code>fromBuffer()</code> serialize a set to and from a compact binary form. This section describes the format used.</p>
+<p>Serialized data consists of a stream of unsigned integers of 8, 16, 24, or 32 bits.
+In the remaining sections, these are indicated by the notation int8, int32, and so on.
+Integers wider than 1 byte are stored in
+<a href="https://en.wikipedia.org/wiki/Endianness">big-endian order</a>.</p>
+
+<a href="#header" id="header" style="color: inherit; text-decoration: none;">
+  <h3>Header</h3>
+</a>
+<p>The buffer starts with an 8-byte header consisting of the following:</p>
+<p><strong><code>magic</code> int16</strong><br>This is a magic value, 0x5454, used to help verify that the buffer is valid.
+Data that does not start with this value is not a valid tree buffer.</p>
+<p><strong><code>version</code> int8</strong><br>Indicates the version of the format. Valid values are 1, 2, or 3. A value of 0
+indicates that this is not a valid tree buffer. Other values indicate newer
+versions of the format specification.</p>
+<p><strong><code>treeFlags</code> int8</strong><br>A set of bit flags that denote specific features:</p>
+<ul>
+<li>Bit 0 is set if the set <em>contains the empty string</em>, and unset otherwise.</li>
+<li>Bit 1 is set if the tree data is <em>compact</em> meaning that common suffixes share nodes.</li>
+<li>Bit 2 is unset in version 3 files. It indicates the use of 16-bit branches in version 2 files.</li>
+<li>Bits 3-7 are reserved and <strong>must</strong> be unset.</li>
+</ul>
+<p><strong><code>size</code> int32</strong><br>Indicates the number of strings in the set, including the empty string if present.</p>
+
+<a href="#tree-data" id="tree-data" style="color: inherit; text-decoration: none;">
+  <h3>Tree data</h3>
+</a>
+<p>The remaining bytes encode the structure of the tree.
+The format closely follows the internal format used by the implementation,
+which was already chosen for its compactness.
+The internal format consists of an array of integers,
+with each node represented by 4 integers in sequence: one for the code point and flags,
+and three for pointers (array offsets) to each of the less-than, equal-to, and
+greater-than branches, respectively. The node starting at index 0 is the tree root.</p>
+<p>The buffer format also follows this basic structure. Each node in the original array is 
+written out in the same order that it appears in the internal array.</p>
+<p>Nodes are encoded using a variable number of bytes.
+The first byte written for each node consists of 4 fields, each of which is 2 bits.
+These bit fields describe how each of the 4 node properties will be encoded:</p>
+<ul>
+<li>Bits 6-7 describe how the code point and flags are encoded.</li>
+<li>Bits 4-5 describe how the less-than branch is encoded.</li>
+<li>Bits 3-2 describe how the equal-to branch is encoded.</li>
+<li>Bits 1-0 describe how the greater-than branch is encoded.</li>
+</ul>
+<p>Depending on the values of these fields, a node can require between 1 and 16 bytes, including the encoding byte.</p>
+
+<a href="#code-point-encoding" id="code-point-encoding" style="color: inherit; text-decoration: none;">
+  <h4>Code point encoding</h4>
+</a>
+<p>Valid code points are up to 21 bits long. In addition, a 22nd bit is used to indicate that
+this node also terminates a string in the tree. Depending on the magnitude of the code
+point (cp), this data is written in 0-3 bytes:</p>
+<p><strong>Encoding 00 - cp &gt; 32767</strong>
+Large code points are written as an int24 value. The lowest 21 bits store the code
+point. The 22nd bit is set if the node terminates a string. The highest two bits must be 0.
+For practical purposes, this can be treated as an int32 value in which the highest 8 bits
+are the node&#39;s encoding bit fields.</p>
+<p><strong>Encoding 01 - cp ≤ 32767</strong><br>If the code point is 32767 (0x7fff) or less, then it can be written as an int16 value.
+The high bit is set if the node terminates a string.</p>
+<p><strong>Encoding 10 - cp ≤ 127</strong><br>If the code point is 127 (0x7f) or less, then it can be written as an int8 value.
+The high bit is set if the node terminates a string.</p>
+<p><strong>Encoding 11 - letter &quot;e&quot;</strong><br>As a special case, if the code point is exactly 0x65 (the letter &quot;e&quot;) <em>and</em> the node
+<em>does not</em> terminate a string, no bytes are written for the code point.</p>
+
+<a href="#branch-pointer-encoding" id="branch-pointer-encoding" style="color: inherit; text-decoration: none;">
+  <h4>Branch pointer encoding</h4>
+</a>
+<p>A branch pointer is either the special NUL value 0x7fffffff, or a smaller value that is an
+offset into the array at which the target node&#39;s data starts.</p>
+<p><strong>Encoding 11 - NUL</strong><br>If the branch pointer is NUL, it is indicated by this encoding value: no bytes
+are written to store the pointer.</p>
+<p>Otherwise, if the pointer is not NUL, its offset is divided by 4 and then it is written
+in one of the following ways, depending on its magnitude:</p>
+<p><strong>Encoding 00 - pointer/4 &gt; 0xffff</strong><br>The value of pointer/4 is written as an int32.</p>
+<p><strong>Encoding 01 - pointer/4 &gt; 0xff</strong><br>The value of pointer/4 is written as an int16.</p>
+<p><strong>Encoding 10 - pointer/4 ≤ 0xff</strong><br>The value of pointer/4 is written as an int8.</p>
+
+<a href="#versions-1-and-2" id="versions-1-and-2" style="color: inherit; text-decoration: none;">
+  <h2>Versions 1 and 2</h2>
+</a>
+<p>The current version of the file format is 3. Version 1 and 2 files differ in the following ways:</p>
+<ol>
+<li>In version 1 files, the header <code>size</code> field stores the number of nodes rather than the
+set size. (The size can be calculated by iterating over the node data.)</li>
+<li>The node data is written as a sequence of int32 values. For each node, an
+int32 is written for each of the node value and three branch pointers.
+Pointers are <em>not</em> divided by 4.</li>
+<li>In version 2 files, the <em>16-bit branches</em> flag may be set. In this case, <em>all</em> branch
+pointers are int16 values instead of int32 values; 0xffff indicates NUL.</li>
+</ol>
 </div></div><div class="col-4 col-menu menu-sticky-wrap menu-highlight"><nav class="tsd-navigation primary"><ul><li class="current"><a href="modules.html">Exports</a></li></ul></nav><nav class="tsd-navigation secondary menu-sticky"><ul><li class="tsd-kind-class"><a href="classes/TernaryStringSet.html" class="tsd-kind-icon">Ternary<wbr/>String<wbr/>Set</a></li><li class="tsd-kind-interface"><a href="interfaces/TernaryTreeStats.html" class="tsd-kind-icon">Ternary<wbr/>Tree<wbr/>Stats</a></li></ul></nav></div></div></div><footer class="with-border-bottom"><div class="container"><h2>Legend</h2><div class="tsd-legend-group"><ul class="tsd-legend"><li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li><li class="tsd-kind-method tsd-parent-kind-interface"><span class="tsd-kind-icon">Method</span></li></ul><ul class="tsd-legend"><li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li><li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li></ul><ul class="tsd-legend"><li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static method</span></li></ul></div><h2>Settings</h2><p>Theme <select id="theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></p></div></footer><div class="container tsd-generator"><p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></div><div class="overlay"></div><script src="assets/main.js"></script></body></html>
