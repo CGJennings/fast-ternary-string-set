@@ -116,7 +116,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   add(s: string): this {
     if (typeof s !== "string") {
       if (!((s as unknown) instanceof String)) {
-        throw new TypeError("not a string: " + s);
+        throw new TypeError(`not a string: ${String(s)}`);
       }
       s = String(s);
     }
@@ -187,14 +187,14 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     const mid = Math.floor(start + (end - start) / 2);
     try {
       this.add(strings[mid]);
-      this.addAll(strings, start, mid);
-      this.addAll(strings, mid + 1, end + 1);
     } catch(ex) {
       if (ex instanceof TypeError) {
-        throw new TypeError(`non-string at index ${mid}: ${strings[mid]}`);
+        throw new TypeError(`non-string at index ${mid}: ${String(strings[mid])}`);
       }
       throw ex;
     }
+    this.addAll(strings, start, mid);
+    this.addAll(strings, mid + 1, end + 1);
   }
 
   /**

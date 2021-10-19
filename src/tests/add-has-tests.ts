@@ -13,6 +13,7 @@ test("Adding non-string throws", () => {
   expect(() => set.add(/x/ as unknown as string)).toThrow();
   expect(() => set.add({} as unknown as string)).toThrow();
   expect(() => set.add([] as unknown as string)).toThrow();
+  expect(() => set.add(Symbol("centipede") as unknown as string)).toThrow();
 });
 
 test("Add empty string", () => {
@@ -132,4 +133,30 @@ test("Add strings with spaces, punctuation, emoji, etc.", () => {
   words.forEach((s) => {
     expect(set.has(s)).toBe(true);
   });
+});
+
+const BAD_INDEX_PREFIX = "non-string at index ";
+function getAddAllFailureIndex(set: any[]): number {
+  const tst = new TernaryStringSet();
+  try {
+    tst.addAll(set as string[]);
+  } catch(ex) {
+    if (ex instanceof TypeError) {
+      if (ex.message.startsWith(BAD_INDEX_PREFIX)) {
+        return Number.parseFloat(ex.message.substring(BAD_INDEX_PREFIX.length));
+      }
+    }
+    throw ex;
+  }
+  return -1;
+}
+
+test("Report index of bad string from addAll", () => {
+  expect(getAddAllFailureIndex([])).toBe(-1);
+  expect(getAddAllFailureIndex(["bee"])).toBe(-1);
+  expect(getAddAllFailureIndex(["echidna", "gopher"])).toBe(-1);
+  expect(getAddAllFailureIndex([1])).toBe(0);
+  expect(getAddAllFailureIndex(["wombat", Symbol("tiger")])).toBe(1);
+  expect(getAddAllFailureIndex(["dingo", "python", null])).toBe(2);
+  expect(getAddAllFailureIndex(["lynx", ()=>"", "sugar glider", null])).toBe(1);
 });
