@@ -8,18 +8,6 @@ const EOS = 1 << 21;
 const CP_MASK = EOS - 1;
 /** Smallest code point that requires a surrogate pair. */
 const CP_MIN_SURROGATE = 0x10000;
-/** Version number for the data buffer format. */
-const BUFFER_VERSION = 2;
-/** Magic number used by buffer data format. */
-const BUFFER_MAGIC = 84;
-/** Buffer format header size (4 bytes magic/properties + 4 bytes node count). */
-const BUFFER_HEAD_SIZE = 8;
-/** Buffer format flag bit: set has empty string */
-const BF_HAS_EMPTY = 1;
-/** Buffer format flag bit: set is compact */
-const BF_COMPACT = 2;
-/** Buffer format flag bit: use 16-bit integers for branch pointers. */
-const BF_BRANCH16 = 4;
 
 /**
  * A sorted string set that implements a superset of the standard JS `Set` interface.
@@ -1038,58 +1026,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @returns A non-null buffer.
    */
   toBuffer(): ArrayBuffer {
-    const tree = this._tree;
-    // use 16-bit ints for branches if node count is small enough
-    const USE_BRANCH16 = tree.length < 0xffff;
-
-    // allocate space for header + node count + tree nodes
-    let buffSize = this._tree.length * 4;
-    if (USE_BRANCH16) buffSize = (this._tree.length / 4) * 10;
-    const buffer = new ArrayBuffer(BUFFER_HEAD_SIZE + buffSize);
-    const view = new DataView(buffer);
-
-    // first two bytes are magic "TT" for ternary tree
-    view.setUint8(0, BUFFER_MAGIC);
-    view.setUint8(1, BUFFER_MAGIC);
-
-    // third byte is version number
-    view.setUint8(2, BUFFER_VERSION);
-
-    // fourth byte tracks flags:
-    //   - presence of empty string
-    //   - whether set is compacted
-    let treeFlags = 0;
-    if (this._hasEmpty) treeFlags |= BF_HAS_EMPTY;
-    if (this._compact) treeFlags |= BF_COMPACT;
-    if (USE_BRANCH16) treeFlags |= BF_BRANCH16;
-    view.setUint8(3, treeFlags);
-
-    // fifth though eighth bytes store size (in v1, stored node count)
-    view.setUint32(4, this._size, false);
-
-    // remainder of buffer stores tree content
-    if (USE_BRANCH16) {
-      for (
-        let i = 0, byte = BUFFER_HEAD_SIZE;
-        i < tree.length;
-        i += 4, byte += 10
-      ) {
-        view.setUint32(byte, tree[i], false);
-        view.setUint16(byte + 4, tree[i + 1], false);
-        view.setUint16(byte + 6, tree[i + 2], false);
-        view.setUint16(byte + 8, tree[i + 3], false);
-      }
-    } else {
-      for (
-        let i = 0, byte = BUFFER_HEAD_SIZE;
-        i < tree.length;
-        ++i, byte += 4
-      ) {
-        view.setUint32(byte, tree[i], false);
-      }
-    }
-
-    return buffer;
+    return encode(this._size, this._hasEmpty, this._compact, this._tree);
   }
 
   /**
@@ -1105,74 +1042,13 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       throw new ReferenceError("null buffer");
     }
 
-    const view = new DataView(buffer);
-
-    // verify that this appears to be valid tree data
-    // and that the version of the format is supported
-    if (view.getUint8(0) !== BUFFER_MAGIC || view.getInt8(1) !== BUFFER_MAGIC) {
-      throw new TypeError("bad buffer (magic bytes)");
-    }
-    const version = view.getUint8(2);
-    if (version < 1) {
-      throw new TypeError("bad buffer (version byte)");
-    }
-    if (version > BUFFER_VERSION) {
-      throw new TypeError(
-        `unsupported version: ${version} > ${BUFFER_VERSION}`,
-      );
-    }
-
-    const treeFlags = view.getUint8(3);
-    if (treeFlags > (BF_COMPACT | BF_HAS_EMPTY | BF_BRANCH16)) {
-      throw new TypeError("bad buffer (invalid tree properties)");
-    }
-
-    // branches were stored as 16-bit values
-    const USE_BRANCH16 = (treeFlags && BF_BRANCH16) === BF_BRANCH16;
-
-    // tree size in version 2+, tree node count in version 1
-    const treeSize = view.getUint32(4, false);
-
-    const newTree = new TernaryStringSet();
-    newTree._hasEmpty = (treeFlags & BF_HAS_EMPTY) === BF_HAS_EMPTY;
-    newTree._compact = (treeFlags & BF_COMPACT) === BF_COMPACT;
-
-    const tree = newTree._tree;
-    if (USE_BRANCH16) {
-      for (let byte = BUFFER_HEAD_SIZE; byte < view.byteLength; byte += 10) {
-        let n;
-        tree[tree.length] = view.getUint32(byte, false);
-        n = view.getUint16(byte + 4, false);
-        tree[tree.length] = n === 0xffff ? NUL : n;
-        n = view.getUint16(byte + 6, false);
-        tree[tree.length] = n === 0xffff ? NUL : n;
-        n = view.getUint16(byte + 8, false);
-        tree[tree.length] = n === 0xffff ? NUL : n;
-      }
-    } else {
-      for (let byte = BUFFER_HEAD_SIZE; byte < view.byteLength; byte += 4) {
-        tree[tree.length] = view.getUint32(byte, false);
-      }
-    }
-
-    if (version >= 2) {
-      newTree._size = treeSize;
-    } else {
-      if (newTree._compact) {
-        throw new TypeError("bad buffer (v1 compact)");
-      }
-      // version 1 did not store size, so we need to count
-      // how many end-of-string markers there are; this
-      // can be done with iteration rather than traversal
-      // since version 1 trees cannot be compact
-      let size = newTree._hasEmpty ? 1 : 0;
-      for (let node = 0; node < tree.length; node += 4) {
-        if (tree[node] & EOS) ++size;
-      }
-      newTree._size = size;
-    }
-
-    return newTree;
+    const h: DecodedBuffer = decode(buffer);
+    const set = new TernaryStringSet();
+    set._hasEmpty = h.hasEmpty;
+    set._compact = h.compact;
+    set._size = h.size;
+    set._tree = h.tree;
+    return set;
   }
 
   /**
@@ -1392,4 +1268,223 @@ export interface TernaryTreeStats {
   surrogates: number;
   /** Returns the stats in string form. */
   toString(): string;
+}
+
+//
+// Serialization
+//
+
+/** Version number for the data buffer format. */
+const BUFF_VERSION = 3;
+/** Magic number used by buffer data format. */
+const BUFF_MAGIC = 84;
+/** Buffer format header size (4 bytes magic/properties + 4 bytes node count). */
+const BUFF_HEAD_SIZE = 8;
+/** Buffer format flag bit: set has empty string */
+const BF_HAS_EMPTY = 1;
+/** Buffer format flag bit: set is compact */
+const BF_COMPACT = 2;
+/** Buffer format flag bit: v2 file uses 16-bit integers for branch pointers. */
+const BF_BRANCH16 = 4;
+
+function encode(
+  size: number,
+  hasEmpty: boolean,
+  compact: boolean,
+  tree: number[],
+): ArrayBuffer {
+  const buff = new ArrayBuffer(BUFF_HEAD_SIZE + 16 * tree.length);
+  const view = new DataView(buff);
+
+  // Header
+  //   - magic bytes "TT" for ternary tree
+  view.setUint8(0, BUFF_MAGIC);
+  view.setUint8(1, BUFF_MAGIC);
+  //   - version number
+  view.setUint8(2, BUFF_VERSION);
+  //   - flag bits
+  const treeFlags = (hasEmpty ? BF_HAS_EMPTY : 0) | (compact ? BF_COMPACT : 0);
+  view.setUint8(3, treeFlags);
+  //   - set size
+  view.setUint32(4, size);
+
+  // track buffer bytes used and offset of next write
+  let blen = BUFF_HEAD_SIZE;
+
+  // encode and write each node sequentially
+  for (let n = 0; n < tree.length; n += 4) {
+    const encodingOffset = blen++;
+    let encoding = 0;
+
+    // write code point
+    const cp = tree[n] & CP_MASK;
+    const eos = (tree[n] & EOS) !== 0;
+    if (tree[n] === 0x65) {
+      // letter "e"
+      encoding = 3 << 6;
+    } else if (cp > 0x7fff) {
+      view.setUint32(blen - 1, tree[n]);
+      blen += 3;
+    } else if (cp > 0x7f) {
+      encoding = 1 << 6;
+      const int = cp | (eos ? 0x8000 : 0);
+      view.setUint16(blen, int);
+      blen += 2;
+    } else {
+      encoding = 2 << 6;
+      const int = cp | (eos ? 0x80 : 0);
+      view.setUint8(blen++, int);
+    }
+
+    // write branch pointers
+    let branchShift = 4;
+    for (let branch = 1; branch <= 3; ++branch) {
+      let pointer = tree[n + branch];
+      if (pointer === NUL) {
+        encoding |= 3 << branchShift;
+      } else {
+        pointer /= 4;
+        if (pointer > 0xffff) {
+          view.setUint32(blen, pointer);
+          blen += 4;
+        } else if (pointer > 0xff) {
+          encoding |= 1 << branchShift;
+          view.setUint16(blen, pointer);
+          blen += 2;
+        } else {
+          encoding |= 2 << branchShift;
+          view.setUint8(blen++, pointer);
+        }
+      }
+      branchShift -= 2;
+    }
+
+    view.setUint8(encodingOffset, encoding);
+  }
+
+  // return the buffer, trimmed to actual bytes used
+  return blen < buff.byteLength ? buff.slice(0, blen) : buff;
+}
+
+function decode(buff: ArrayBuffer): DecodedBuffer {
+  const view = new DataView(buff);
+  const decoded: DecodedBuffer = decodeHeader(view);
+  if (decoded.version < 3) {
+    decodeV1V2(decoded, view);
+  } else {
+    decodeV3(decoded, view);
+  }
+  return decoded;
+}
+
+interface DecodedBuffer {
+  version: number;
+  hasEmpty: boolean;
+  compact: boolean;
+  v2b16: boolean;
+  size: number;
+  tree: number[];
+}
+
+function bad(why: string) {
+  throw new TypeError("Invalid set data: " + why);
+}
+
+function decodeHeader(view: DataView): DecodedBuffer {
+  const h: DecodedBuffer = {} as DecodedBuffer;
+  if (view.byteLength < BUFF_HEAD_SIZE) bad("too short");
+  if (view.getUint8(0) !== BUFF_MAGIC || view.getUint8(1) !== BUFF_MAGIC)
+    bad("bad magic");
+
+  h.version = view.getUint8(2);
+  if (h.version < 1 || h.version > BUFF_VERSION)
+    bad("unsupported version " + h.version);
+
+  const flags = view.getUint8(3);
+  h.hasEmpty = (flags & BF_HAS_EMPTY) !== 0;
+  h.compact = (flags & BF_COMPACT) !== 0;
+  h.v2b16 = (flags & BF_BRANCH16) !== 0;
+
+  if (h.v2b16 && h.version !== 2) bad("b16 without v2");
+  if ((flags & ~(BF_HAS_EMPTY | BF_COMPACT | BF_BRANCH16)) !== 0)
+    bad("unknown flag");
+
+  h.size = view.getUint32(4);
+  h.tree = [];
+  return h;
+}
+
+function decodeV3(h: DecodedBuffer, view: DataView): void {
+  const tree = h.tree;
+  for (let b = BUFF_HEAD_SIZE; b < view.byteLength; ) {
+    const encoding = view.getUint8(b++);
+
+    // decode code point
+    const cpbits = (encoding >>> 6) & 3;
+    if (cpbits === 0) {
+      tree[tree.length] = view.getUint32(b - 1) & 0xffffff;
+      b += 3;
+    } else if (cpbits === 1) {
+      let cp = view.getUint16(b);
+      if (cp & 0x8000) cp = (cp & 0x7fff) | EOS;
+      tree[tree.length] = cp;
+      b += 2;
+    } else if (cpbits === 2) {
+      let cp = view.getUint8(b++);
+      if (cp & 0x80) cp = (cp & 0x7f) | EOS;
+      tree[tree.length] = cp;
+    } else {
+      tree[tree.length] = 0x65; // letter "e"
+    }
+
+    // decode branch pointers
+    let branchShift = 4;
+    for (let branch = 1; branch <= 3; ++branch) {
+      const branchBits = (encoding >>> branchShift) & 3;
+      branchShift -= 2;
+
+      if (branchBits === 0) {
+        tree[tree.length] = view.getUint32(b) * 4;
+        b += 4;
+      } else if (branchBits === 1) {
+        tree[tree.length] = view.getUint16(b) * 4;
+        b += 2;
+      } else if (branchBits === 2) {
+        tree[tree.length] = view.getUint8(b++) * 4;
+      } else {
+        tree[tree.length] = NUL;
+      }
+    }
+  }
+}
+
+function decodeV1V2(h: DecodedBuffer, view: DataView): void {
+  const tree = h.tree;
+  const b16 = h.v2b16;
+  for (let b = BUFF_HEAD_SIZE; b < view.byteLength; ) {
+    tree[tree.length] = view.getUint32(b);
+    b += 4;
+    if (b16) {
+      tree[tree.length] = view.getUint16(b);
+      b += 2;
+      tree[tree.length] = view.getUint16(b);
+      b += 2;
+      tree[tree.length] = view.getUint16(b);
+      b += 2;
+    } else {
+      tree[tree.length] = view.getUint32(b);
+      b += 4;
+      tree[tree.length] = view.getUint32(b);
+      b += 4;
+      tree[tree.length] = view.getUint32(b);
+      b += 4;
+    }
+  }
+  if (h.version === 1) {
+    // v1 didn't store size; need to count it
+    h.size = h.hasEmpty ? 1 : 0;
+    for (let node = 0; node < tree.length; node += 4) {
+      if (tree[node] & EOS) ++h.size;
+    }
+  }
 }

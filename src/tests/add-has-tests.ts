@@ -136,7 +136,7 @@ test("Add strings with spaces, punctuation, emoji, etc.", () => {
 });
 
 const BAD_INDEX_PREFIX = "non-string at index ";
-function getAddAllFailureIndex(set: any[]): number {
+function getAddAllFailureIndex(set: unknown[]): number {
   const tst = new TernaryStringSet();
   try {
     tst.addAll(set as string[]);
