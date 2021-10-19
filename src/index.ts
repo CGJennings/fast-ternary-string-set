@@ -187,9 +187,11 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     const mid = Math.floor(start + (end - start) / 2);
     try {
       this.add(strings[mid]);
-    } catch(ex) {
+    } catch (ex) {
       if (ex instanceof TypeError) {
-        throw new TypeError(`non-string at index ${mid}: ${String(strings[mid])}`);
+        throw new TypeError(
+          `non-string at index ${mid}: ${String(strings[mid])}`,
+        );
       }
       throw ex;
     }

@@ -140,7 +140,7 @@ function getAddAllFailureIndex(set: any[]): number {
   const tst = new TernaryStringSet();
   try {
     tst.addAll(set as string[]);
-  } catch(ex) {
+  } catch (ex) {
     if (ex instanceof TypeError) {
       if (ex.message.startsWith(BAD_INDEX_PREFIX)) {
         return Number.parseFloat(ex.message.substring(BAD_INDEX_PREFIX.length));
@@ -158,5 +158,5 @@ test("Report index of bad string from addAll", () => {
   expect(getAddAllFailureIndex([1])).toBe(0);
   expect(getAddAllFailureIndex(["wombat", Symbol("tiger")])).toBe(1);
   expect(getAddAllFailureIndex(["dingo", "python", null])).toBe(2);
-  expect(getAddAllFailureIndex(["lynx", ()=>"", "sugar glider", null])).toBe(1);
+  expect(getAddAllFailureIndex(["lynx", () => "", "goat", null])).toBe(1);
 });
