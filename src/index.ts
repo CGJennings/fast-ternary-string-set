@@ -185,9 +185,16 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     // order ensures a balanced tree (inserting strings in sorted order
     // is a degenerate case)
     const mid = Math.floor(start + (end - start) / 2);
-    this.add(strings[mid]);
-    this.addAll(strings, start, mid);
-    this.addAll(strings, mid + 1, end + 1);
+    try {
+      this.add(strings[mid]);
+      this.addAll(strings, start, mid);
+      this.addAll(strings, mid + 1, end + 1);
+    } catch(ex) {
+      if (ex instanceof TypeError) {
+        throw new TypeError(`non-string at index ${mid}: ${strings[mid]}`);
+      }
+      throw ex;
+    }
   }
 
   /**
