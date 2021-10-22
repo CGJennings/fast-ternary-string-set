@@ -83,12 +83,17 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     return this._size;
   }
 
-  /** Removes all strings from this set. */
-  clear(): void {
+  /**
+   * Removes all strings from this set.
+   *
+   * @returns This set, allowing chained calls.
+   */
+  clear(): TernaryStringSet {
     this._tree = [];
     this._hasEmpty = false;
     this._compact = false;
     this._size = 0;
+    return this;
   }
 
   /**
@@ -162,17 +167,50 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param strings The non-null array of strings to add.
    * @param start The index of the first element to add (inclusive, default is 0).
    * @param end The index of the last element to add (exclusive, default is `strings.length`)
+   * @returns This set, allowing chained calls.
    */
-  addAll(strings: readonly string[], start = 0, end?: number): void {
+  addAll(
+    strings: readonly string[],
+    start = 0,
+    end = strings.length,
+  ): TernaryStringSet {
     if (strings == null) throw new ReferenceError("null strings");
-    if (end === undefined) end = strings.length;
+    if (!Array.isArray(strings))
+      throw new TypeError("strings must be an array");
 
+    if (typeof start !== "number" || start !== Math.trunc(start)) {
+      throw new TypeError("start must be an integer");
+    }
+    // Note: start = strings.length is allowed so that
+    // addAll(array=[], 0, array.length) works as expected
+    if (start < 0 || start > strings.length) {
+      throw new RangeError("start: " + start);
+    }
+
+    if (typeof end !== "number" || end !== Math.trunc(end)) {
+      throw new TypeError("end must be an integer");
+    }
+    if (end < 0 || end > strings.length) {
+      throw new RangeError("end: " + end);
+    }
+
+    if (start < end) {
+      this._addAllImpl(strings, start, end);
+    }
+    return this;
+  }
+
+  private _addAllImpl(
+    strings: readonly string[],
+    start: number,
+    end: number,
+  ): void {
     if (--end < start) return;
 
     // if the tree is empty and the list is sorted, this insertion
     // order ensures a balanced tree (inserting strings in sorted order
     // is a degenerate case)
-    const mid = Math.floor(start + (end - start) / 2);
+    const mid = Math.trunc(start + (end - start) / 2);
     try {
       this.add(strings[mid]);
     } catch (ex) {
@@ -183,8 +221,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       }
       throw ex;
     }
-    this.addAll(strings, start, mid);
-    this.addAll(strings, mid + 1, end + 1);
+    this._addAllImpl(strings, start, mid);
+    this._addAllImpl(strings, mid + 1, end + 1);
   }
 
   /**
