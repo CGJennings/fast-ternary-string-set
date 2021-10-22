@@ -4,12 +4,20 @@
   "description": "",
   "keywords": [
     "ternary search tree",
+    "lexicographic tree",
     "trie",
     "set",
     "string set",
     "sorted set",
     "dictionary",
-    "hash table"
+    "hash table",
+    "word game",
+    "word puzzle",
+    "autocomplete",
+    "prediction",
+    "crossword solver",
+    "anagram",
+    "spelling"
   ],
   "author": "Christopher G. Jennings",
   "license": "MIT",

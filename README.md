@@ -2,13 +2,16 @@
 
 ![CI status badge](https://github.com/CGJennings/fast-ternary-string-set/actions/workflows/ci.yml/badge.svg)
 
-A fast, space-efficient, serializable string set based on ternary search trees, with both exact and approximate membership tests.
+A fast, space-efficient, serializable string set based on [*ternary search trees*](#about-ternary-search-trees) (AKA *lexicographic trees*), with both exact and approximate search.
+
+**Common applications:** autocompletion, text prediction, spelling checking, word games and puzzles
 
 [API Docs](https://cgjennings.github.io/fast-ternary-string-set/classes/TernaryStringSet.html)
 
 ## Features
 
  - Drop-in replacement for nearly any use of a [JavaScript `Set`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set) of strings.
+ - Serialize sets to an `ArrayBuffer`: load/download sets directly without the overhead of adding a list of strings.
  - Search and iteration methods return elements in ascending sorted (lexicographic) order.
  - Set relations (equality, subset, superset) and operations (union, intersection, difference, symmetric difference).
  - Several approximate matching methods:
@@ -16,7 +19,6 @@ A fast, space-efficient, serializable string set based on ternary search trees, 
    2. List strings that can be made from a list of letters.
    3. List strings that match a pattern including "don't care" letters (as `.` in a regular expression).
    4. List strings within a certain [Hamming distance](https://en.wikipedia.org/wiki/Hamming_distance) of a pattern.
- - Serialize sets to and from an `ArrayBuffer`.
  - Time and space efficient:
    - Leverages common JS engine optimizations under the hood.
    - Elements share tree nodes and do not retain references to the original strings.
@@ -149,6 +151,19 @@ const buff = set.toBuffer();
 const set = TernaryStringSet.fromBuffer(buff);
 ```
 
+Recreate a set from a buffer previously stored on a server:
+
+```js
+async function loadTernaryStringSet(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`tree download "${url}" failed: ${response.status} ${response.statusText}`);
+  }
+  const buffer = await resonse.arrayBuffer();
+  return TernaryStringSet.fromBuffer(buffer);
+}
+```
+
 A simple spelling checker:
 
 ```js
@@ -172,6 +187,12 @@ toCheck.toLowerCase().split(/\W+/).forEach((word) => {
 ```
 
 ## Usage notes
+
+### About ternary search trees
+
+In a *ternary search tree* (TST), each node stores one letter and has three children, the "less-than", "equal-to", and "greater-than" branches. To search for a string, you proceed letter-by-letter from the start of the target string. If the node contains the letter you are currently looking for, you follow the "equal-to" branch and move to the next letter in the target string. Otherwise, you follow the "less-than" or "greater-than" branch depending on whether the target letter comes before or after the node letter in lexicographic order, respectively. For details, [this article introduces them to solve a practical problem](https://cgjennings.ca/articles/countdown-letters/), or you can refer to the [Wikipedia entry](https://en.wikipedia.org/wiki/Ternary_search_tree).
+
+TSTs can be an excellent option for large string sets, especially if most or all strings are known ahead of time or if strings can be added in lexicographic order. (TSTs are not self-balancing like, say, a red-black tree.) TSTs save space, as strings with a common prefix (that is, strings that start the same) share nodes in the tree. (In *this* TST implementation, strings with a common suffix can also share nodes!) Their superpower, however, is their facility for performing approximate and pattern-based matching. For example, a TST is excellent for solving crossword puzzles.
 
 ### Differences from standard JS `Set`
 
