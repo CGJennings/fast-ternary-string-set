@@ -19,6 +19,7 @@ A fast, space-efficient, serializable string set based on [*ternary search trees
    2. List strings that can be made from a list of letters.
    3. List strings that match a pattern including "don't care" letters (as `.` in a regular expression).
    4. List strings within a certain [Hamming distance](https://en.wikipedia.org/wiki/Hamming_distance) of a pattern.
+   5. List strings within a certain [edit distance](https://en.wikipedia.org/wiki/Levenshtein_distance) of a pattern.
  - Time and space efficient:
    - Leverages common JS engine optimizations under the hood.
    - Elements share tree nodes and do not retain references to the original strings.
@@ -113,7 +114,14 @@ Get all elements within Hamming distance 1 of `"cat"`:
 
 ```js
 set.getWithinHammingDistanceOf("cat", 1);
-// => ["bat", "can", "cap", "cat", "cot", "sat"] (for example)
+// => ["bat", "can", "cat", "cot", "sat"] (for example)
+```
+
+Get all elements within edit distance 1 of `"cat"`:
+
+```js
+set.getWithinEditDistanceOf("cat", 1);
+// => ["at", "bat", "can", "cat", "cats", "cot", "sat"] (for example)
 ```
 
 Get all elements that match `"b.t"`:
@@ -178,12 +186,16 @@ fs.writeFileSync("./dict.bin", dict.toBuffer());
 // check-spelling.js
 // load the dictionary created by make-dict.js
 const dict = TernaryStringSet.fromBuffer(fs.readFileSync("./dict.bin"));
-const toCheck = "In a time long past lived a cat named Captain Peanut."
+const toCheck = "In a time long past lived a cat namd Captain Peanut."
 toCheck.toLowerCase().split(/\W+/).forEach((word) => {
     if (!dict.has(word)) {
-        console.log(`misspelled: ${word}`);
+        const suggest = dict.getWithinEditDistanceOf(word, 1);
+        console.log(`misspelled:  ${word}`);
+        console.log(`suggestions: ${suggest.join(", ")}`);
     }
 });
+// => misspelled:  namd
+//    suggestions: name, named
 ```
 
 ## Usage notes
@@ -211,9 +223,9 @@ Similarly, after deleting a large number of strings, future search performance m
 
 Since most `TernaryStringSet` methods are recursive, extremely unbalanced trees can provoke "maximum call stack size exceeded" errors.
 
-### Matching by code point
+### Code point ordering
 
-Some Unicode code points span two characters (char codes) in a JavaScript string. For example, the musical symbol 𝄞, code point U+1D11E, can be assigned to a JavaScript string as follows:
+Sets are ordered and matched by their Unicode code point. For most strings this has no effect, but some Unicode code points span two characters (char codes) in a JavaScript string. For example, the musical symbol 𝄞, code point U+1D11E, can be assigned to a JavaScript string as follows:
 
 ```js
 const clefG = "\ud834\udd1e";
