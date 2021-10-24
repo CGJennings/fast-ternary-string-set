@@ -3,35 +3,36 @@
   <h1>Fast ternary string set</h1>
 </a>
 <p><img src="https://github.com/CGJennings/fast-ternary-string-set/actions/workflows/ci.yml/badge.svg" alt="CI status badge"></p>
-<p>A fast, space-efficient, serializable string set based on <a href="#about-ternary-search-trees"><em>ternary search trees</em></a> (AKA <em>lexicographic trees</em>), with both exact and approximate search.</p>
+<p>A fast, space-efficient, serializable string set based on <a href="#about-ternary-search-trees"><em>ternary search trees</em></a> (or <em>lexicographic trees</em>), with both exact and approximate search.</p>
 <p><strong>Common applications:</strong> autocompletion, text prediction, spelling checking, word games and puzzles</p>
-<p><a href="https://cgjennings.github.io/fast-ternary-string-set/classes/TernaryStringSet.html">API Docs</a></p>
+<p><a href="https://cgjennings.github.io/fast-ternary-string-set/classes/TernaryStringSet.html">API docs</a></p>
 
 <a href="#features" id="features" style="color: inherit; text-decoration: none;">
   <h2>Features</h2>
 </a>
 <ul>
-<li>Drop-in replacement for nearly any use of a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set">JavaScript <code>Set</code></a> of strings.</li>
-<li>Serialize sets to an <code>ArrayBuffer</code>: load/download sets directly without the overhead of adding a list of strings.</li>
+<li>Drop-in replacement for <a href="#differences-from-standard-js-set">nearly any use</a> of a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set">JavaScript <code>Set</code></a> of strings.</li>
+<li>Serialize sets to an <code>ArrayBuffer</code>: load/download sets directly without the overhead of initializing from a list of strings.</li>
 <li>Search and iteration methods return elements in ascending sorted (lexicographic) order.</li>
 <li>Set relations (equality, subset, superset) and operations (union, intersection, difference, symmetric difference).</li>
 <li>Several approximate matching methods:<ol>
 <li>List strings that complete a prefix.</li>
 <li>List strings that can be made from a list of letters.</li>
-<li>List strings that match a pattern including &quot;don&#39;t care&quot; letters (as <code>.</code> in a regular expression).</li>
 <li>List strings within a certain <a href="https://en.wikipedia.org/wiki/Hamming_distance">Hamming distance</a> of a pattern.</li>
 <li>List strings within a certain <a href="https://en.wikipedia.org/wiki/Levenshtein_distance">edit distance</a> of a pattern.</li>
+<li>List strings that match a pattern including &quot;don&#39;t care&quot; letters (as <code>.</code> in a regular expression).</li>
 </ol>
 </li>
 <li>Time and space efficient:<ul>
 <li>Leverages common JS engine optimizations under the hood.</li>
 <li>Elements share tree nodes and do not retain references to the original strings.</li>
-<li>Read-only sets can be <em>compacted</em> to save even more space.</li>
+<li>Read-only sets can be <a href="https://cgjennings.github.io/fast-ternary-string-set/classes/TernaryStringSet.html#compact"><em>compacted</em></a> to save even more space.</li>
 </ul>
 </li>
 <li>Well-documented TypeScript source, targeting modern JavaScript by default.</li>
-<li>Backed by extensive test suites.</li>
 <li>Use as a standalone/ECMAScript module or as a Node.js/CommonJS module.</li>
+<li>Operates on full code points rather than 16-bit characters.</li>
+<li>Backed by extensive test suites.</li>
 <li>No other dependencies.</li>
 </ul>
 
@@ -97,8 +98,17 @@
 <a href="#about-ternary-search-trees" id="about-ternary-search-trees" style="color: inherit; text-decoration: none;">
   <h3>About ternary search trees</h3>
 </a>
-<p>In a <em>ternary search tree</em> (TST), each node stores one letter and has three children, the &quot;less-than&quot;, &quot;equal-to&quot;, and &quot;greater-than&quot; branches. To search for a string, you proceed letter-by-letter from the start of the target string. If the node contains the letter you are currently looking for, you follow the &quot;equal-to&quot; branch and move to the next letter in the target string. Otherwise, you follow the &quot;less-than&quot; or &quot;greater-than&quot; branch depending on whether the target letter comes before or after the node letter in lexicographic order, respectively. For details, <a href="https://cgjennings.ca/articles/countdown-letters/">this article introduces them to solve a practical problem</a>, or you can refer to the <a href="https://en.wikipedia.org/wiki/Ternary_search_tree">Wikipedia entry</a>.</p>
-<p>TSTs can be an excellent option for large string sets, especially if most or all strings are known ahead of time or if strings can be added in lexicographic order. (TSTs are not self-balancing like, say, a red-black tree.) TSTs save space, as strings with a common prefix (that is, strings that start the same) share nodes in the tree. (In <em>this</em> TST implementation, strings with a common suffix can also share nodes!) Their superpower, however, is their facility for performing approximate and pattern-based matching. For example, a TST is excellent for solving crossword puzzles.</p>
+<p>In a <em>ternary search tree</em> (TST), each node stores one letter and has three children: the &quot;less-than&quot;, &quot;equal-to&quot;, and &quot;greater-than&quot; branches.
+To search for a string, you proceed letter-by-letter from the start of the target string.
+If the node contains the letter you are currently looking for, you follow the &quot;equal-to&quot; branch and move to the next letter in the target string.
+Otherwise, you follow the &quot;less-than&quot; or &quot;greater-than&quot; branch depending on whether the target letter comes before or after the node letter in lexicographic order, respectively.
+For details, <a href="https://cgjennings.ca/articles/countdown-letters/">this article introduces them to solve a practical problem</a>, or you can refer to the <a href="https://en.wikipedia.org/wiki/Ternary_search_tree">Wikipedia entry</a>.</p>
+<p>TSTs can be an excellent option for large string sets, especially if most or all strings are known ahead of time or if strings can be added in lexicographic order.
+(TSTs are not self-balancing like, say, a red-black tree.)
+TSTs save space, as strings with a common prefix (that is, strings that start the same) share nodes in the tree.
+In <em>this</em> TST implementation, strings with a common suffix can also share nodes.
+Their superpower, however, is their facility for performing approximate and pattern-based matching.
+For example, a TST is excellent for solving crossword puzzles.</p>
 
 <a href="#differences-from-standard-js-set" id="differences-from-standard-js-set" style="color: inherit; text-decoration: none;">
   <h3>Differences from standard JS <code>Set</code></h3>
@@ -106,32 +116,45 @@
 <p><code>TernaryStringSet</code> supports a superset of the standard <code>Set</code> interface, but it is not a subclass of <code>Set</code>.</p>
 <p>JavaScript <code>Set</code> objects guarantee that they iterate over elements in the order that they are added.
 <code>TernaryStringSet</code>s always return results in sorted order.</p>
-<p><code>TernaryStringSet</code>s can contain the empty string, but cannot contain non-strings. Not even <code>null</code> or <code>undefined</code>.</p>
+<p><code>TernaryStringSet</code>s can contain the empty string, but cannot contain non-strings.
+Not even <code>null</code> or <code>undefined</code>.</p>
 
-<a href="#tree-quality" id="tree-quality" style="color: inherit; text-decoration: none;">
-  <h3>Tree quality</h3>
+<a href="#tree-health" id="tree-health" style="color: inherit; text-decoration: none;">
+  <h3>Tree health</h3>
 </a>
-<p>Adding strings in sorted order produces a worst-case tree structure. This can be avoided by adding strings all at once using the constructor or <code>addAll()</code>. Given sorted input, both of these methods will produce an optimal tree structure. If this is not practical, adding strings in random order usually yields a near-optimal tree. Calling <code>balance()</code> will rebuild the tree in optimal form, but it can be expensive.</p>
-<p>Similarly, after deleting a large number of strings, future search performance may be improved by calling <code>balance()</code>.</p>
+<p>Adding strings in sorted order produces a worst-case tree structure.
+This can be avoided by adding strings all at once using the constructor or <code>addAll()</code>.
+Given sorted input, both of these methods will produce an optimal tree structure.
+If this is not practical, adding strings in random order will typically yield a tree that&#39;s &quot;close enough&quot; to balanced for most applications.
+Calling <code>balance()</code> will rebuild the tree in optimal form, but it can be expensive.</p>
 <p>Since most <code>TernaryStringSet</code> methods are recursive, extremely unbalanced trees can provoke &quot;maximum call stack size exceeded&quot; errors.</p>
 
 <a href="#code-point-ordering" id="code-point-ordering" style="color: inherit; text-decoration: none;">
   <h3>Code point ordering</h3>
 </a>
-<p>Sets are ordered and matched by their Unicode code point. For most strings this has no effect, but some Unicode code points span two characters (char codes) in a JavaScript string. For example, the musical symbol 𝄞, code point U+1D11E, can be assigned to a JavaScript string as follows:</p>
+<p>Sets are ordered and matched by their Unicode code point. For most strings this has no effect, but some Unicode code points span two characters (char codes) in a JavaScript string.
+For example, the musical symbol 𝄞, code point U+1D11E, can be assigned to a JavaScript string as follows:</p>
 <pre><code class="language-js"><span class="hl-2">const</span><span class="hl-0"> </span><span class="hl-3">clefG</span><span class="hl-0"> = </span><span class="hl-5">&quot;</span><span class="hl-11">\ud834\udd1e</span><span class="hl-5">&quot;</span><span class="hl-0">;</span>
 </code></pre>
-<p>Even though it represents a single symbol, the above string has a length of two. To avoid surprises, <code>TernaryStringSet</code> matches by code point, not by char code. For example, since the above string is one code point, it would match <code>getPartialMatchesOf(&quot;.&quot;)</code> and not <code>getPartialMatchesOf(&quot;..&quot;)</code>.</p>
+<p>Even though it represents a single symbol, the above string has a length of two.
+To avoid surprises, <code>TernaryStringSet</code> matches by code point, not by char code.
+For example, since the above string is one code point, it would match <code>getPartialMatchesOf(&quot;.&quot;)</code> and not <code>getPartialMatchesOf(&quot;..&quot;)</code>.</p>
 
 <a href="#compaction" id="compaction" style="color: inherit; text-decoration: none;">
   <h3>Compaction</h3>
 </a>
-<p>Calling <code>compact()</code> can significantly reduce a set&#39;s memory footprint. For large sets of typical strings, this can reduce the set&#39;s footprint by 50–80%. However, no new strings can be added or deleted without first undoing the compaction. Compaction is relatively expensive, but can be a one-time or even ahead-of-time step for many use cases.</p>
+<p>Calling <code>compact()</code> can significantly reduce a set&#39;s memory footprint.
+For large sets of typical strings, this can reduce the set&#39;s footprint by around 50–80%.
+However, no new strings can be added or deleted without first undoing the compaction.
+Compaction is relatively expensive, but can be a one-time or even ahead-of-time step for many use cases.</p>
 
 <a href="#serialization" id="serialization" style="color: inherit; text-decoration: none;">
   <h3>Serialization</h3>
 </a>
-<p>A common use case is to match user input against a fixed set of strings. For example, checking input against a spelling dictionary or suggesting completions for partial input. In such cases it is often desirable to build a set ahead of time, serialize it to a buffer, and then save the buffer data on a server where it can be downloaded as needed. Recreating a set directly from buffer data is much faster than downloading a file containing the strings and inserting them into a new set on the client.</p>
+<p>A common use case is to match user input against a fixed set of strings.
+For example, checking input against a spelling dictionary or suggesting completions for partial input.
+In such cases it is often desirable to build a set ahead of time, serialize it to a buffer, and then save the buffer data on a server where it can be downloaded as needed.
+Recreating a set directly from buffer data is often much faster than downloading a file containing the strings and adding them to a new set on the client.</p>
 <p>The following steps will make such ahead-of-time sets as small as possible:</p>
 <ol>
 <li>Create a set and insert the desired strings using <code>add()</code> or <code>addAll()</code>.</li>
@@ -144,14 +167,18 @@
 <a href="#developing" id="developing" style="color: inherit; text-decoration: none;">
   <h2>Developing</h2>
 </a>
-<p>Building from source requires Node.js. Clone the repository, then install development dependencies:</p>
+<p>Building from source requires Node.js.
+Clone the repository, then install development dependencies:</p>
 <pre><code class="language-bash"><span class="hl-0">npm install</span>
 </code></pre>
-<p>The TypeScript source is found under <code>src</code>. Compiled output is written to <code>lib</code>. To build the project:</p>
+<p>The TypeScript source is found under <code>src</code>.
+Compiled output is written to <code>lib</code>. To build the project:</p>
 <pre><code class="language-bash"><span class="hl-0">npm run build</span>
 </code></pre>
-<p>The included <code>tsconfig.json</code> targets ES2015 (ES6). To target old JavaScript engines or browsers you will need to modify this configuration and/or use a tool like Babel.</p>
-<p>The project includes an extensive suite of tests under <code>src/tests</code>. To run all tests:</p>
+<p>The included <code>tsconfig.json</code> targets ES2015 (ES6).
+To target old JavaScript engines or browsers you will need to modify this configuration and/or use a tool like Babel.</p>
+<p>The project includes an extensive suite of tests under <code>src/tests</code>.
+To run all tests:</p>
 <pre><code class="language-bash"><span class="hl-0">npm </span><span class="hl-4">test</span>
 </code></pre>
 <p>HTML documentation can be prepared automatically using TypeDoc:</p>
@@ -164,95 +191,227 @@
 <a href="#serialization-format" id="serialization-format" style="color: inherit; text-decoration: none;">
   <h2>Serialization format</h2>
 </a>
-<p>The methods <code>toBuffer()</code> and <code>fromBuffer()</code> serialize a set to and from a compact binary form. This section describes the format used.</p>
-<p>Serialized data consists of a stream of unsigned integers of 8, 16, 24, or 32 bits.
+<p>This section describes the binary format used to serialize a <code>TernaryStringSet</code>.
+Serialized data consists of a stream of unsigned integers of 8, 16, 24, or 32 bits.
 In the remaining sections, these are indicated by the notation int8, int32, and so on.
 Integers wider than 1 byte are stored in
-<a href="https://en.wikipedia.org/wiki/Endianness">big-endian order</a>.</p>
+<a href="https://en.wikipedia.org/wiki/Endianness">big-endian order</a>.
+For brevity, the serialized data is described as a &quot;file&quot;, but any container or stream of bytes is acceptable.</p>
 
 <a href="#header" id="header" style="color: inherit; text-decoration: none;">
   <h3>Header</h3>
 </a>
-<p>The buffer starts with an 8-byte header consisting of the following:</p>
-<p><strong><code>magic</code> int16</strong><br>This is a magic value, 0x5454, used to help verify that the buffer is valid.
-Data that does not start with this value is not a valid tree buffer.</p>
-<p><strong><code>version</code> int8</strong><br>Indicates the version of the format. Valid values are 1, 2, or 3. A value of 0
-indicates that this is not a valid tree buffer. Other values indicate newer
-versions of the format specification.</p>
-<p><strong><code>treeFlags</code> int8</strong><br>A set of bit flags that denote specific features:</p>
-<ul>
-<li>Bit 0 is set if the set <em>contains the empty string</em>, and unset otherwise.</li>
-<li>Bit 1 is set if the tree data is <em>compact</em> meaning that common suffixes share nodes.</li>
-<li>Bit 2 is unset in version 3 files. It indicates the use of 16-bit branches in version 2 files.</li>
-<li>Bits 3-7 are reserved and <strong>must</strong> be unset.</li>
-</ul>
-<p><strong><code>size</code> int32</strong><br>Indicates the number of strings in the set, including the empty string if present.</p>
+<p>The file begins with an 8-byte header consisting of the following:</p>
+<p><strong>Magic (int16)</strong><br>A magic number identifying the file format.
+This must be 0x5454 (<code>TT</code>) if the file is valid.</p>
+<p><strong>Version (int8)</strong><br>Indicates the version of the format.
+Valid values are currently 1, 2, or 3.
+A value of 0 implies that the file is not valid.
+Other values would indicate newer versions of the format specification.</p>
+<p><strong>Tree flags (int8)</strong><br>A set of bit flags that denote specific features:</p>
+<table>
+<thead>
+<tr>
+<th align="right">Bits</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">0</td>
+<td>Set if the set <em>contains the empty string</em>.</td>
+</tr>
+<tr>
+<td align="right">1</td>
+<td>Set if the tree nodes are <em>compact</em>, meaning that common suffixes share nodes.</td>
+</tr>
+<tr>
+<td align="right">2</td>
+<td>Only in version 2 files. Set if 16-bit branches were used.</td>
+</tr>
+<tr>
+<td align="right">3–7</td>
+<td>Reserved for future use.</td>
+</tr>
+</tbody></table>
+<p><strong>Size (int32)</strong><br>The number of strings in the set, including the empty string if present.</p>
 
 <a href="#tree-data" id="tree-data" style="color: inherit; text-decoration: none;">
   <h3>Tree data</h3>
 </a>
-<p>The remaining bytes encode the structure of the tree.
-The format closely follows the internal format used by the implementation,
-which was already chosen for its compactness.
-The internal format consists of an array of integers,
-with each node represented by 4 integers in sequence: one for the code point and flags,
-and three for pointers (array offsets) to each of the less-than, equal-to, and
-greater-than branches, respectively. The node starting at index 0 is the tree root.</p>
-<p>The buffer format also follows this basic structure. Each node in the original array is 
-written out in the same order that it appears in the internal array.</p>
-<p>Nodes are encoded using a variable number of bytes.
-The first byte written for each node consists of 4 fields, each of which is 2 bits.
-These bit fields describe how each of the 4 node properties will be encoded:</p>
+<p>The remaining bytes encode the tree structure.
+The format closely follows that used internally by <code>TernaryStringSet</code>s, which was already chosen for compactness.
+This format consists of an array of integers, with each tree node represented by 4 integers in sequence: one for the code point and flags, and three for pointers (array offsets) to each of the less-than, equal-to, and greater-than branches, respectively.
+The node starting at index 0 is the tree root.</p>
+<p>The file format also follows this basic structure.
+Elements of the original array are written out in order, but they may be represented by a variable number of bytes.
+Before each node, a single byte is written whose bits describe how each of the node&#39;s four elements are encoded:</p>
+<table>
+<thead>
+<tr>
+<th align="right">Bits</th>
+<th>Describe</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">6–7</td>
+<td>how the code point and flags are encoded</td>
+</tr>
+<tr>
+<td align="right">4–5</td>
+<td>how the less-than branch is encoded</td>
+</tr>
+<tr>
+<td align="right">2–3</td>
+<td>how the equal-to branch is encoded</td>
+</tr>
+<tr>
+<td align="right">0–1</td>
+<td>how the greater-than branch is encoded</td>
+</tr>
+</tbody></table>
+<p>Depending on the values of these fields, the node will require 1–16 bytes, including this encoding byte.</p>
+
+<a href="#code-point-and-flags" id="code-point-and-flags" style="color: inherit; text-decoration: none;">
+  <h4>Code point and flags</h4>
+</a>
+<p>Valid code points are up to 21 bits long.
+In addition, a 22nd bit is used to indicate that the node terminates a string in the tree.
+Depending on the magnitude of the code point, this data is written in 0–3 bytes as determined by bits 6–7 of the encoding byte:</p>
+<table>
+<thead>
+<tr>
+<th align="right">Bits</th>
+<th>Code point</th>
+<th>Written as</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">00</td>
+<td>≥ 32768</td>
+<td>int24</td>
+</tr>
+<tr>
+<td align="right">01</td>
+<td>128–32767</td>
+<td>int16</td>
+</tr>
+<tr>
+<td align="right">10</td>
+<td>≤ 127</td>
+<td>int8</td>
+</tr>
+<tr>
+<td align="right">11</td>
+<td>101 (<code>e</code>)</td>
+<td>0 bytes</td>
+</tr>
+</tbody></table>
+<p><strong>Encoding bits 00: code point ≥ 32768</strong><br>Large code points are written as an int24 value.
+The lowest 21 bits store the code point.
+The 22nd bit is set if the node terminates a string.
+The highest two bits must be 0.</p>
+<blockquote>
+<p>For practical purposes, this can be treated as an int32 value in which the highest 8 bits are the node&#39;s encoding byte.</p>
+</blockquote>
+<p><strong>Encoding bits 01: code point in 128 to 32767</strong><br>Code points in this range are written as an int16 value.
+The lowest 15 bits store the code point and the highest bit is set if the node terminates a string.</p>
+<p><strong>Encoding bits 10: code point ≤ 127</strong><br>Small code points are written as a single int8 value.
+The lowest 15 bits store the code point and the highest bit is set if the node terminates a string.</p>
+<p><strong>Encoding bits 11: letter &quot;e&quot;</strong><br>As a special case, if the code point is exactly 0x65 (the letter &quot;e&quot;) <em>and</em> the node <em>does not</em> terminate a string, no bytes are written for the code point.</p>
+
+<a href="#branch-pointers" id="branch-pointers" style="color: inherit; text-decoration: none;">
+  <h4>Branch pointers</h4>
+</a>
+<p>In the <code>TernaryStringSet</code>, a branch pointer is either the special NUL value 0x7fffffff, or a smaller value that is an offset into the array at which the target node&#39;s data starts.
+A NUL pointer is written in 0 bytes.
+Otherwise the pointer is divided by 4 and then written as follows:</p>
+<table>
+<thead>
+<tr>
+<th align="right">Bits</th>
+<th>Pointer/4</th>
+<th>Written as</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">00</td>
+<td>&gt; 0xffff</td>
+<td>int32</td>
+</tr>
+<tr>
+<td align="right">01</td>
+<td>&gt; 0xff</td>
+<td>int16</td>
+</tr>
+<tr>
+<td align="right">10</td>
+<td>≤ 0xff</td>
+<td>int8</td>
+</tr>
+<tr>
+<td align="right">11</td>
+<td>NUL pointer</td>
+<td>0 bytes</td>
+</tr>
+</tbody></table>
+
+<a href="#example" id="example" style="color: inherit; text-decoration: none;">
+  <h4>Example</h4>
+</a>
+<p>Suppose the node to be written consists of the sequential elements <code>[0x41, 0x7fffffff, 0x42, 0x6789]</code>, meaning:</p>
 <ul>
-<li>Bits 6-7 describe how the code point and flags are encoded.</li>
-<li>Bits 4-5 describe how the less-than branch is encoded.</li>
-<li>Bits 3-2 describe how the equal-to branch is encoded.</li>
-<li>Bits 1-0 describe how the greater-than branch is encoded.</li>
+<li>The node&#39;s code point is 0x41 (the letter &quot;A&quot;), and since bit 21 is not set, this node does not terminate a string.</li>
+<li>The node&#39;s less-than branch is NUL.</li>
+<li>The node&#39;s equal-to branch points to offset 0x42.</li>
+<li>The node&#39;s greater-than branch points to offset 0x6789.</li>
 </ul>
-<p>Depending on the values of these fields, a node can require between 1 and 16 bytes, including the encoding byte.</p>
-
-<a href="#code-point-encoding" id="code-point-encoding" style="color: inherit; text-decoration: none;">
-  <h4>Code point encoding</h4>
-</a>
-<p>Valid code points are up to 21 bits long. In addition, a 22nd bit is used to indicate that
-this node also terminates a string in the tree. Depending on the magnitude of the code
-point (cp), this data is written in 0-3 bytes:</p>
-<p><strong>Encoding 00 - cp &gt; 32767</strong>
-Large code points are written as an int24 value. The lowest 21 bits store the code
-point. The 22nd bit is set if the node terminates a string. The highest two bits must be 0.
-For practical purposes, this can be treated as an int32 value in which the highest 8 bits
-are the node&#39;s encoding bit fields.</p>
-<p><strong>Encoding 01 - cp ≤ 32767</strong><br>If the code point is 32767 (0x7fff) or less, then it can be written as an int16 value.
-The high bit is set if the node terminates a string.</p>
-<p><strong>Encoding 10 - cp ≤ 127</strong><br>If the code point is 127 (0x7f) or less, then it can be written as an int8 value.
-The high bit is set if the node terminates a string.</p>
-<p><strong>Encoding 11 - letter &quot;e&quot;</strong><br>As a special case, if the code point is exactly 0x65 (the letter &quot;e&quot;) <em>and</em> the node
-<em>does not</em> terminate a string, no bytes are written for the code point.</p>
-
-<a href="#branch-pointer-encoding" id="branch-pointer-encoding" style="color: inherit; text-decoration: none;">
-  <h4>Branch pointer encoding</h4>
-</a>
-<p>A branch pointer is either the special NUL value 0x7fffffff, or a smaller value that is an
-offset into the array at which the target node&#39;s data starts.</p>
-<p><strong>Encoding 11 - NUL</strong><br>If the branch pointer is NUL, it is indicated by this encoding value: no bytes
-are written to store the pointer.</p>
-<p>Otherwise, if the pointer is not NUL, its offset is divided by 4 and then it is written
-in one of the following ways, depending on its magnitude:</p>
-<p><strong>Encoding 00 - pointer/4 &gt; 0xffff</strong><br>The value of pointer/4 is written as an int32.</p>
-<p><strong>Encoding 01 - pointer/4 &gt; 0xff</strong><br>The value of pointer/4 is written as an int16.</p>
-<p><strong>Encoding 10 - pointer/4 ≤ 0xff</strong><br>The value of pointer/4 is written as an int8.</p>
+<p> The following bytes would be written to the output file:</p>
+<table>
+<thead>
+<tr>
+<th align="right">Byte</th>
+<th>Value</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">0</td>
+<td>0b10111001</td>
+<td>Encoding field: int8 code point, NUL less-than, int8 equal-to, int16 greater-than</td>
+</tr>
+<tr>
+<td align="right">1</td>
+<td>0x41</td>
+<td>Code point for &quot;A&quot;, termination bit not set</td>
+</tr>
+<tr>
+<td align="right">2</td>
+<td>0x42</td>
+<td>Equal-to branch</td>
+</tr>
+<tr>
+<td align="right">3</td>
+<td>0x67</td>
+<td>Greater-than branch high byte</td>
+</tr>
+<tr>
+<td align="right">4</td>
+<td>0x89</td>
+<td>Greater-than branch low byte</td>
+</tr>
+</tbody></table>
 
 <a href="#versions-1-and-2" id="versions-1-and-2" style="color: inherit; text-decoration: none;">
   <h2>Versions 1 and 2</h2>
 </a>
 <p>The current version of the file format is 3. Version 1 and 2 files differ in the following ways:</p>
 <ol>
-<li>In version 1 files, the header <code>size</code> field stores the number of nodes rather than the
-set size. (The size can be calculated by iterating over the node data.)</li>
-<li>The node data is written as a sequence of int32 values. For each node, an
-int32 is written for each of the node value and three branch pointers.
+<li>In version 1 files, the header <code>size</code> field stores the number of nodes rather than the set size.
+(The size can be calculated by iterating over the node data.)</li>
+<li>The node data is written as a sequence of int32 values.
+For each node, an int32 is written for each of the node value and three branch pointers.
 Pointers are <em>not</em> divided by 4.</li>
-<li>In version 2 files, the <em>16-bit branches</em> flag may be set. In this case, <em>all</em> branch
-pointers are int16 values instead of int32 values; 0xffff indicates NUL.</li>
+<li>In version 2 files, the <em>16-bit branch</em> tree flag may be set.
+In this case, <em>all</em> branch pointers are int16 values instead of int32 values; 0xffff indicates NUL.</li>
 </ol>
 </div></div><div class="col-4 col-menu menu-sticky-wrap menu-highlight"><nav class="tsd-navigation primary"><ul><li class="current"><a href="modules.html">Exports</a></li></ul></nav><nav class="tsd-navigation secondary menu-sticky"><ul><li class="tsd-kind-class"><a href="classes/TernaryStringSet.html" class="tsd-kind-icon">Ternary<wbr/>String<wbr/>Set</a></li><li class="tsd-kind-interface"><a href="interfaces/TernaryTreeStats.html" class="tsd-kind-icon">Ternary<wbr/>Tree<wbr/>Stats</a></li></ul></nav></div></div></div><footer class="with-border-bottom"><div class="container"><h2>Legend</h2><div class="tsd-legend-group"><ul class="tsd-legend"><li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li><li class="tsd-kind-method tsd-parent-kind-interface"><span class="tsd-kind-icon">Method</span></li></ul><ul class="tsd-legend"><li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li><li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li></ul><ul class="tsd-legend"><li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static method</span></li></ul></div><h2>Settings</h2><p>Theme <select id="theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></p></div></footer><div class="container tsd-generator"><p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></div><div class="overlay"></div><script src="assets/main.js"></script></body></html>
