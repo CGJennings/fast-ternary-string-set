@@ -16,10 +16,11 @@ A fast, space-efficient, serializable string set based on [*ternary search trees
  - Set relations (equality, subset, superset) and operations (union, intersection, difference, symmetric difference).
  - Several approximate matching methods:
    1. List strings that complete a prefix.
-   2. List strings that can be made from a list of letters.
-   3. List strings within a certain [Hamming distance](https://en.wikipedia.org/wiki/Hamming_distance) of a pattern.
-   4. List strings within a certain [edit distance](https://en.wikipedia.org/wiki/Levenshtein_distance) of a pattern.
-   5. List strings that match a pattern including "don't care" letters (as `.` in a regular expression).
+   2. List strings that are completed by a suffix.
+   3. List strings that can be made from a list of letters.
+   4. List strings within a certain [Hamming distance](https://en.wikipedia.org/wiki/Hamming_distance) of a pattern.
+   5. List strings within a certain [edit distance](https://en.wikipedia.org/wiki/Levenshtein_distance) of a pattern.
+   6. List strings that match a pattern including "don't care" letters (as `.` in a regular expression).
  - Time and space efficient:
    - Leverages common JS engine optimizations under the hood.
    - Elements share tree nodes and do not retain references to the original strings.

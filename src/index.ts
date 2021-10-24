@@ -382,21 +382,19 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Returns an array of possible completions for the specified pattern string.
-   * That is, an array of all strings in the set that start with the pattern.
-   * If the pattern itself is in the set, it is included as the first entry.
+   * Returns an array of possible completions for the specified prefix string.
+   * That is, an array of all strings in the set that start with the prefix.
+   * If the prefix itself is in the set, it is included as the first entry.
    *
    * @param prefix The non-null pattern to find completions for.
-   *     Non-strings are converted to strings.
    * @returns A (possibly empty) array of all strings in the set for which the
    *     pattern is a prefix.
    * @throws `ReferenceError` If the pattern is null.
    */
   getCompletionsOf(prefix: string): string[] {
-    if (prefix == null) throw new ReferenceError("null pattern");
+    if (prefix == null) throw new ReferenceError("null prefix");
 
     prefix = String(prefix);
-
     if (prefix.length === 0) {
       return this.toArray();
     }
@@ -420,6 +418,41 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     this._visitCodePoints(this._tree[node + 2], pat, (s) => {
       results.push(String.fromCodePoint(...s));
     });
+    return results;
+  }
+
+  /**
+   * Returns an array of the strings that are completed by the specified suffix string.
+   * That is, an array of all strings in the set that end with the suffix,
+   * including the suffix itself if appropriate
+   *
+   * @param suffix The non-null pattern to find completions for.
+   * @returns A (possibly empty) array of all strings in the set for which the
+   *     pattern is a suffix.
+   * @throws `ReferenceError` If the pattern is null.
+   */
+  getCompletedBy(suffix: string): string[] {
+    if (suffix == null) throw new ReferenceError("null suffix");
+
+    suffix = String(suffix);
+    if (suffix.length === 0) {
+      return this.toArray();
+    }
+    const results: string[] = [];
+    const pat = toCodePoints(suffix);
+
+    // unlike getCompletionsOf, we have to search the entire tree
+    this._visitCodePoints(0, [], (s) => {
+      if (s.length >= pat.length) {
+        for (let i = 1; i <= pat.length; ++i) {
+          if (s[s.length - i] !== pat[pat.length - i]) {
+            return;
+          }
+        }
+        results.push(String.fromCodePoint(...s));
+      }
+    });
+
     return results;
   }
 
