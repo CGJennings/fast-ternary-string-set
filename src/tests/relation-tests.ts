@@ -1,4 +1,5 @@
 import { TernaryStringSet } from "../index";
+import { wordSet } from "./utils";
 
 function S(...args: string[]) {
   return new TernaryStringSet([...args]);
@@ -46,6 +47,15 @@ test("Equality relation", () => {
   expect(T("a", "b", "c").equals(S("a", "b", "c"))).toBeTruthy();
 });
 
+test("Equality relation with word list", () => {
+  const lhs = wordSet(false);
+  const rhs = wordSet();
+  expect(lhs.equals(rhs)).toBeTruthy();
+  expect(rhs.equals(lhs)).toBeTruthy();
+  rhs.delete("horse");
+  expect(lhs.equals(rhs)).toBeFalsy();
+});
+
 test("Subset relation", () => {
   expect(S().isSubsetOf(T())).toBeTruthy();
   expect(S("").isSubsetOf(T())).toBeFalsy();
@@ -86,6 +96,15 @@ test("Subset relation", () => {
   expect(T("a", "b", "c").isSubsetOf(S("a", "b", "c"))).toBeTruthy();
 });
 
+test("Subset relation with word list", () => {
+  const lhs = wordSet(false);
+  const rhs = wordSet();
+  expect(lhs.isSubsetOf(rhs)).toBeTruthy();
+  rhs.delete("horse");
+  expect(lhs.isSubsetOf(rhs)).toBeFalsy();
+  expect(rhs.isSubsetOf(lhs)).toBeTruthy();
+});
+
 test("Superset relation", () => {
   expect(S().isSupersetOf(T())).toBeTruthy();
   expect(S("").isSupersetOf(T())).toBeTruthy();
@@ -124,4 +143,13 @@ test("Superset relation", () => {
   expect(T("a", "c").isSupersetOf(S("a", "b", "c"))).toBeFalsy();
   expect(T("b", "c").isSupersetOf(S("a", "b", "c"))).toBeFalsy();
   expect(T("a", "b", "c").isSupersetOf(S("a", "b", "c"))).toBeTruthy();
+});
+
+test("Superset relation with word list", () => {
+  const lhs = wordSet(false);
+  const rhs = wordSet();
+  expect(lhs.isSupersetOf(rhs)).toBeTruthy();
+  rhs.add("horses");
+  expect(lhs.isSupersetOf(rhs)).toBeFalsy();
+  expect(rhs.isSupersetOf(lhs)).toBeTruthy();
 });
