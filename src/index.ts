@@ -1491,16 +1491,18 @@ function encode(
         encoding |= 3 << branchShift;
       } else {
         pointer /= 4;
-        if (pointer > 0xffff) {
+        if (pointer > 0xffffff) {
           view.setUint32(blen, pointer);
           blen += 4;
-        } else if (pointer > 0xff) {
+        } else if (pointer > 0xffff) {
           encoding |= 1 << branchShift;
-          view.setUint16(blen, pointer);
-          blen += 2;
+          view.setUint8(blen, pointer >>> 16);
+          view.setUint16(blen + 1, pointer & 0xffff);
+          blen += 3;
         } else {
           encoding |= 2 << branchShift;
-          view.setUint8(blen++, pointer);
+          view.setUint16(blen, pointer);
+          blen += 2;
         }
       }
       branchShift -= 2;
@@ -1594,10 +1596,13 @@ function decodeV3(h: DecodedBuffer, view: DataView): void {
         tree[tree.length] = view.getUint32(b) * 4;
         b += 4;
       } else if (branchBits === 1) {
+        let int24 = view.getUint8(b) << 16;
+        int24 |= view.getUint16(b + 1);
+        tree[tree.length] = int24 * 4;
+        b += 3;
+      } else if (branchBits === 2) {
         tree[tree.length] = view.getUint16(b) * 4;
         b += 2;
-      } else if (branchBits === 2) {
-        tree[tree.length] = view.getUint8(b++) * 4;
       } else {
         tree[tree.length] = NUL;
       }
