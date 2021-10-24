@@ -7,6 +7,12 @@ let set: TernaryStringSet;
 function editDist(from: string, to: string): number {
   // a standard Levenshtein distance implementation
   // like you'll find in any good text on algorithms
+  if (from.length === 0) {
+    return to.length;
+  }
+  if (to.length === 0) {
+    return from.length;
+  }
   const matrix = Array(to.length + 1)
     .fill(0)
     .map(() => Array(from.length + 1).fill(0));
@@ -20,9 +26,12 @@ function editDist(from: string, to: string): number {
     for (let i = 1; i <= from.length; i += 1) {
       const substCost = from[i - 1] === to[j - 1] ? 0 : 1;
       matrix[j][i] = Math.min(
-        matrix[j][i - 1] + 1, // deletion
-        matrix[j - 1][i] + 1, // insertion
-        matrix[j - 1][i - 1] + substCost, // substitution
+        // deletion
+        matrix[j][i - 1] + 1,
+        // insertion
+        matrix[j - 1][i] + 1,
+        // substitution
+        matrix[j - 1][i - 1] + substCost,
       );
     }
   }
