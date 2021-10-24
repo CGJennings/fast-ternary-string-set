@@ -386,24 +386,24 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * That is, an array of all strings in the set that start with the pattern.
    * If the pattern itself is in the set, it is included as the first entry.
    *
-   * @param pattern The non-null pattern to find completions for.
+   * @param prefix The non-null pattern to find completions for.
    *     Non-strings are converted to strings.
    * @returns A (possibly empty) array of all strings in the set for which the
    *     pattern is a prefix.
    * @throws `ReferenceError` If the pattern is null.
    */
-  getCompletionsOf(pattern: string): string[] {
-    if (pattern == null) throw new ReferenceError("null pattern");
+  getCompletionsOf(prefix: string): string[] {
+    if (prefix == null) throw new ReferenceError("null pattern");
 
-    pattern = String(pattern);
+    prefix = String(prefix);
 
-    if (pattern.length === 0) {
+    if (prefix.length === 0) {
       return this.toArray();
     }
 
     const results: string[] = [];
-    const prefix = toCodePoints(pattern);
-    let node = this._hasCodePoints(0, prefix, 0);
+    const pat = toCodePoints(prefix);
+    let node = this._hasCodePoints(0, pat, 0);
     if (node < 0) {
       node = -node - 1;
       // prefix not in tree, therefore no children are either
@@ -413,11 +413,11 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       // prefix in tree, but is not itself in the set
     } else {
       // prefix in tree, and also in set
-      results.push(pattern);
+      results.push(prefix);
     }
 
     // continue from end of prefix by taking equal branch
-    this._visitCodePoints(this._tree[node + 2], prefix, (s) => {
+    this._visitCodePoints(this._tree[node + 2], pat, (s) => {
       results.push(String.fromCodePoint(...s));
     });
     return results;
