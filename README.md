@@ -317,7 +317,7 @@ Serialized data consists of a stream of unsigned integers of 8, 16, 24, or 32 bi
 In the remaining sections, these are indicated by the notation int8, int32, and so on.
 Integers wider than 1 byte are stored in
 [big-endian order](https://en.wikipedia.org/wiki/Endianness).
-For brevity, the serialized data is described as a "file", but any container or stream of bytes is acceptable.
+For brevity, the serialized data is described as a "file", but the data could come from any container or stream of bytes.
 
 ### Header
 
@@ -404,11 +404,11 @@ In the `TernaryStringSet`, a branch pointer is either the special NUL value 0x7f
 A NUL pointer is written in 0 bytes.
 Otherwise the pointer is divided by 4 and then written as follows:
 
-| Bits | Pointer/4 | Written as |
-| ---: | ----------| ---------- |
-| 00   | > 0xffff | int32 |
-| 01   | > 0xff | int16 |
-| 10   | ≤ 0xff | int8 |
+| Bits | Pointer/4   | Written as |
+| ---: | ----------- | ---------- |
+| 00   | > 0xffffff  | int32 |
+| 01   | > 0xffff    | int24 |
+| 10   | ≤ 0xffff    | int16 |
 | 11   | NUL pointer | 0 bytes |
 
 #### Example
@@ -424,11 +424,12 @@ Suppose the node to be written consists of the sequential elements `[0x41, 0x7ff
 
 | Byte | Value | Explanation |
 | ---: | ----- | ----------- |
-| 0 | 0b10111001 | Encoding field: int8 code point, NUL less-than, int8 equal-to, int16 greater-than |
+| 0 | 0b10111010 | Encoding field: int8 code point, NUL less-than, int16 equal-to and greater-than |
 | 1 | 0x41 | Code point for "A", termination bit not set |
-| 2 | 0x42 | Equal-to branch |
-| 3 | 0x67 | Greater-than branch high byte |
-| 4 | 0x89 | Greater-than branch low byte |
+| 2 | 0x00 | Equal-to branch high byte |
+| 3 | 0x42 | Equal-to branch low byte |
+| 4 | 0x67 | Greater-than branch high byte |
+| 5 | 0x89 | Greater-than branch low byte |
 
 ## Versions 1 and 2
 

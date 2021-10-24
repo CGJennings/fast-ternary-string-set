@@ -49,9 +49,9 @@ test("roundtrip a large set", () => {
   roundtrip(set);
 });
 
-test("roundtrip sets with all cp/branch widths", () => {
+test("roundtrip sets with wide cp/branch values", () => {
   const s: string[] = [];
-  for (let cp = 0; cp < 0x10001; ++cp) {
+  for (let cp = 0; cp < 0x100ff; ++cp) {
     s[s.length] = String.fromCodePoint(cp);
   }
   set = new TernaryStringSet(s);
@@ -82,7 +82,7 @@ test("roundtrip sets with all cp/branch widths", () => {
   });
 });
 
-test("restore coverage buffer from file", () => {
+test("restore v3 coverage buffer from file", () => {
   const restored = TernaryStringSet.fromBuffer(readBuffer("version3coverage"));
-  expect(restored.size).toBe(65537);
+  expect(restored.size).toBe(0x100ff);
 });
