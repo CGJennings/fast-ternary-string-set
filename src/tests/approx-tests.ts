@@ -10,6 +10,7 @@ beforeEach(() => {
 test("bad arguments throw", () => {
   expect(() => set.getArrangementsOf(null)).toThrow();
   expect(() => set.getCompletionsOf(null)).toThrow();
+  expect(() => set.getCompletedBy(null)).toThrow();
   expect(() => set.getPartialMatchesOf(null)).toThrow();
   expect(() => set.getPartialMatchesOf("", null)).toThrow();
   expect(() => set.getWithinHammingDistanceOf(null, 0)).toThrow();
@@ -118,7 +119,7 @@ function completions(prefix: string, elements: readonly string[]): string[] {
   return results;
 }
 
-test("test completions against real word list", () => {
+test("test completions against word list", () => {
   set = wordSet(false);
   expect(set.getCompletionsOf("z")).toEqual(completions("z", words));
   expect(set.getCompletionsOf("wi")).toEqual(completions("wi", words));
@@ -129,6 +130,44 @@ test("test completions against real word list", () => {
     "sheet",
     "shelf",
   ]);
+});
+
+test("basic completed by test", () => {
+  const elements = [
+    "",
+    "aardvark",
+    "bumping",
+    "jumping",
+    "lamb",
+    "lifting",
+    "muskrat",
+    "trying",
+    "turtles",
+  ];
+  set.addAll(elements);
+  expect(set.getCompletedBy("")).toEqual(elements);
+  expect(set.getCompletedBy("ing")).toEqual([
+    "bumping",
+    "jumping",
+    "lifting",
+    "trying",
+  ]);
+});
+
+/** Get completions the hard way for comparison. */
+function completedBy(prefix: string, elements: readonly string[]): string[] {
+  const results = [];
+  for (const s of elements) {
+    if (s.endsWith(prefix)) results.push(s);
+  }
+  return results;
+}
+
+test("test completed by against word list", () => {
+  set = wordSet(false);
+  expect(set.getCompletedBy("s")).toEqual(completedBy("s", words));
+  expect(set.getCompletedBy("ing")).toEqual(completedBy("ing", words));
+  expect(set.getCompletedBy("zzz").length).toEqual(0);
 });
 
 test("basic partial matches test", () => {
@@ -154,7 +193,7 @@ test("basic partial matches test", () => {
   expect(set.getPartialMatchesOf("Z")).toEqual([]);
 });
 
-test("partial matches against real word list", () => {
+test("partial matches against word list", () => {
   set = wordSet(false);
   expect(set.getPartialMatchesOf(".")).toEqual(["I", "a"]);
   expect(set.getPartialMatchesOf(".e.n")).toEqual(["bean", "mean"]);
