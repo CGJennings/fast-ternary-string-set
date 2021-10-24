@@ -153,3 +153,13 @@ test("Symmetric difference", () => {
     ),
   ).toEqual(["emu", "fish", "horse", "mouse", "rhino"]);
 });
+
+test("operations on non-sets throw", () => {
+  const set = new TernaryStringSet();
+  expect(() => set.union(1 as unknown as TernaryStringSet)).toThrow();
+  expect(() => set.intersection(1 as unknown as TernaryStringSet)).toThrow();
+  expect(() => set.subtract(1 as unknown as TernaryStringSet)).toThrow();
+  expect(() =>
+    set.symmetricDifference(1 as unknown as TernaryStringSet),
+  ).toThrow();
+});

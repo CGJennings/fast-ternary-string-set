@@ -53,6 +53,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * a singleton set containing just the source string as you might expect.
    *
    * @param source An optional iterable object whose strings will be added to the new set.
+   * @throws `TypeError` If a specified source is not iterable.
    */
   constructor(source?: Iterable<string>) {
     this.clear();
@@ -168,6 +169,9 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param start The index of the first element to add (inclusive, default is 0).
    * @param end The index of the last element to add (exclusive, default is `strings.length`)
    * @returns This set, allowing chained calls.
+   * @throws `ReferenceError` If the array is null.
+   * @throws `TypeError` If any element is not a string or if the start or end are not numbers.
+   * @throws `RangeError` If the start or end are out of the array bounds.
    */
   addAll(
     strings: readonly string[],
@@ -175,9 +179,9 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     end = strings.length,
   ): TernaryStringSet {
     if (strings == null) throw new ReferenceError("null strings");
-    if (!Array.isArray(strings))
+    if (!Array.isArray(strings)) {
       throw new TypeError("strings must be an array");
-
+    }
     if (typeof start !== "number" || start !== Math.trunc(start)) {
       throw new TypeError("start must be an integer");
     }
@@ -226,8 +230,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Returns whether this set contains the specified string. If passed a non-string value,
-   * returns false.
+   * Returns whether this set contains the specified string.
+   * If passed a non-string value, returns false.
    *
    * @param s The non-null string to test for.
    * @returns True if the string is present.
@@ -267,6 +271,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
   /**
    * Removes the specified string from this set, if it is present.
+   * Non-strings are accepted but treated as if they are not present.
    * If it is not present, this has no effect.
    *
    * @param s The non-null string to delete.
@@ -328,9 +333,10 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * If this set contains the empty string, it is always included in results from this
    * method.
    *
-   * @param charPattern The non-null pattern string.
+   * @param charPattern The non-null pattern string. Non-strings are converted to strings.
    * @returns A (possibly empty) array of strings from the set that can be composed from the
    *     pattern characters.
+   * @throws `ReferenceError` If the pattern is null.
    */
   getArrangementsOf(charPattern: string): string[] {
     if (charPattern == null) throw new ReferenceError("null charPattern");
@@ -380,22 +386,24 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * That is, an array of all strings in the set that start with the pattern.
    * If the pattern itself is in the set, it is included as the first entry.
    *
-   * @param pattern The non-null pattern to find completions for.
+   * @param prefix The non-null pattern to find completions for.
+   *     Non-strings are converted to strings.
    * @returns A (possibly empty) array of all strings in the set for which the
    *     pattern is a prefix.
+   * @throws `ReferenceError` If the pattern is null.
    */
-  getCompletionsOf(pattern: string): string[] {
-    if (pattern == null) throw new ReferenceError("null pattern");
+  getCompletionsOf(prefix: string): string[] {
+    if (prefix == null) throw new ReferenceError("null pattern");
 
-    pattern = String(pattern);
+    prefix = String(prefix);
 
-    if (pattern.length === 0) {
+    if (prefix.length === 0) {
       return this.toArray();
     }
 
     const results: string[] = [];
-    const prefix = toCodePoints(pattern);
-    let node = this._hasCodePoints(0, prefix, 0);
+    const pat = toCodePoints(prefix);
+    let node = this._hasCodePoints(0, pat, 0);
     if (node < 0) {
       node = -node - 1;
       // prefix not in tree, therefore no children are either
@@ -405,11 +413,11 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       // prefix in tree, but is not itself in the set
     } else {
       // prefix in tree, and also in set
-      results.push(pattern);
+      results.push(prefix);
     }
 
     // continue from end of prefix by taking equal branch
-    this._visitCodePoints(this._tree[node + 2], prefix, (s) => {
+    this._visitCodePoints(this._tree[node + 2], pat, (s) => {
       results.push(String.fromCodePoint(...s));
     });
     return results;
@@ -425,6 +433,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param dontCareChar The character that can stand in for any character in the pattern.
    *     Only the first code point is used. (Default is `"."`.)
    * @returns A (possibly empty) array of strings that match the pattern string.
+   * @throws `ReferenceError` If the pattern or don't care string is null.
+   * @throws `TypeError` If the don't care string is empty.
    */
   getPartialMatchesOf(pattern: string, dontCareChar = "."): string[] {
     if (pattern == null) throw new ReferenceError("null pattern");
@@ -510,14 +520,17 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    *
    * @param pattern A pattern string matched against the strings in the set.
    * @param distance The maximum number of code point deviations to allow from the pattern string.
+   *     May be Infinity to allow any number.
    * @returns A (possibly empty) array of strings from the set that match the pattern.
+   * @throws `ReferenceError` If the pattern is null.
+   * @throws `TypeError` If the distance is not a number.
+   * @throws `RangeError` If the distance is negative.
    */
   getWithinHammingDistanceOf(pattern: string, distance: number): string[] {
     if (pattern == null) throw new ReferenceError("null pattern");
 
     pattern = String(pattern);
-    distance = Math.max(0, Math.trunc(Number(distance)));
-    if (distance !== distance) throw new TypeError("distance must be a number");
+    distance = checkDistance(distance);
 
     // only the string itself is within distance 0 or matches empty pattern
     if (distance < 1 || pattern.length === 0) {
@@ -526,7 +539,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
     const matches: string[] = [];
 
-    // optimize cases where any string the same length as the pattern will match
+    // optimize case where any string the same length as the pattern will match
     if (distance >= pattern.length) {
       this._visitCodePoints(0, [], (prefix) => {
         if (prefix.length === pattern.length) {
@@ -587,14 +600,17 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    *
    * @param pattern A pattern string matched against the strings in the set.
    * @param distance The maximum number of edits to apply to the pattern string.
+   *   May be Infinity to allow any number of edits.
    * @returns A (possibly empty) array of strings from the set that match the pattern.
+   * @throws `ReferenceError` If the pattern is null.
+   * @throws `TypeError` If the distance is not a number.
+   * @throws `RangeError` If the distance is negative.
    */
   getWithinEditDistanceOf(pattern: string, distance: number): string[] {
     if (pattern == null) throw new ReferenceError("null pattern");
 
     pattern = String(pattern);
-    distance = Math.max(0, Math.trunc(Number(distance)));
-    if (distance !== distance) throw new TypeError("distance must be a number");
+    distance = checkDistance(distance);
 
     // only the string itself is within distance 0
     if (distance < 1) {
@@ -712,6 +728,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    *
    * @param callbackFn The function to call for each string.
    * @param thisArg Optional value to use as `this` when calling the function.
+   * @throws `TypeError` If the callback function is not a function.
    */
   forEach(
     callbackFn: (value: string, key: string, set: TernaryStringSet) => void,
@@ -796,10 +813,10 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
   /**
    * Returns whether this set contains exactly the same elements as the specified set.
-   * If passed an object that is not a `TernaryTreeSet`, this method returns false.
+   * If passed an object that is not a `TernaryStringSet`, this method returns false.
    *
    * @param rhs The set (or other object) to compare this set to.
-   * @returns True if the specified object is also a `TernaryTreeSet` and it contains the same elements.
+   * @returns True if the specified object is also a `TernaryStringSet` and it contains the same elements.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   equals(rhs: any): boolean {
@@ -816,6 +833,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    *
    * @param rhs The set to compare this set to.
    * @returns True if this set is a subset of, or equal to, the specified set.
+   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
    */
   isSubsetOf(rhs: TernaryStringSet): boolean {
     if (this === rhs) return true;
@@ -851,6 +869,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    *
    * @param rhs The set to compare this set to.
    * @returns True if this set is a superset of, or equal to, the specified set.
+   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
    */
   isSupersetOf(rhs: TernaryStringSet): boolean {
     if (!(rhs instanceof TernaryStringSet)) {
@@ -865,6 +884,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    *
    * @param rhs The set to form a union with.
    * @returns A new set containing the elements of both sets.
+   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
    */
   union(rhs: TernaryStringSet): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
@@ -890,6 +910,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    *
    * @param rhs The set to intersect with this set.
    * @returns A new set containing only elements in both sets.
+   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
    */
   intersection(rhs: TernaryStringSet): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
@@ -922,6 +943,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param rhs The set to subtract from this set.
    * @returns A new set containing only those elements in this set that are not
    *   in the specified set.
+   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
    */
   subtract(rhs: TernaryStringSet): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
@@ -949,6 +971,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param rhs The set to take the symmetric difference of from this set.
    * @returns A new set containing only those elements in this set or the specified set,
    *   but not both.
+   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
    */
   symmetricDifference(rhs: TernaryStringSet): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
@@ -1071,7 +1094,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
     let source = this._tree;
     for (;;) {
-      const compacted = this._compactImpl(source);
+      const compacted = compactionPass(source);
       if (compacted.length === source.length) {
         this._tree = compacted;
         break;
@@ -1089,64 +1112,6 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    */
   get compacted(): boolean {
     return this._compact;
-  }
-
-  /** Performs a single compaction pass; see `compact()` method. */
-  private _compactImpl(tree: number[]): number[] {
-    // this uses nested sparse arrays to map node values to "slots" (node's index in new array)
-    let nextSlot = 0;
-    const nodeMap: number[][][][] = [];
-    function mapping(i: number): number {
-      // nodeMap[value][ltPointer][eqPointer][gtPointer] = slot
-      let ltMap = nodeMap[tree[i]];
-      if (ltMap == null) {
-        nodeMap[tree[i]] = ltMap = [];
-      }
-      let eqMap = ltMap[tree[i + 1]];
-      if (eqMap == null) {
-        ltMap[tree[i + 1]] = eqMap = [];
-      }
-      let gtMap = eqMap[tree[i + 2]];
-      if (gtMap == null) {
-        eqMap[tree[i + 2]] = gtMap = [];
-      }
-      let slot = gtMap[tree[i + 3]];
-      if (slot == null) {
-        gtMap[tree[i + 3]] = slot = nextSlot;
-        nextSlot += 4;
-      }
-      return slot;
-    }
-
-    // create map of unique nodes
-    for (let i = 0; i < tree.length; i += 4) {
-      mapping(i);
-    }
-
-    // check if tree will shrink before bothering to rewrite it
-    if (nextSlot === tree.length) {
-      return tree;
-    }
-
-    // rewrite tree
-    const out: number[] = [];
-    for (let i = 0; i < tree.length; i += 4) {
-      const slot = mapping(i);
-      // if the unique version of the node hasn't been written yet,
-      // append it to the output array
-      if (slot >= out.length) {
-        if (slot > out.length) throw new Error("assertion");
-        // write the node value unchanged
-        out[slot] = tree[i];
-        // write the pointers for each child branch, but use the new
-        // slot for whatever child node is found there
-        out[slot + 1] = mapping(tree[i + 1]);
-        out[slot + 2] = mapping(tree[i + 2]);
-        out[slot + 3] = mapping(tree[i + 3]);
-      }
-    }
-
-    return out;
   }
 
   /**
@@ -1182,7 +1147,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param buffer The buffer to recreate the set from.
    * @returns A new set that recreates the original set that was stored in the buffer.
    * @throws `ReferenceError` If the specified buffer is null.
-   * @throws `TypeError` If the buffer data is invalid or from an unsupported version.
+   * @throws `TypeError` If the buffer data is detected to be invalid or from an unsupported version.
    */
   static fromBuffer(buffer: ArrayBuffer): TernaryStringSet {
     if (buffer == null) {
@@ -1400,6 +1365,18 @@ export interface TernaryTreeStats {
   toString(): string;
 }
 
+/** Validates an edit distance. */
+function checkDistance(distance: number) {
+  if (typeof distance !== "number" || distance !== distance) {
+    throw new TypeError("distance not a number");
+  }
+  if (distance < 0) {
+    throw new RangeError("distance must be non-negative");
+  }
+  distance = Math.min(Math.trunc(Number(distance)), NUL);
+  return distance;
+}
+
 /**
  * Converts a string to an array of numeric code points.
  * (This is not equivalent to `[...s]`, which returns strings.)
@@ -1415,6 +1392,64 @@ function toCodePoints(s: string): number[] {
     cps.push(cp);
   }
   return cps;
+}
+
+/** Performs a single compaction pass; see `compact()` method. */
+function compactionPass(tree: number[]): number[] {
+  // this uses nested sparse arrays to map node values to "slots" (node's index in new array)
+  let nextSlot = 0;
+  const nodeMap: number[][][][] = [];
+  function mapping(i: number): number {
+    // nodeMap[value][ltPointer][eqPointer][gtPointer] = slot
+    let ltMap = nodeMap[tree[i]];
+    if (ltMap == null) {
+      nodeMap[tree[i]] = ltMap = [];
+    }
+    let eqMap = ltMap[tree[i + 1]];
+    if (eqMap == null) {
+      ltMap[tree[i + 1]] = eqMap = [];
+    }
+    let gtMap = eqMap[tree[i + 2]];
+    if (gtMap == null) {
+      eqMap[tree[i + 2]] = gtMap = [];
+    }
+    let slot = gtMap[tree[i + 3]];
+    if (slot == null) {
+      gtMap[tree[i + 3]] = slot = nextSlot;
+      nextSlot += 4;
+    }
+    return slot;
+  }
+
+  // create map of unique nodes
+  for (let i = 0; i < tree.length; i += 4) {
+    mapping(i);
+  }
+
+  // check if tree will shrink before bothering to rewrite it
+  if (nextSlot === tree.length) {
+    return tree;
+  }
+
+  // rewrite tree
+  const out: number[] = [];
+  for (let i = 0; i < tree.length; i += 4) {
+    const slot = mapping(i);
+    // if the unique version of the node hasn't been written yet,
+    // append it to the output array
+    if (slot >= out.length) {
+      if (slot > out.length) throw new Error("assertion");
+      // write the node value unchanged
+      out[slot] = tree[i];
+      // write the pointers for each child branch, but use the new
+      // slot for whatever child node is found there
+      out[slot + 1] = mapping(tree[i + 1]);
+      out[slot + 2] = mapping(tree[i + 2]);
+      out[slot + 3] = mapping(tree[i + 3]);
+    }
+  }
+
+  return out;
 }
 
 //

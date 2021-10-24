@@ -7,6 +7,19 @@ beforeEach(() => {
   set = new TernaryStringSet();
 });
 
+test("bad arguments throw", () => {
+  expect(() => set.getArrangementsOf(null)).toThrow();
+  expect(() => set.getCompletionsOf(null)).toThrow();
+  expect(() => set.getPartialMatchesOf(null)).toThrow();
+  expect(() => set.getPartialMatchesOf("", null)).toThrow();
+  expect(() => set.getWithinHammingDistanceOf(null, 0)).toThrow();
+  expect(() => set.getWithinHammingDistanceOf(null, -1)).toThrow();
+  expect(() => set.getWithinHammingDistanceOf(null, NaN)).toThrow();
+  expect(() =>
+    set.getWithinHammingDistanceOf(null, "1" as unknown as number),
+  ).toThrow();
+});
+
 test("arrangements do not allow reuse or use of characters not present", () => {
   set.addAll([
     "apple",
@@ -233,6 +246,12 @@ test("Hamming dist >= n matches all strings with pattern's length", () => {
     "xyz",
   ]);
   expect(set.getWithinHammingDistanceOf("abc", 4)).toEqual([
+    "aaa",
+    "aac",
+    "abc",
+    "xyz",
+  ]);
+  expect(set.getWithinHammingDistanceOf("abc", Infinity)).toEqual([
     "aaa",
     "aac",
     "abc",

@@ -10,6 +10,17 @@ beforeEach(() => {
   set = new TernaryStringSet();
 });
 
+test("compacted property matches state", () => {
+  // new set so it's not compacted
+  expect(set.compacted).toBeFalsy();
+  set.compact();
+  // no real compaction since empty
+  expect(set.compacted).toBeFalsy();
+  set.addAll(["add", "bad", "mad"]);
+  set.compact();
+  expect(set.compacted).toBeTruthy();
+});
+
 test("Compacting empty set is OK", () => {
   // compacting an empty set or set with only "" has no effect
   // since these sets have no tree

@@ -86,3 +86,8 @@ test("restore v3 coverage buffer from file", () => {
   const restored = TernaryStringSet.fromBuffer(readBuffer("version3coverage"));
   expect(restored.size).toBe(0x100ff);
 });
+
+test("null or invalid buffer throws", () => {
+  expect(() => TernaryStringSet.fromBuffer(null)).toThrow();
+  expect(() => TernaryStringSet.fromBuffer(new Uint8Array(16))).toThrow();
+});
