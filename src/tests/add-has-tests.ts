@@ -194,4 +194,3 @@ test("addAll() throws on bad start/end index", () => {
   expect(() => (set as any).addAll(["yup"], 0, 2)).toThrow();
   /* eslint-enable @typescript-eslint/no-explicit-any */
 });
-

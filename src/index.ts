@@ -344,7 +344,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
     // availChars[codePoint] = how many times codePoint appears in pattern
     const availChars: number[] = [];
-    for (let i = 0; i < charPattern.length;) {
+    for (let i = 0; i < charPattern.length; ) {
       const cp = charPattern.codePointAt(i++);
       if (cp >= CP_MIN_SURROGATE) ++i;
       availChars[cp] = availChars[cp] ? availChars[cp] + 1 : 1;
@@ -1093,7 +1093,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     */
 
     let source = this._tree;
-    for (; ;) {
+    for (;;) {
       const compacted = compactionPass(source);
       if (compacted.length === source.length) {
         this._tree = compacted;
@@ -1386,7 +1386,7 @@ function checkDistance(distance: number) {
  */
 function toCodePoints(s: string): number[] {
   const cps = [];
-  for (let i = 0; i < s.length;) {
+  for (let i = 0; i < s.length; ) {
     const cp = s.codePointAt(i++);
     if (cp >= CP_MIN_SURROGATE) ++i;
     cps.push(cp);
@@ -1600,7 +1600,7 @@ function decodeHeader(view: DataView): DecodedBuffer {
 
 function decodeV3(h: DecodedBuffer, view: DataView): void {
   const tree = h.tree;
-  for (let b = BUFF_HEAD_SIZE; b < view.byteLength;) {
+  for (let b = BUFF_HEAD_SIZE; b < view.byteLength; ) {
     const encoding = view.getUint8(b++);
 
     // decode code point
@@ -1648,7 +1648,7 @@ function decodeV3(h: DecodedBuffer, view: DataView): void {
 function decodeV1V2(h: DecodedBuffer, view: DataView): void {
   const tree = h.tree;
   const b16 = h.v2b16;
-  for (let b = BUFF_HEAD_SIZE; b < view.byteLength;) {
+  for (let b = BUFF_HEAD_SIZE; b < view.byteLength; ) {
     tree[tree.length] = view.getUint32(b);
     b += 4;
     if (b16) {

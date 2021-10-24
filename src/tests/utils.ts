@@ -47,10 +47,14 @@ export function shuffle<T>(array: T[]): T[] {
 }
 
 /** Tests set equality with an informative `expect()` for each member.  */
-export function expectSameSet(lhs: TernaryStringSet, rhs: TernaryStringSet, checkCompact=false): void {
+export function expectSameSet(
+  lhs: TernaryStringSet,
+  rhs: TernaryStringSet,
+  checkCompact = false,
+): void {
   expect(rhs.size).toBe(lhs.size);
   expect(rhs.has("")).toBe(rhs.has(""));
-  for(const word of lhs) {
+  for (const word of lhs) {
     expect(`${word}: ${rhs.has(word)}`).toBe(`${word}: true`);
   }
   if (checkCompact) {

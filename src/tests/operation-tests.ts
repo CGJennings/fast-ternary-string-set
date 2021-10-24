@@ -159,5 +159,7 @@ test("operations on non-sets throw", () => {
   expect(() => set.union(1 as unknown as TernaryStringSet)).toThrow();
   expect(() => set.intersection(1 as unknown as TernaryStringSet)).toThrow();
   expect(() => set.subtract(1 as unknown as TernaryStringSet)).toThrow();
-  expect(() => set.symmetricDifference(1 as unknown as TernaryStringSet)).toThrow();
+  expect(() =>
+    set.symmetricDifference(1 as unknown as TernaryStringSet),
+  ).toThrow();
 });

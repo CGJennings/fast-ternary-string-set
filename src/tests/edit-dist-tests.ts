@@ -14,20 +14,20 @@ function editDist(from: string, to: string): number {
   const v1: number[] = new Array(to.length + 1);
 
   for (let i = 0; i < v0.length; i++) {
-      v0[i] = i;
+    v0[i] = i;
   }
 
   for (let i = 0; i < from.length; i++) {
-      v1[0] = i + 1;
+    v1[0] = i + 1;
 
-      for (let j = 0; j < to.length; j++) {
-          const substCost = (from[i] == to[j]) ? 0 : 1;
-          v1[j + 1] = Math.min(v1[j] + 1, v0[j + 1] + 1, v0[j] + substCost);
-      }
+    for (let j = 0; j < to.length; j++) {
+      const substCost = from[i] == to[j] ? 0 : 1;
+      v1[j + 1] = Math.min(v1[j] + 1, v0[j + 1] + 1, v0[j] + substCost);
+    }
 
-      for (let j = 0; j < v0.length; j++) {
-          v0[j] = v1[j];
-      }
+    for (let j = 0; j < v0.length; j++) {
+      v0[j] = v1[j];
+    }
   }
 
   return v1[to.length];
@@ -53,7 +53,9 @@ test("bad arguments throw", () => {
   expect(() => set.getWithinEditDistanceOf(null, 0)).toThrow();
   expect(() => set.getWithinEditDistanceOf("", -1)).toThrow();
   expect(() => set.getWithinEditDistanceOf("", NaN)).toThrow();
-  expect(() => set.getWithinEditDistanceOf("", "1" as unknown as number)).toThrow();
+  expect(() =>
+    set.getWithinEditDistanceOf("", "1" as unknown as number),
+  ).toThrow();
 });
 
 test("Empty tree has no results", () => {

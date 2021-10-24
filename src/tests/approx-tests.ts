@@ -15,7 +15,9 @@ test("bad arguments throw", () => {
   expect(() => set.getWithinHammingDistanceOf(null, 0)).toThrow();
   expect(() => set.getWithinHammingDistanceOf(null, -1)).toThrow();
   expect(() => set.getWithinHammingDistanceOf(null, NaN)).toThrow();
-  expect(() => set.getWithinHammingDistanceOf(null, "1" as unknown as number)).toThrow();
+  expect(() =>
+    set.getWithinHammingDistanceOf(null, "1" as unknown as number),
+  ).toThrow();
 });
 
 test("arrangements do not allow reuse or use of characters not present", () => {
