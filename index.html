@@ -196,7 +196,7 @@ Serialized data consists of a stream of unsigned integers of 8, 16, 24, or 32 bi
 In the remaining sections, these are indicated by the notation int8, int32, and so on.
 Integers wider than 1 byte are stored in
 <a href="https://en.wikipedia.org/wiki/Endianness">big-endian order</a>.
-For brevity, the serialized data is described as a &quot;file&quot;, but any container or stream of bytes is acceptable.</p>
+For brevity, the serialized data is described as a &quot;file&quot;, but the data could come from any container or stream of bytes.</p>
 
 <a href="#header" id="header" style="color: inherit; text-decoration: none;">
   <h3>Header</h3>
@@ -335,18 +335,18 @@ Otherwise the pointer is divided by 4 and then written as follows:</p>
 </thead>
 <tbody><tr>
 <td align="right">00</td>
-<td>&gt; 0xffff</td>
+<td>&gt; 0xffffff</td>
 <td>int32</td>
 </tr>
 <tr>
 <td align="right">01</td>
-<td>&gt; 0xff</td>
-<td>int16</td>
+<td>&gt; 0xffff</td>
+<td>int24</td>
 </tr>
 <tr>
 <td align="right">10</td>
-<td>≤ 0xff</td>
-<td>int8</td>
+<td>≤ 0xffff</td>
+<td>int16</td>
 </tr>
 <tr>
 <td align="right">11</td>
@@ -376,8 +376,8 @@ Otherwise the pointer is divided by 4 and then written as follows:</p>
 </thead>
 <tbody><tr>
 <td align="right">0</td>
-<td>0b10111001</td>
-<td>Encoding field: int8 code point, NUL less-than, int8 equal-to, int16 greater-than</td>
+<td>0b10111010</td>
+<td>Encoding field: int8 code point, NUL less-than, int16 equal-to and greater-than</td>
 </tr>
 <tr>
 <td align="right">1</td>
@@ -386,16 +386,21 @@ Otherwise the pointer is divided by 4 and then written as follows:</p>
 </tr>
 <tr>
 <td align="right">2</td>
-<td>0x42</td>
-<td>Equal-to branch</td>
+<td>0x00</td>
+<td>Equal-to branch high byte</td>
 </tr>
 <tr>
 <td align="right">3</td>
+<td>0x42</td>
+<td>Equal-to branch low byte</td>
+</tr>
+<tr>
+<td align="right">4</td>
 <td>0x67</td>
 <td>Greater-than branch high byte</td>
 </tr>
 <tr>
-<td align="right">4</td>
+<td align="right">5</td>
 <td>0x89</td>
 <td>Greater-than branch low byte</td>
 </tr>
