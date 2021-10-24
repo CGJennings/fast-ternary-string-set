@@ -1,5 +1,5 @@
 import { TernaryStringSet } from "../index";
-import { sameSet } from "./utils";
+import { expectSameSet } from "./utils";
 
 test("No-arg constructor yields empty set", () => {
   expect(new TernaryStringSet().size).toBe(0);
@@ -22,19 +22,19 @@ test("Empty iterable constructor yields empty set", () => {
 
 test("TernaryStringTree constructor argument yields equivalent set", () => {
   const t1 = new TernaryStringSet();
-  expect(sameSet(t1, new TernaryStringSet(t1))).toBeTruthy();
+  expectSameSet(t1, new TernaryStringSet(t1));
   t1.add("");
-  expect(sameSet(t1, new TernaryStringSet(t1))).toBeTruthy();
+  expectSameSet(t1, new TernaryStringSet(t1));
   t1.addAll(["ankle", "spoon", "xenomorph"]);
-  expect(sameSet(t1, new TernaryStringSet(t1))).toBeTruthy();
+  expectSameSet(t1, new TernaryStringSet(t1));
   t1.delete("");
-  expect(sameSet(t1, new TernaryStringSet(t1))).toBeTruthy();
+  expectSameSet(t1, new TernaryStringSet(t1));
   t1.delete("spoon");
-  expect(sameSet(t1, new TernaryStringSet(t1))).toBeTruthy();
+  expectSameSet(t1, new TernaryStringSet(t1));
   t1.delete("ankle");
-  expect(sameSet(t1, new TernaryStringSet(t1))).toBeTruthy();
+  expectSameSet(t1, new TernaryStringSet(t1));
   t1.delete("xenomorph");
-  expect(sameSet(t1, new TernaryStringSet(t1))).toBeTruthy();
+  expectSameSet(t1, new TernaryStringSet(t1));
 });
 
 test("Array constructor argument yields equivalent set", () => {
@@ -44,13 +44,13 @@ test("Array constructor argument yields equivalent set", () => {
     return set;
   };
   let a = ["axolotl"];
-  expect(sameSet(addAll(a), new TernaryStringSet(a))).toBeTruthy();
+  expectSameSet(addAll(a), new TernaryStringSet(a));
   a = ["tardigrade", "zebu"];
-  expect(sameSet(addAll(a), new TernaryStringSet(a))).toBeTruthy();
+  expectSameSet(addAll(a), new TernaryStringSet(a));
   a = ["", "dog", "cat", "shoebill"];
-  expect(sameSet(addAll(a), new TernaryStringSet(a))).toBeTruthy();
+  expectSameSet(addAll(a), new TernaryStringSet(a));
   a = ["dog", "cat", "shoebill"];
-  expect(sameSet(addAll(a), new TernaryStringSet(a))).toBeTruthy();
+  expectSameSet(addAll(a), new TernaryStringSet(a));
 });
 
 class GenericIterator implements Iterator<string> {
@@ -70,13 +70,17 @@ test("Generic iterable yields equivalent set", () => {
   };
 
   let it: Iterable<string> = new Set();
-  expect(sameSet(itTree(it), new TernaryStringSet(it))).toBeTruthy();
+  expectSameSet(itTree(it), new TernaryStringSet(it));
   (it as Set<string>).add("quetzal").add("umbrellabird");
-  expect(sameSet(itTree(it), new TernaryStringSet(it))).toBeTruthy();
+  expectSameSet(itTree(it), new TernaryStringSet(it));
   it = "hello, world!";
-  expect(sameSet(itTree(it), new TernaryStringSet(it))).toBeTruthy();
+  expectSameSet(itTree(it), new TernaryStringSet(it));
   it = {
     [Symbol.iterator]: () => new GenericIterator(),
   };
-  expect(sameSet(itTree(it), new TernaryStringSet(it))).toBeTruthy();
+  expectSameSet(itTree(it), new TernaryStringSet(it));
+});
+
+test("toStringTag matches class name", () => {
+  expect(new TernaryStringSet().toString()).toBe("[object TernaryStringSet]");
 });

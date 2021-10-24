@@ -46,17 +46,14 @@ export function shuffle<T>(array: T[]): T[] {
   return array;
 }
 
-/** Simple set equality test that does not rely on `equals()`. */
-export function sameSet(lhs: TernaryStringSet, rhs: TernaryStringSet): boolean {
-  if (lhs.size !== rhs.size) return false;
-  let eq = true;
-  const a = Array.from(lhs),
-    b = Array.from(rhs);
-  for (let i = 0; i < a.length; ++i) {
-    if (a[i] !== b[i]) {
-      eq = false;
-      break;
-    }
+/** Tests set equality with an informative `expect()` for each member.  */
+export function expectSameSet(lhs: TernaryStringSet, rhs: TernaryStringSet, checkCompact=false): void {
+  expect(rhs.size).toBe(lhs.size);
+  expect(rhs.has("")).toBe(rhs.has(""));
+  for(const word of lhs) {
+    expect(`${word}: ${rhs.has(word)}`).toBe(`${word}: true`);
   }
-  return eq;
+  if (checkCompact) {
+    expect(rhs.compacted).toBe(lhs.compacted);
+  }
 }
