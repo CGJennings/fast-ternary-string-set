@@ -153,3 +153,13 @@ test("Superset relation with word list", () => {
   expect(lhs.isSupersetOf(rhs)).toBeFalsy();
   expect(rhs.isSupersetOf(lhs)).toBeTruthy();
 });
+
+test("Non-sets throw, except for equality", () => {
+  const set = new TernaryStringSet();
+  expect(set.equals("")).toBeFalsy();
+  expect(set.equals(1)).toBeFalsy();
+  expect(set.equals({})).toBeFalsy();
+  expect(set.equals(Symbol.iterator)).toBeFalsy();
+  expect(() => set.isSubsetOf(1 as unknown as TernaryStringSet)).toThrow();
+  expect(() => set.isSupersetOf(1 as unknown as TernaryStringSet)).toThrow();
+});

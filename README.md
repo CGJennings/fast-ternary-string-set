@@ -270,7 +270,7 @@ The following steps will make such ahead-of-time sets as small as possible:
 3. Create the buffer with `toBuffer()` and write the result to a file.
 4. Optionally, compress the result and configure the server to serve the compressed version where supported by the browser.
 
-To recreate the set, download or otherwise obtain the buffer data, then use `TernaryTreeSet.fromBuffer(data)`.
+To recreate the set, download or otherwise obtain the buffer data, then use `TernaryStringSet.fromBuffer(data)`.
 
 ## Developing
 

@@ -5,37 +5,32 @@ let set: TernaryStringSet;
 
 /** Calculates the edit distance between two strings. */
 function editDist(from: string, to: string): number {
-  // a standard Levenshtein distance implementation
-  // like you'll find in any good text on algorithms
-  if (from.length === 0) {
-    return to.length;
+  // a standard Levenshtein distance function like
+  // you'll find in any good algorithms textbook
+  if (from.length == 0) return to.length;
+  if (to.length == 0) return from.length;
+
+  const v0: number[] = new Array(to.length + 1);
+  const v1: number[] = new Array(to.length + 1);
+
+  for (let i = 0; i < v0.length; i++) {
+      v0[i] = i;
   }
-  if (to.length === 0) {
-    return from.length;
+
+  for (let i = 0; i < from.length; i++) {
+      v1[0] = i + 1;
+
+      for (let j = 0; j < to.length; j++) {
+          const substCost = (from[i] == to[j]) ? 0 : 1;
+          v1[j + 1] = Math.min(v1[j] + 1, v0[j + 1] + 1, v0[j] + substCost);
+      }
+
+      for (let j = 0; j < v0.length; j++) {
+          v0[j] = v1[j];
+      }
   }
-  const matrix = Array(to.length + 1)
-    .fill(0)
-    .map(() => Array(from.length + 1).fill(0));
-  for (let i = 0; i <= from.length; i += 1) {
-    matrix[0][i] = i;
-  }
-  for (let j = 0; j <= to.length; j += 1) {
-    matrix[j][0] = j;
-  }
-  for (let j = 1; j <= to.length; j += 1) {
-    for (let i = 1; i <= from.length; i += 1) {
-      const substCost = from[i - 1] === to[j - 1] ? 0 : 1;
-      matrix[j][i] = Math.min(
-        // deletion
-        matrix[j][i - 1] + 1,
-        // insertion
-        matrix[j - 1][i] + 1,
-        // substitution
-        matrix[j - 1][i - 1] + substCost,
-      );
-    }
-  }
-  return matrix[to.length][from.length];
+
+  return v1[to.length];
 }
 
 /**
@@ -52,6 +47,13 @@ function verify(set: TernaryStringSet, pattern: string, dist: number) {
 
 beforeEach(() => {
   set = new TernaryStringSet();
+});
+
+test("bad arguments throw", () => {
+  expect(() => set.getWithinEditDistanceOf(null, 0)).toThrow();
+  expect(() => set.getWithinEditDistanceOf("", -1)).toThrow();
+  expect(() => set.getWithinEditDistanceOf("", NaN)).toThrow();
+  expect(() => set.getWithinEditDistanceOf("", "1" as unknown as number)).toThrow();
 });
 
 test("Empty tree has no results", () => {

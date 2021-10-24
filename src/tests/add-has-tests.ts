@@ -157,20 +157,11 @@ function getAddAllFailureIndex(set: unknown[]): number {
   return -1;
 }
 
-test("addAll() throws on bad arguments", () => {
+test("addAll() throws on bad array element", () => {
   /* eslint-disable @typescript-eslint/no-explicit-any */
   expect(() => (set as any).addAll()).toThrow();
   expect(() => (set as any).addAll(null)).toThrow();
   expect(() => (set as any).addAll("yup")).toThrow();
-  expect(() => (set as any).addAll(["yup"], {})).toThrow();
-  expect(() => (set as any).addAll(["yup"], -1)).toThrow();
-  expect(() => (set as any).addAll(["yup"], 0.5)).toThrow();
-  expect(() => (set as any).addAll(["yup"], NaN)).toThrow();
-  expect(() => (set as any).addAll(["yup"], 2)).toThrow();
-  expect(() => (set as any).addAll(["yup"], 0, -1)).toThrow();
-  expect(() => (set as any).addAll(["yup"], 0, 0.5)).toThrow();
-  expect(() => (set as any).addAll(["yup"], 0, NaN)).toThrow();
-  expect(() => (set as any).addAll(["yup"], 0, 2)).toThrow();
   expect(() => (set as any).addAll([null])).toThrow();
   expect(() => (set as any).addAll([0])).toThrow();
   expect(() => (set as any).addAll([{}])).toThrow();
@@ -180,7 +171,7 @@ test("addAll() throws on bad arguments", () => {
   /* eslint-enable @typescript-eslint/no-explicit-any */
 });
 
-test("Report index of bad string from addAll()", () => {
+test("addAll() reports index of bad element", () => {
   expect(getAddAllFailureIndex([])).toBe(-1);
   expect(getAddAllFailureIndex(["bee"])).toBe(-1);
   expect(getAddAllFailureIndex(["echidna", "gopher"])).toBe(-1);
@@ -189,3 +180,18 @@ test("Report index of bad string from addAll()", () => {
   expect(getAddAllFailureIndex(["dingo", "python", null])).toBe(2);
   expect(getAddAllFailureIndex(["lynx", () => "", "goat", null])).toBe(1);
 });
+
+test("addAll() throws on bad start/end index", () => {
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  expect(() => (set as any).addAll(["yup"], {})).toThrow();
+  expect(() => (set as any).addAll(["yup"], -1)).toThrow();
+  expect(() => (set as any).addAll(["yup"], 0.5)).toThrow();
+  expect(() => (set as any).addAll(["yup"], NaN)).toThrow();
+  expect(() => (set as any).addAll(["yup"], 2)).toThrow();
+  expect(() => (set as any).addAll(["yup"], 0, -1)).toThrow();
+  expect(() => (set as any).addAll(["yup"], 0, 0.5)).toThrow();
+  expect(() => (set as any).addAll(["yup"], 0, NaN)).toThrow();
+  expect(() => (set as any).addAll(["yup"], 0, 2)).toThrow();
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+});
+
