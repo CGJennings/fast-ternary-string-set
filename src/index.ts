@@ -9,6 +9,9 @@ const CP_MASK = EOS - 1;
 /** Smallest code point that requires a surrogate pair. */
 const CP_MIN_SURROGATE = 0x10000;
 
+/** A filtered set with fewer than this many elements is cleaned up by being balanced. */
+const BALANCE_LIMIT = 100;
+
 /**
  * A sorted string set that implements a superset of the standard JS `Set` interface.
  * Supports approximate matching and allows serialization to/from a binary format.
@@ -761,12 +764,57 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
+   * Returns a new set containing all of the strings in this set that pass a
+   * test implemented by the specified function.
+   *
+   * @param predicate A function that accepts strings from this set and returns
+   *   true if the string should be included in the new set.
+   * @param thisArg An optional value to use as `this` when calling the predicate.
+   * @returns A new set containing only those elements for which the predicate return
+   *   value is true.
+   */
+  filter(
+    predicate: (value: string, index: number, set: TernaryStringSet) => boolean,
+    thisArg?: unknown,
+  ): TernaryStringSet {
+    if (this._size === 0) return new TernaryStringSet();
+    if (thisArg !== undefined) predicate = predicate.bind(thisArg);
+
+    const results = this._cloneDecompacted();
+
+    let index = 0;
+    if (this._hasEmpty) {
+      if (!predicate("", index++, this)) {
+        results._hasEmpty = false;
+        --results._size;
+      }
+    }
+
+    this._visitCodePoints(0, [], (cp) => {
+      if (!predicate(String.fromCodePoint(...cp), index++, this)) {
+        const node = results._hasCodePoints(0, cp, 0);
+        results._tree[node] &= ~EOS;
+        --results._size;
+      }
+    });
+
+    // avoid wasting space when the result set is small
+    if (results._size === 0) {
+      results.clear();
+    } else if (results._size <= BALANCE_LIMIT) {
+      results.balance();
+    }
+
+    return results;
+  }
+
+  /**
    * Calls the specified callback function once for each string in this set, passing the string
    * and this set. The string is passed as both value and key to align with `Map.forEach`.
    * If `thisArg` is specified, it is used as `this` when invoking the callback function.
    *
    * @param callbackFn The function to call for each string.
-   * @param thisArg Optional value to use as `this` when calling the function.
+   * @param thisArg An optional value to use as `this` when calling the function.
    * @throws `TypeError` If the callback function is not a function.
    */
   forEach(
@@ -1523,7 +1571,7 @@ function checkDistance(distance: number) {
 
 /**
  * Converts a string to an array of numeric code points.
- * (This is not equivalent to `[...s]`, which returns strings.)
+ * (This is not equivalent to `[...s]`, which returns a `string[]`.)
  *
  * @param s A non-null string.
  * @returns An array of the code points comprising the string.
@@ -1533,7 +1581,7 @@ function toCodePoints(s: string): number[] {
   for (let i = 0; i < s.length; ) {
     const cp = s.codePointAt(i++);
     if (cp >= CP_MIN_SURROGATE) ++i;
-    cps.push(cp);
+    cps[cps.length] = cp;
   }
   return cps;
 }
