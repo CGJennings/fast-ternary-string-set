@@ -911,8 +911,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   equals(rhs: any): boolean {
     if (this === rhs) return true;
 
-    if (!(rhs instanceof TernaryStringSet)) {
-      if (typeof rhs[Symbol.iterator] !== "function") {
+    if (!(rhs instanceof TernaryStringSet)) {      
+      if (rhs == null || typeof rhs[Symbol.iterator] !== "function") {
         return false;
       }
       let rhsSize = 0;
@@ -940,7 +940,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (this === rhs) return false;
 
     if (!(rhs instanceof TernaryStringSet)) {
-      if (typeof rhs[Symbol.iterator] !== "function") {
+      if (rhs == null || typeof rhs[Symbol.iterator] !== "function") {
         throw new TypeError("rhs is not iterable");
       }
       for (const el of rhs) {
@@ -975,7 +975,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (this === rhs) return true;
 
     if (!(rhs instanceof TernaryStringSet)) {
-      if (typeof rhs[Symbol.iterator] !== "function") {
+      if (rhs == null || typeof rhs[Symbol.iterator] !== "function") {
         throw new TypeError("rhs is not iterable");
       }
       const rhset = rhs instanceof Set ? rhs : new Set(rhs);
@@ -1020,7 +1020,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (this === rhs) return true;
 
     if (!(rhs instanceof TernaryStringSet)) {
-      if (typeof rhs[Symbol.iterator] !== "function") {
+      if (rhs == null || typeof rhs[Symbol.iterator] !== "function") {
         throw new TypeError("rhs is not iterable");
       }
       let rhsSize = 0;
@@ -1046,7 +1046,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    */
   union(rhs: Iterable<string>): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
-      if (typeof rhs[Symbol.iterator] !== "function") {
+      if (rhs == null || typeof rhs[Symbol.iterator] !== "function") {
         throw new TypeError("rhs is not iterable");
       }
       const union = this._cloneDecompacted();
@@ -1079,7 +1079,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   intersection(rhs: Iterable<any>): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
-      if (typeof rhs[Symbol.iterator] !== "function") {
+      if (rhs == null || typeof rhs[Symbol.iterator] !== "function") {
         throw new TypeError("rhs is not iterable");
       }
       const intersect: string[] = [];
@@ -1128,7 +1128,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   difference(rhs: Iterable<any>): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
-      if (typeof rhs[Symbol.iterator] !== "function") {
+      if (rhs == null || typeof rhs[Symbol.iterator] !== "function") {
         throw new TypeError("rhs is not iterable");
       }
       const diff = this._cloneDecompacted();
@@ -1164,7 +1164,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    */
   symmetricDifference(rhs: Iterable<string>): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
-      if (typeof rhs[Symbol.iterator] !== "function") {
+      if (rhs == null || typeof rhs[Symbol.iterator] !== "function") {
         throw new TypeError("rhs is not iterable");
       }
       rhs = new TernaryStringSet(rhs);
