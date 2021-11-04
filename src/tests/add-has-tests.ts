@@ -81,7 +81,7 @@ test("Add multiple strings", () => {
 
 function addAll(...args: string[]) {
   let strings: Iterable<string> = args;
-  for (let iterableType=0; iterableType<2; ++iterableType) {
+  for (let iterableType = 0; iterableType < 2; ++iterableType) {
     const set = new TernaryStringSet();
     set.addAll(strings);
     expect(set.size).toBe(args.length);
@@ -93,7 +93,7 @@ function addAll(...args: string[]) {
 }
 
 test("Add all with length 0", () => {
-  addAll()
+  addAll();
 });
 
 test("Add all with length 1", () => {

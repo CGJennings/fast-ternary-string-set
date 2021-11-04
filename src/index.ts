@@ -882,7 +882,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   /**
    * Returns whether this set is disjoint from the elements of the specified iterable,
    * that is, whether this set has no elements in common with the iterable.
-   * 
+   *
    * @param rhs The iterable whose elements should be tested against this set's.
    * @returns True if `this.intersection(rhs)` is empty.
    * @throws `TypeError` If the argument is not an iterable.
@@ -903,7 +903,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
     if (this._size === 0 || rhs._size === 0) return true;
     if (this._hasEmpty && rhs._hasEmpty) return false;
-    
+
     let disjoint = true;
     this._visitCodePoints(0, [], (s) => {
       if (rhs._hasCodePoints(0, s, 0) >= 0) {
@@ -930,7 +930,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       if (typeof rhs[Symbol.iterator] !== "function") {
         throw new TypeError("rhs is not iterable");
       }
-      const rhset = (rhs instanceof Set) ? rhs : new Set(rhs);
+      const rhset = rhs instanceof Set ? rhs : new Set(rhs);
       if (this._size > rhset.size) return false;
       for (const s of this) {
         if (!rhset.has(s)) return false;
