@@ -15,6 +15,7 @@ function makeRelHelper(
 }
 
 const equal = makeRelHelper("equals");
+const disjoint = makeRelHelper("isDisjointFrom");
 const subset = makeRelHelper("isSubsetOf");
 const superset = makeRelHelper("isSupersetOf");
 
@@ -65,6 +66,52 @@ test("Equality relation with word list", () => {
   expect(rhs.equals(lhs)).toBeTruthy();
   rhs.delete("horse");
   expect(lhs.equals(rhs)).toBeFalsy();
+});
+
+test("Disjoint relation", () => {
+  expect(disjoint([], [])).toBeTruthy();
+  expect(disjoint([""], [])).toBeTruthy();
+  expect(disjoint([], [""])).toBeTruthy();
+  expect(disjoint([""], [""])).toBeFalsy();
+
+  expect(disjoint([""], ["a"])).toBeTruthy();
+  expect(disjoint(["a"], [""])).toBeTruthy();
+  expect(disjoint([""], ["", "a"])).toBeFalsy();
+  expect(disjoint(["a", ""], [""])).toBeFalsy();
+
+  expect(disjoint(["a"], [])).toBeTruthy();
+  expect(disjoint([], ["a"])).toBeTruthy();
+  expect(disjoint(["a"], ["a"])).toBeFalsy();
+
+  expect(disjoint(["a"], ["b"])).toBeTruthy();
+  expect(disjoint(["a", "b"], [])).toBeTruthy();
+  expect(disjoint(["a", "b"], ["a"])).toBeFalsy();
+  expect(disjoint(["a", "b"], ["b"])).toBeFalsy();
+  expect(disjoint(["a", "b"], ["a", "b"])).toBeFalsy();
+
+  expect(disjoint(["a", "b", "c"], ["d", "e", "f"])).toBeTruthy();
+  expect(disjoint(["a", "b", "c"], ["d", "e", "f", "a"])).toBeFalsy();
+  expect(disjoint(["a", "b", "c"], ["d", "e", "f", "b"])).toBeFalsy();
+  expect(disjoint(["a", "b", "c"], ["d", "e", "f", "c"])).toBeFalsy();
+  expect(disjoint(["a", "b", "c"], ["d", "b", "e", "c", "f", "a"])).toBeFalsy();
+
+  expect(disjoint(["a", "b", "c"], [])).toBeTruthy();
+  expect(disjoint(["a", "b", "c"], ["a"])).toBeFalsy();
+  expect(disjoint(["a", "b", "c"], ["b"])).toBeFalsy();
+  expect(disjoint(["a", "b", "c"], ["c"])).toBeFalsy();
+  expect(disjoint(["a", "b", "c"], ["a", "b"])).toBeFalsy();
+  expect(disjoint(["a", "b", "c"], ["a", "c"])).toBeFalsy();
+  expect(disjoint(["a", "b", "c"], ["b", "c"])).toBeFalsy();
+  expect(disjoint(["a", "b", "c"], ["a", "b", "c"])).toBeFalsy();
+
+  expect(disjoint([], ["a", "b", "c"])).toBeTruthy();
+  expect(disjoint(["a"], ["a", "b", "c"])).toBeFalsy();
+  expect(disjoint(["b"], ["a", "b", "c"])).toBeFalsy();
+  expect(disjoint(["c"], ["a", "b", "c"])).toBeFalsy();
+  expect(disjoint(["a", "b"], ["a", "b", "c"])).toBeFalsy();
+  expect(disjoint(["a", "c"], ["a", "b", "c"])).toBeFalsy();
+  expect(disjoint(["b", "c"], ["a", "b", "c"])).toBeFalsy();
+  expect(disjoint(["a", "b", "c"], ["a", "b", "c"])).toBeFalsy();
 });
 
 test("Subset relation", () => {

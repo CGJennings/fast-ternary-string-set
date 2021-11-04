@@ -880,14 +880,47 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Returns whether this set is a subset of the specified set. This set is a subset if every
-   * element in this set is also contained in the other set. By this definition,
-   * equal sets are also subsets of each other. To test if this set is a *proper* subset
-   * of the specified set, use code like this: `lhs.size < rhs.size && lhs.isSubsetOf(rhs)`.
+   * Returns whether this set is disjoint from the elements of the specified iterable,
+   * that is, whether this set has no elements in common with the iterable.
+   * 
+   * @param rhs The iterable whose elements should be tested against this set's.
+   * @returns True if `this.intersection(rhs)` is empty.
+   * @throws `TypeError` If the argument is not an iterable.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  isDisjointFrom(rhs: Iterable<any>): boolean {
+    if (this === rhs) return false;
+
+    if (!(rhs instanceof TernaryStringSet)) {
+      if (typeof rhs[Symbol.iterator] !== "function") {
+        throw new TypeError("rhs is not iterable");
+      }
+      for (const el of rhs) {
+        if (this.has(el)) return false;
+      }
+      return true;
+    }
+
+    if (this._size === 0 || rhs._size === 0) return true;
+    if (this._hasEmpty && rhs._hasEmpty) return false;
+    
+    let disjoint = true;
+    this._visitCodePoints(0, [], (s) => {
+      if (rhs._hasCodePoints(0, s, 0) >= 0) {
+        disjoint = false;
+        return false;
+      }
+    });
+    return disjoint;
+  }
+
+  /**
+   * Returns whether this set is a subset of the elements of the specified iterable,
+   * that is, whether every element in this set is also an element of the iterable.
    *
    * @param rhs The set to compare this set to.
-   * @returns True if this set is a subset of, or equal to, the specified set.
-   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
+   * @returns True if this set is a proper subset of, or equal to, the specified iterable.
+   * @throws `TypeError` If the argument is not an iterable.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   isSubsetOf(rhs: Iterable<any>): boolean {
@@ -927,14 +960,12 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Returns whether this set is a superset of the specified set. This set is a superset if every
-   * element in the other set is also contained in this set. By this definition,
-   * equal sets are also supersets of each other. To test if this set is a *proper* superset
-   * of the specified set, use code like this: `lhs.size > rhs.size && lhs.isSupersetOf(rhs)`.
+   * Returns whether this set is a superset of the elements of the specified iterable,
+   * that is, whether every element of the iterable is also an element in this set.
    *
    * @param rhs The set to compare this set to.
-   * @returns True if this set is a superset of, or equal to, the specified set.
-   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
+   * @returns True if this set is a proper superset of, or equal to, the specified iterable.
+   * @throws `TypeError` If the argument is not an iterable.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   isSupersetOf(rhs: Iterable<any>): boolean {
