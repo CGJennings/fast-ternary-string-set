@@ -67,10 +67,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         this._hasEmpty = source._hasEmpty;
         this._compact = source._compact;
         this._size = source._size;
-      } else if (Array.isArray(source)) {
-        this.addAll(source);
       } else {
-        this.addAll(Array.from(source));
+        this.addAll(source);
       }
     }
   }
@@ -158,48 +156,56 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Adds an entire array, or subarray, of strings to this set.
+   * Adds an entire collection, or subcollection, of strings to this set. By default,
+   * the entire collection is added. If the optional `start` and `end` parameters
+   * are provided, the result is the same as converting the iterable to an array and
+   * then adding those elements from the index `start` to the index `end` (exclusive).
    *
-   * If the array is sorted in ascending order and no other strings have been
+   * If the collection is sorted in ascending order and no other strings have been
    * added to this set, the underlying tree is guaranteed to be balanced, ensuring
-   * good search performance. If the array is in random order, the tree is *likely*
+   * good search performance. If the collection is in random order, the tree is *likely*
    * to be nearly balanced.
    *
-   * @param strings The non-null array of strings to add.
+   * @param strings The non-null collection of strings to add.
    * @param start The index of the first element to add (inclusive, default is 0).
-   * @param end The index of the last element to add (exclusive, default is `strings.length`)
+   * @param end The index of the last element to add (exclusive, default is all elements)
    * @returns This set, allowing chained calls.
-   * @throws `ReferenceError` If the array is null.
-   * @throws `TypeError` If any element is not a string or if the start or end are not numbers.
-   * @throws `RangeError` If the start or end are out of the array bounds.
+   * @throws `ReferenceError` If the collection is null.
+   * @throws `TypeError` If `strings` is not an iterable or if any element is not a string
+   *   or if the start or end are not integer numbers.
+   * @throws `RangeError` If the start or end are out of bounds, that is, less than 0
+   *   or greater than `Array.from(strings).length`.
    */
-  addAll(
-    strings: readonly string[],
-    start = 0,
-    end = strings.length,
-  ): TernaryStringSet {
+  addAll(strings: Iterable<string>, start = 0, end?: number): TernaryStringSet {
     if (strings == null) throw new ReferenceError("null strings");
     if (!Array.isArray(strings)) {
-      throw new TypeError("strings must be an array");
+      if (typeof strings[Symbol.iterator] !== "function") {
+        throw new TypeError("strings is not iterable");
+      }
+      strings = Array.from(strings);
     }
+    const len = (strings as string[]).length;
+
     if (typeof start !== "number" || start !== Math.trunc(start)) {
       throw new TypeError("start must be an integer");
     }
     // Note: start = strings.length is allowed so that
-    // addAll(array=[], 0, array.length) works as expected
-    if (start < 0 || start > strings.length) {
+    // addAll([], 0, array.length) works as expected
+    if (start < 0 || start > len) {
       throw new RangeError("start: " + start);
     }
 
-    if (typeof end !== "number" || end !== Math.trunc(end)) {
+    if (end === undefined) {
+      end = len;
+    } else if (typeof end !== "number" || end !== Math.trunc(end)) {
       throw new TypeError("end must be an integer");
     }
-    if (end < 0 || end > strings.length) {
+    if (end < 0 || end > len) {
       throw new RangeError("end: " + end);
     }
 
     if (start < end) {
-      this._addAllImpl(strings, start, end);
+      this._addAllImpl(strings as string[], start, end);
     }
     return this;
   }
@@ -912,16 +918,23 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Returns a new set that is the union of this set and the specified set.
-   * The new set will include any element that is a member of either set.
+   * Returns a new set that is the union of this set and the elements of the
+   * specified iterable. The new set will include any element that is a
+   * member of either.
    *
-   * @param rhs The set to form a union with.
-   * @returns A new set containing the elements of both sets.
-   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
+   * @param rhs The iterable whose elements should be united with this set.
+   * @returns A new set containing the elements of both this set and the iterable.
+   * @throws `TypeError` If the specified target is not iterable or any
+   *     element is not a string.
    */
-  union(rhs: TernaryStringSet): TernaryStringSet {
+  union(rhs: Iterable<string>): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
-      throw new TypeError("not a TernaryStringSet");
+      if (typeof rhs[Symbol.iterator] !== "function") {
+        throw new TypeError("rhs is not iterable");
+      }
+      const union = this._cloneDecompacted();
+      union.addAll(rhs);
+      return union;
     }
     if (rhs._size > this._size) {
       return rhs.union(this);
@@ -938,16 +951,27 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Returns a new set that is the intersection of this set and the specified set.
-   * The new set will include only those elements that are members of both sets.
+   * Returns a new set that is the intersection of this set and the elements
+   * of the specified iterable. The new set will include only those elements
+   * that are members of both.
    *
-   * @param rhs The set to intersect with this set.
-   * @returns A new set containing only elements in both sets.
-   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
+   * @param rhs The iterable to intersect with this set.
+   * @returns A new set containing only elements in both this set and the iterable.
+   * @throws `TypeError` If the specified target is not iterable.
    */
-  intersection(rhs: TernaryStringSet): TernaryStringSet {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  intersection(rhs: Iterable<any>): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
-      throw new TypeError("not a TernaryStringSet");
+      if (typeof rhs[Symbol.iterator] !== "function") {
+        throw new TypeError("rhs is not iterable");
+      }
+      const intersect: string[] = [];
+      for (const s of rhs) {
+        if (this.has(s)) {
+          intersect.push(s);
+        }
+      }
+      return new TernaryStringSet(intersect);
     }
     if (rhs._size < this._size) {
       return rhs.intersection(this);
@@ -968,19 +992,33 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     return intersect;
   }
 
-  /**
-   * Returns a new set that is the difference of this set and the specified set.
-   * The new set will include all of the elements of this set *except* for those
-   * in the specified set.
-   *
-   * @param rhs The set to subtract from this set.
-   * @returns A new set containing only those elements in this set that are not
-   *   in the specified set.
-   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
-   */
+  /** @deprecated since 2.2.0, to be removed in 3.0.0. Use `difference` instead. */
   subtract(rhs: TernaryStringSet): TernaryStringSet {
+    return this.difference(rhs);
+  }
+
+  /**
+   * Returns a new set that is the difference of this set and the elements
+   * of the specified iterable. The new set will contain all elements
+   * that are only members of this set and not both.
+   *
+   * @param rhs The iterable whose elements should be subtracted from this set;
+   *   the iterable's elements do not have to be strings.
+   * @returns A new set containing only those elements in this set and that are not
+   *   in the specified iterable.
+   * @throws `TypeError` If the specified target is not iterable.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  difference(rhs: Iterable<any>): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
-      throw new TypeError("not a TernaryStringSet");
+      if (typeof rhs[Symbol.iterator] !== "function") {
+        throw new TypeError("rhs is not iterable");
+      }
+      const diff = this._cloneDecompacted();
+      for (const s of rhs) {
+        diff.delete(s);
+      }
+      return diff;
     }
     const diff = this._cloneDecompacted();
     if (rhs._hasEmpty && diff._hasEmpty) {
@@ -998,20 +1036,24 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Returns a new set that is the symmetric difference of this set and the specified set.
-   * The new set will include all of the elements that are either set, but not in *both* sets.
+   * Returns a new set that is the symmetric difference of this set and the elements
+   * of the specified iterable. The new set will include all of the elements that
+   * are in either, but not in *both*.
    *
-   * @param rhs The set to take the symmetric difference of from this set.
-   * @returns A new set containing only those elements in this set or the specified set,
-   *   but not both.
-   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
+   * @param rhs The iterable whose elements should be exclusive-or'd with this set.
+   * @returns A new set containing those elements either in this set or the iterable,
+   *   but not both or neither.
+   * @throws `TypeError` If the specified target is not iterable.
    */
-  symmetricDifference(rhs: TernaryStringSet): TernaryStringSet {
+  symmetricDifference(rhs: Iterable<string>): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
-      throw new TypeError("not a TernaryStringSet");
+      if (typeof rhs[Symbol.iterator] !== "function") {
+        throw new TypeError("rhs is not iterable");
+      }
+      rhs = new TernaryStringSet(rhs);
     }
     const diff = this._cloneDecompacted();
-    diff._hasEmpty = this._hasEmpty !== rhs._hasEmpty;
+    diff._hasEmpty = this._hasEmpty !== (rhs as TernaryStringSet)._hasEmpty;
     if (this._hasEmpty !== diff._hasEmpty) {
       if (diff._hasEmpty) {
         ++diff._size;
@@ -1019,7 +1061,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         --diff._size;
       }
     }
-    rhs._visitCodePoints(0, [], (s) => {
+    (rhs as TernaryStringSet)._visitCodePoints(0, [], (s) => {
       // if s is also in diff, delete in diff; otherwise add to diff
       const node = diff._hasCodePoints(0, s, 0);
       if (node >= 0) {
