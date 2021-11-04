@@ -1,25 +1,24 @@
 import { TernaryStringSet } from "../index";
 
-function makeOpHelper(
+function makeOperationHelper(
   name: keyof typeof TernaryStringSet.prototype,
 ): (a: string[], b: string[]) => string[] {
   return function (a: string[], b: string[]): string[] {
     const aSet = new TernaryStringSet(a);
     const bSet = new TernaryStringSet(b);
-    const valSet = (aSet[name] as CallableFunction)(bSet);
-    const valIterable = (aSet[name] as CallableFunction)(b);
-    const valArray = valSet.toArray();
-    expect(valArray.length).toBe(valSet.size);
-    expect(valArray.length).toBe(valIterable.size);
-    expect(valSet.equals(valIterable)).toBeTruthy();
-    return valArray;
+    const setResult = (aSet[name] as CallableFunction)(bSet);
+    const iterableResult = (aSet[name] as CallableFunction)(b);
+    const resultArray = setResult.toArray();
+    expect(resultArray).toEqual(iterableResult.toArray());
+    expect(setResult.equals(iterableResult)).toBeTruthy();
+    return resultArray;
   };
 }
 
-const union = makeOpHelper("union");
-const inter = makeOpHelper("intersection");
-const diff = makeOpHelper("difference");
-const sdiff = makeOpHelper("symmetricDifference");
+const union = makeOperationHelper("union");
+const inter = makeOperationHelper("intersection");
+const diff = makeOperationHelper("difference");
+const sdiff = makeOperationHelper("symmetricDifference");
 
 test("Union", () => {
   expect(union([], [])).toEqual([]);

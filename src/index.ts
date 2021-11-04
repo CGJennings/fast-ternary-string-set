@@ -851,15 +851,30 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Returns whether this set contains exactly the same elements as the specified set.
-   * If passed an object that is not a `TernaryStringSet`, this method returns false.
+   * Returns whether this set contains exactly the same elements as the specified iterable.
+   * Any object is accepted for comparison; if it is not a set or iterable, the result
+   * is always `false`.
    *
    * @param rhs The set (or other object) to compare this set to.
-   * @returns True if the specified object is also a `TernaryStringSet` and it contains the same elements.
+   * @returns True if the specified object is iterable, has the same number of elements
+   *   as this set, and this set also contains each of those elements.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   equals(rhs: any): boolean {
-    if (!(rhs instanceof TernaryStringSet)) return false;
+    if (this === rhs) return true;
+
+    if (!(rhs instanceof TernaryStringSet)) {
+      if (typeof rhs[Symbol.iterator] !== "function") {
+        return false;
+      }
+      let rhsSize = 0;
+      for (const el of rhs) {
+        if (!this.has(el)) return false;
+        ++rhsSize;
+      }
+      return this.size === rhsSize;
+    }
+
     if (this._size !== rhs._size) return false;
     return this.isSubsetOf(rhs);
   }
@@ -874,15 +889,26 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @returns True if this set is a subset of, or equal to, the specified set.
    * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
    */
-  isSubsetOf(rhs: TernaryStringSet): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  isSubsetOf(rhs: Iterable<any>): boolean {
     if (this === rhs) return true;
+
     if (!(rhs instanceof TernaryStringSet)) {
-      throw new TypeError("not a TernaryStringSet");
+      if (typeof rhs[Symbol.iterator] !== "function") {
+        throw new TypeError("rhs is not iterable");
+      }
+      const rhset = (rhs instanceof Set) ? rhs : new Set(rhs);
+      if (this._size > rhset.size) return false;
+      for (const s of this) {
+        if (!rhset.has(s)) return false;
+      }
+      return true;
     }
+
     if (this._size > rhs._size) return false;
     if (this._hasEmpty && !rhs._hasEmpty) return false;
 
-    // What follows is a faster equivalent to the following code:
+    // What follows is a faster equivalent for:
     // ```
     // for (const s of this) {
     //   if (!rhs.has(s)) return false;
@@ -910,10 +936,22 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @returns True if this set is a superset of, or equal to, the specified set.
    * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
    */
-  isSupersetOf(rhs: TernaryStringSet): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  isSupersetOf(rhs: Iterable<any>): boolean {
+    if (this === rhs) return true;
+
     if (!(rhs instanceof TernaryStringSet)) {
-      throw new TypeError("not a TernaryStringSet");
+      if (typeof rhs[Symbol.iterator] !== "function") {
+        throw new TypeError("rhs is not iterable");
+      }
+      let rhsSize = 0;
+      for (const el of rhs) {
+        if (!this.has(el)) return false;
+        ++rhsSize;
+      }
+      return this.size >= rhsSize;
     }
+
     return rhs.isSubsetOf(this);
   }
 
