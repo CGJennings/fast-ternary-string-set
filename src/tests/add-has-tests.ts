@@ -12,7 +12,7 @@ test("add() and addAll() are fluent", () => {
   expect(set.addAll(["cavy", "mole"])).toBe(set);
 });
 
-test("Adding non-string throws", () => {
+test("add() non-string throws", () => {
   expect(() => set.add(null as unknown as string)).toThrow();
   expect(() => set.add(0 as unknown as string)).toThrow();
   expect(() => set.add(/x/ as unknown as string)).toThrow();
@@ -21,7 +21,7 @@ test("Adding non-string throws", () => {
   expect(() => set.add(Symbol("centipede") as unknown as string)).toThrow();
 });
 
-test("Add empty string", () => {
+test("add() empty string", () => {
   expect(set.size).toBe(0);
   set.add("");
   expect(set.size).toBe(1);
@@ -34,7 +34,7 @@ test("Add empty string", () => {
   expect(Array.from(set.entries())).toEqual([["", ""]]);
 });
 
-test("Add length 1 string", () => {
+test("add() length 1 string", () => {
   set.add("a");
   expect(set.has("a")).toBe(true);
   expect(set.has("")).toBe(false);
@@ -47,7 +47,7 @@ test("Add length 1 string", () => {
   expect(Array.from(set.entries())).toEqual([["a", "a"]]);
 });
 
-test("Add singleton", () => {
+test("add() singleton", () => {
   expect(set.size).toBe(0);
   set.add("cat");
   expect(set.size).toBe(1);
@@ -65,8 +65,8 @@ test("Add singleton", () => {
   expect(Array.from(set.entries())).toEqual([["cat", "cat"]]);
 });
 
-test("Add multiple strings", () => {
-  const words = ["maple", "dog", "cat", "egg", "snake", "zebra", "nest"];
+test("add() multiple strings", () => {
+  const words = ["moose", "dolphin", "caribou", "emu", "snake", "zebra", "narwhal"];
   // test each as added
   words.forEach((s) => {
     set.add(s);
@@ -92,37 +92,37 @@ function addAll(...args: string[]) {
   }
 }
 
-test("Add all with length 0", () => {
+test("addAll() with length 0", () => {
   addAll();
 });
 
-test("Add all with length 1", () => {
+test("addAll() all with length 1", () => {
   addAll("ape");
 });
 
-test("Add all with length 2", () => {
+test("addAll() all with length 2", () => {
   addAll("ape", "cat");
 });
 
-test("Add all with length 3", () => {
+test("addAll() all with length 3", () => {
   addAll("ape", "cat", "eel");
 });
 
-test("Adding duplicate words yields correct size", () => {
+test("addAll() with duplicate words yields correct size", () => {
   set.addAll([
-    "ape",
+    "antelope",
     "crab",
     "porcupine",
     "crab",
     "crab",
     "crab",
-    "ape",
+    "antelope",
     "porcupine",
   ]);
   expect(set.size).toBe(3);
 });
 
-test("Add all from short English list", () => {
+test("addAll() from short English list", () => {
   set.addAll(words);
   expect(set.size).toBe(words.length);
   words.forEach((s) => {
@@ -130,7 +130,7 @@ test("Add all from short English list", () => {
   });
 });
 
-test("Add strings with spaces, punctuation, emoji, etc.", () => {
+test("addAll() strings with spaces, punctuation, emoji, etc.", () => {
   addAll(
     "Mt. Doom",
     "a dog—smelly",
@@ -168,9 +168,9 @@ test("addAll() throws on bad array element", () => {
   expect(() => (set as any).addAll([null])).toThrow();
   expect(() => (set as any).addAll([0])).toThrow();
   expect(() => (set as any).addAll([{}])).toThrow();
-  expect(() => (set as any).addAll(["yup", null])).toThrow();
-  expect(() => (set as any).addAll(["yup", 0])).toThrow();
-  expect(() => (set as any).addAll(["yup", {}])).toThrow();
+  expect(() => (set as any).addAll(["raven", null])).toThrow();
+  expect(() => (set as any).addAll(["finch", 0])).toThrow();
+  expect(() => (set as any).addAll(["robin", {}])).toThrow();
   /* eslint-enable @typescript-eslint/no-explicit-any */
 });
 
@@ -186,14 +186,14 @@ test("addAll() reports index of bad element", () => {
 
 test("addAll() throws on bad start/end index", () => {
   /* eslint-disable @typescript-eslint/no-explicit-any */
-  expect(() => (set as any).addAll(["yup"], {})).toThrow();
-  expect(() => (set as any).addAll(["yup"], -1)).toThrow();
-  expect(() => (set as any).addAll(["yup"], 0.5)).toThrow();
-  expect(() => (set as any).addAll(["yup"], NaN)).toThrow();
-  expect(() => (set as any).addAll(["yup"], 2)).toThrow();
-  expect(() => (set as any).addAll(["yup"], 0, -1)).toThrow();
-  expect(() => (set as any).addAll(["yup"], 0, 0.5)).toThrow();
-  expect(() => (set as any).addAll(["yup"], 0, NaN)).toThrow();
-  expect(() => (set as any).addAll(["yup"], 0, 2)).toThrow();
+  expect(() => (set as any).addAll(["lobster"], {})).toThrow();
+  expect(() => (set as any).addAll(["badger"], -1)).toThrow();
+  expect(() => (set as any).addAll(["asp"], 0.5)).toThrow();
+  expect(() => (set as any).addAll(["pig"], NaN)).toThrow();
+  expect(() => (set as any).addAll(["hare"], 2)).toThrow();
+  expect(() => (set as any).addAll(["ox"], 0, -1)).toThrow();
+  expect(() => (set as any).addAll(["wolf"], 0, 0.5)).toThrow();
+  expect(() => (set as any).addAll(["spider"], 0, NaN)).toThrow();
+  expect(() => (set as any).addAll(["carp"], 0, 2)).toThrow();
   /* eslint-enable @typescript-eslint/no-explicit-any */
 });

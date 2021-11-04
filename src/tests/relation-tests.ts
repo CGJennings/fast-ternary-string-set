@@ -19,12 +19,30 @@ const disjoint = makeRelHelper("isDisjointFrom");
 const subset = makeRelHelper("isSubsetOf");
 const superset = makeRelHelper("isSupersetOf");
 
-test("Equality relation", () => {
+test("equals() with same object is true", () => {
+  const set = new TernaryStringSet(["grasshopper", "hippopotamus", "skunk"]);
+  expect(set.equals(set)).toBeTruthy();
+});
+
+test("equals() accepts any type", () => {
+  const set = new TernaryStringSet();
+  // !! since this is an empty iterator of code point substrings
+  expect(set.equals("")).toBeTruthy();
+  expect(set.equals(null)).toBeFalsy();
+  expect(set.equals(undefined)).toBeFalsy();
+  expect(set.equals(1)).toBeFalsy();
+  expect(set.equals({})).toBeFalsy();
+  expect(set.equals(Symbol.iterator)).toBeFalsy();
+});
+
+test("equals() with empty sets and strings", () => {
   expect(equal([], [])).toBeTruthy();
   expect(equal([""], [])).toBeFalsy();
   expect(equal([], [""])).toBeFalsy();
   expect(equal([""], [""])).toBeTruthy();
+});
 
+test("equals() permutations", () => {
   expect(equal([""], ["a"])).toBeFalsy();
   expect(equal([""], ["", "a"])).toBeFalsy();
   expect(equal(["a", ""], [""])).toBeFalsy();
@@ -59,7 +77,7 @@ test("Equality relation", () => {
   expect(equal(["a", "b", "c"], ["a", "b", "c"])).toBeTruthy();
 });
 
-test("Equality relation with word list", () => {
+test("equals() with word list", () => {
   const lhs = wordSet(false);
   const rhs = wordSet();
   expect(lhs.equals(rhs)).toBeTruthy();
@@ -68,12 +86,26 @@ test("Equality relation with word list", () => {
   expect(lhs.equals(rhs)).toBeFalsy();
 });
 
-test("Disjoint relation", () => {
+
+test("isDisjointFrom() with same object is false", () => {
+  const set = new TernaryStringSet(["grasshopper", "hippopotamus", "skunk"]);
+  expect(set.isDisjointFrom(set)).toBeFalsy();
+});
+
+test("isDisjointFrom() throws on non-iterator", () => {
+  const set = new TernaryStringSet();
+  expect(() => set.isDisjointFrom(null as unknown as TernaryStringSet)).toThrow();
+  expect(() => set.isDisjointFrom(1 as unknown as TernaryStringSet)).toThrow();
+});
+
+test("isDisjointFrom() with empty sets and strings", () => {
   expect(disjoint([], [])).toBeTruthy();
   expect(disjoint([""], [])).toBeTruthy();
   expect(disjoint([], [""])).toBeTruthy();
   expect(disjoint([""], [""])).toBeFalsy();
+});
 
+test("isDisjointFrom() permutations", () => {
   expect(disjoint([""], ["a"])).toBeTruthy();
   expect(disjoint(["a"], [""])).toBeTruthy();
   expect(disjoint([""], ["", "a"])).toBeFalsy();
@@ -114,12 +146,26 @@ test("Disjoint relation", () => {
   expect(disjoint(["a", "b", "c"], ["a", "b", "c"])).toBeFalsy();
 });
 
-test("Subset relation", () => {
+
+test("isSubsetOf() with same object is true", () => {
+  const set = new TernaryStringSet(["grasshopper", "hippopotamus", "skunk"]);
+  expect(set.isSubsetOf(set)).toBeTruthy();
+});
+
+test("isSubsetOf() throws on non-iterator", () => {
+  const set = new TernaryStringSet();
+  expect(() => set.isSubsetOf(null as unknown as TernaryStringSet)).toThrow();
+  expect(() => set.isSubsetOf(1 as unknown as TernaryStringSet)).toThrow();
+});
+
+test("isSubsetOf() with empty sets and strings", () => {
   expect(subset([], [])).toBeTruthy();
   expect(subset([""], [])).toBeFalsy();
   expect(subset([], [""])).toBeTruthy();
   expect(subset([""], [""])).toBeTruthy();
+});
 
+test("isSubsetOf() permutataions", () => {
   expect(subset([""], ["a"])).toBeFalsy();
   expect(subset([""], ["", "a"])).toBeTruthy();
   expect(subset(["a", ""], [""])).toBeFalsy();
@@ -154,7 +200,7 @@ test("Subset relation", () => {
   expect(subset(["a", "b", "c"], ["a", "b", "c"])).toBeTruthy();
 });
 
-test("Subset relation with word list", () => {
+test("isSubsetOf() with word list", () => {
   const lhs = wordSet(false);
   const rhs = wordSet();
   expect(lhs.isSubsetOf(rhs)).toBeTruthy();
@@ -163,12 +209,26 @@ test("Subset relation with word list", () => {
   expect(rhs.isSubsetOf(lhs)).toBeTruthy();
 });
 
-test("Superset relation", () => {
+
+test("isSupersetOf() with same object is true", () => {
+  const set = new TernaryStringSet(["grasshopper", "hippopotamus", "skunk"]);
+  expect(set.isSupersetOf(set)).toBeTruthy();
+});
+
+test("isSupersetOf() throws on non-iterator", () => {
+  const set = new TernaryStringSet();
+  expect(() => set.isSupersetOf(null as unknown as TernaryStringSet)).toThrow();
+  expect(() => set.isSupersetOf(1 as unknown as TernaryStringSet)).toThrow();
+});
+
+test("isSupersetOf() with empty sets and strings", () => {
   expect(superset([], [])).toBeTruthy();
   expect(superset([""], [])).toBeTruthy();
   expect(superset([], [""])).toBeFalsy();
   expect(superset([""], [""])).toBeTruthy();
+});
 
+test("isSupersetOf() permutations", () => {
   expect(superset([""], ["a"])).toBeFalsy();
   expect(superset([""], ["", "a"])).toBeFalsy();
   expect(superset(["a", ""], [""])).toBeTruthy();
@@ -203,22 +263,11 @@ test("Superset relation", () => {
   expect(superset(["a", "b", "c"], ["a", "b", "c"])).toBeTruthy();
 });
 
-test("Superset relation with word list", () => {
+test("isSupersetOf() with word list", () => {
   const lhs = wordSet(false);
   const rhs = wordSet();
   expect(lhs.isSupersetOf(rhs)).toBeTruthy();
   rhs.add("horses");
   expect(lhs.isSupersetOf(rhs)).toBeFalsy();
   expect(rhs.isSupersetOf(lhs)).toBeTruthy();
-});
-
-test("Non-sets throw, except for equality", () => {
-  const set = new TernaryStringSet();
-  // !! since this is an empty iterator of code point substrings
-  expect(set.equals("")).toBeTruthy();
-  expect(set.equals(1)).toBeFalsy();
-  expect(set.equals({})).toBeFalsy();
-  expect(set.equals(Symbol.iterator)).toBeFalsy();
-  expect(() => set.isSubsetOf(1 as unknown as TernaryStringSet)).toThrow();
-  expect(() => set.isSupersetOf(1 as unknown as TernaryStringSet)).toThrow();
 });

@@ -1,5 +1,11 @@
 import { TernaryStringSet } from "../index";
 
+let set: TernaryStringSet;
+
+beforeEach(() => {
+  set = new TernaryStringSet();
+});
+
 function makeOperationHelper(
   name: keyof typeof TernaryStringSet.prototype,
 ): (a: string[], b: string[]) => string[] {
@@ -20,11 +26,19 @@ const inter = makeOperationHelper("intersection");
 const diff = makeOperationHelper("difference");
 const sdiff = makeOperationHelper("symmetricDifference");
 
-test("Union", () => {
+test("union() on non-iterable throws", () => {
+  expect(() => set.union(null as unknown as TernaryStringSet)).toThrow();
+  expect(() => set.union(1 as unknown as TernaryStringSet)).toThrow();
+});
+
+test("union() with empty sets and strings", () => {
   expect(union([], [])).toEqual([]);
   expect(union([], [""])).toEqual([""]);
   expect(union([""], [])).toEqual([""]);
   expect(union([""], [""])).toEqual([""]);
+});
+
+test("union() basic permutations", () => {
   expect(union([""], ["a"])).toEqual(["", "a"]);
   expect(union(["a"], [""])).toEqual(["", "a"]);
   expect(union(["a"], ["a"])).toEqual(["a"]);
@@ -43,16 +57,28 @@ test("Union", () => {
   expect(union(["b"], ["a", "b", "c"])).toEqual(["a", "b", "c"]);
   expect(union(["a", "c"], ["b"])).toEqual(["a", "b", "c"]);
   expect(union(["b", "c"], ["a"])).toEqual(["a", "b", "c"]);
+});
+
+test("union() with complex strings", () => {
   expect(
     union(["fish", "horse", "monkey", "rhino"], ["emu", "monkey", "mouse"]),
   ).toEqual(["emu", "fish", "horse", "monkey", "mouse", "rhino"]);
 });
 
-test("Intersection", () => {
+
+test("intersection() on non-iterable throws", () => {
+  expect(() => set.intersection(null as unknown as TernaryStringSet)).toThrow();
+  expect(() => set.intersection(1 as unknown as TernaryStringSet)).toThrow();
+});
+
+test("intersection() with empty sets and strings", () => {
   expect(inter([], [])).toEqual([]);
   expect(inter([], [""])).toEqual([]);
   expect(inter([""], [])).toEqual([]);
   expect(inter([""], [""])).toEqual([""]);
+});
+
+test("intersection() basic permutations", () => {
   expect(inter([""], ["a"])).toEqual([]);
   expect(inter(["a"], [""])).toEqual([]);
   expect(inter(["a"], ["a"])).toEqual(["a"]);
@@ -72,6 +98,9 @@ test("Intersection", () => {
   expect(inter(["a", "c"], ["b"])).toEqual([]);
   expect(inter(["b", "c"], ["a"])).toEqual([]);
   expect(inter(["a", "b", "c"], ["a", "b", "c"])).toEqual(["a", "b", "c"]);
+});
+
+test("intersection() with complex strings", () => {
   expect(
     inter(
       ["fish", "frog", "horse", "monkey", "rhino"],
@@ -80,11 +109,20 @@ test("Intersection", () => {
   ).toEqual(["frog", "monkey"]);
 });
 
-test("Difference", () => {
+
+test("difference() on non-iterable throws", () => {
+  expect(() => set.difference(null as unknown as TernaryStringSet)).toThrow();
+  expect(() => set.difference(1 as unknown as TernaryStringSet)).toThrow();
+});
+
+test("difference() with empty sets and strings", () => {
   expect(diff([], [])).toEqual([]);
   expect(diff([], [""])).toEqual([]);
   expect(diff([""], [])).toEqual([""]);
   expect(diff([""], [""])).toEqual([]);
+});
+
+test("difference() basic permutations", () => {
   expect(diff([""], ["a"])).toEqual([""]);
   expect(diff(["a"], [""])).toEqual(["a"]);
   expect(diff(["a"], ["a"])).toEqual([]);
@@ -104,6 +142,9 @@ test("Difference", () => {
   expect(diff(["a", "c"], ["b"])).toEqual(["a", "c"]);
   expect(diff(["b", "c"], ["a"])).toEqual(["b", "c"]);
   expect(diff(["a", "b", "c"], ["a", "b", "c"])).toEqual([]);
+});
+
+test("difference() with complex strings", () => {
   expect(
     diff(
       ["fish", "frog", "horse", "monkey", "rhino"],
@@ -112,11 +153,24 @@ test("Difference", () => {
   ).toEqual(["fish", "horse", "rhino"]);
 });
 
-test("Symmetric difference", () => {
+
+test("symmetricDifference() on non-iterable throws", () => {
+  expect(() =>
+    set.symmetricDifference(null as unknown as TernaryStringSet),
+  ).toThrow();
+  expect(() =>
+    set.symmetricDifference(1 as unknown as TernaryStringSet),
+  ).toThrow();
+});
+
+test("symmetricDifference() with empty sets and strings", () => {
   expect(sdiff([], [])).toEqual([]);
   expect(sdiff([], [""])).toEqual([""]);
   expect(sdiff([""], [])).toEqual([""]);
   expect(sdiff([""], [""])).toEqual([]);
+});
+
+test("symmetricDifference() basic permutations", () => {
   expect(sdiff([""], ["a"])).toEqual(["", "a"]);
   expect(sdiff(["a"], [""])).toEqual(["", "a"]);
   expect(sdiff(["a"], ["a"])).toEqual([]);
@@ -136,20 +190,13 @@ test("Symmetric difference", () => {
   expect(sdiff(["a", "c"], ["b"])).toEqual(["a", "b", "c"]);
   expect(sdiff(["b", "c"], ["a"])).toEqual(["a", "b", "c"]);
   expect(sdiff(["a", "b", "c"], ["a", "b", "c"])).toEqual([]);
+});
+
+test("symmetricDifference() with complex strings", () => {
   expect(
     sdiff(
       ["fish", "frog", "horse", "monkey", "rhino"],
       ["emu", "frog", "monkey", "mouse"],
     ),
   ).toEqual(["emu", "fish", "horse", "mouse", "rhino"]);
-});
-
-test("Operations on non-iterables throw", () => {
-  const set = new TernaryStringSet();
-  expect(() => set.union(1 as unknown as TernaryStringSet)).toThrow();
-  expect(() => set.intersection(1 as unknown as TernaryStringSet)).toThrow();
-  expect(() => set.difference(1 as unknown as TernaryStringSet)).toThrow();
-  expect(() =>
-    set.symmetricDifference(1 as unknown as TernaryStringSet),
-  ).toThrow();
 });

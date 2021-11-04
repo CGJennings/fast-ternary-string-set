@@ -10,7 +10,7 @@ beforeEach(() => {
   set = new TernaryStringSet();
 });
 
-test("compacted property matches state", () => {
+test("compact() getter matches state", () => {
   // new set so it's not compacted
   expect(set.compacted).toBeFalsy();
   set.compact();
@@ -21,7 +21,7 @@ test("compacted property matches state", () => {
   expect(set.compacted).toBeTruthy();
 });
 
-test("Compacting empty set is OK", () => {
+test("compact() of empty set", () => {
   // compacting an empty set or set with only "" has no effect
   // since these sets have no tree
   set.compact();
@@ -32,7 +32,7 @@ test("Compacting empty set is OK", () => {
   expect(set.has("")).toBeTruthy();
 });
 
-test("Trivial compaction of tree with no dupes is OK", () => {
+test("compact() trivial compaction of tree with no duplicates", () => {
   // for compaction to have an effect, there must be
   // strings with common suffixes
   set.clear();
@@ -47,7 +47,7 @@ test("Trivial compaction of tree with no dupes is OK", () => {
   expect(set.has("B")).toBeTruthy();
 });
 
-test("Basic suffix sharing", () => {
+test("compact() basic suffix sharing", () => {
   // here we add strings with a common suffix "-ing"
   // but different prefixes; in the original tree
   // each string will have its own subtree for its "ing"
@@ -59,7 +59,7 @@ test("Basic suffix sharing", () => {
   expect(preCompactSize - set.stats.nodes).toBe(3 * (set.size - 1));
 });
 
-test("Non-trivial suffix sharing", () => {
+test("compact() non-trivial suffix sharing", () => {
   // a more complex example than the basic test;
   // in this case each string has a unique prefix "a"-"d",
   // all have a common suffix "ing", but two share the
@@ -91,7 +91,7 @@ test("Non-trivial suffix sharing", () => {
   expect(set.stats.nodes).toBe(16);
 });
 
-test("Dictionary compaction", () => {
+test("compact() dictionary compaction", () => {
   set = compactWords;
   expect(set.size).toBe(words.length);
   // non-trivial compacted set should have fewer nodes...
@@ -103,16 +103,17 @@ test("Dictionary compaction", () => {
   }
 });
 
-test("Automatic decompaction on mutation", () => {
+test("compact() automatic decompaction on mutation", () => {
   // attempting to mutate a compact set must leave it uncompacted
   const compactOriginal = set;
   compactOriginal.addAll([
-    "apple",
-    "baby",
-    "cart",
-    "dart",
-    "ear",
-    "flustering",
+    "alligator",
+    "bass",
+    "crane",
+    "dove",
+    "eagle",
+    "flea",
+    "porcupine"
   ]);
   compactOriginal.compact();
   expect(compactOriginal.compacted).toBeTruthy();
@@ -122,22 +123,22 @@ test("Automatic decompaction on mutation", () => {
   expect(set.compacted).toBeTruthy();
 
   // adding a string already in the set has no effect
-  set.add("apple");
+  set.add("alligator");
   expect(set.compacted).toBeTruthy();
   // adding a string not in the set undoes compaction
-  set.add("carts");
+  set.add("dragonfly");
   expect(set.compacted).toBeFalsy();
   // as does adding via addAll
   set = new TernaryStringSet(compactOriginal);
-  set.addAll(["carts"]);
+  set.addAll(["dragonfly"]);
   expect(set.compacted).toBeFalsy();
 
   // likewise, deleting a string not in the set has no effect
   // while actually deleting a string undoes compaction
   set = new TernaryStringSet(compactOriginal);
-  set.delete("zzzzz");
+  set.delete("zedonk");
   expect(set.compacted).toBeTruthy();
-  set.delete("apple");
+  set.delete("alligator");
   expect(set.compacted).toBeFalsy();
 
   // balance() undoes compaction
@@ -151,7 +152,7 @@ test("Automatic decompaction on mutation", () => {
   expect(set.compacted).toBeFalsy();
 });
 
-test("Non-mutating methods do not decompact", () => {
+test("compact() non-mutating methods do not decompact", () => {
   const rhs = new TernaryStringSet(["list", "wrestle"]);
   set = compactWords;
   set.entries();
@@ -170,25 +171,24 @@ test("Non-mutating methods do not decompact", () => {
   expect(set.compacted).toBeTruthy();
 });
 
-test("Operation results are never compacted", () => {
+test("compact() operation results are never compact", () => {
   const compactOriginal = set;
   compactOriginal.addAll([
-    "apple",
-    "baby",
-    "cart",
-    "dart",
-    "ear",
-    "flustering",
+    "bobcat",
+    "camel",
+    "dinosaur",
+    "fly",
+    "gopher",
   ]);
   compactOriginal.compact();
 
-  set = new TernaryStringSet(["ear", "guest"]);
+  set = new TernaryStringSet(["fly", "otter"]);
   expect(compactOriginal.union(set).compacted).toBeFalsy();
   expect(set.union(compactOriginal).compacted).toBeFalsy();
   expect(compactOriginal.intersection(set).compacted).toBeFalsy();
   expect(set.intersection(compactOriginal).compacted).toBeFalsy();
-  expect(compactOriginal.subtract(set).compacted).toBeFalsy();
-  expect(set.subtract(compactOriginal).compacted).toBeFalsy();
+  expect(compactOriginal.difference(set).compacted).toBeFalsy();
+  expect(set.difference(compactOriginal).compacted).toBeFalsy();
   expect(compactOriginal.symmetricDifference(set).compacted).toBeFalsy();
   expect(set.symmetricDifference(compactOriginal).compacted).toBeFalsy();
 });

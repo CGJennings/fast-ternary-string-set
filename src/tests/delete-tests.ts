@@ -7,7 +7,7 @@ beforeEach(() => {
   set = new TernaryStringSet();
 });
 
-test("Delete empty string", () => {
+test("delete() empty string", () => {
   set.add("").add("horse");
   expect(set.size).toBe(2);
   expect(set.has("")).toBe(true);
@@ -16,7 +16,7 @@ test("Delete empty string", () => {
   expect(set.has("")).toBe(false);
 });
 
-test("Delete non-member", () => {
+test("delete() non-member", () => {
   expect(set.size).toBe(0);
   set.add("dog");
   expect(set.size).toBe(1);
@@ -25,7 +25,7 @@ test("Delete non-member", () => {
   expect(set.size).toBe(1);
 });
 
-test("Delete member", () => {
+test("delete() member", () => {
   expect(set.size).toBe(0);
   set.add("dog");
   expect(set.size).toBe(1);
@@ -34,7 +34,7 @@ test("Delete member", () => {
   expect(set.size).toBe(0);
 });
 
-test("Delete multiple", () => {
+test("delete() multiple", () => {
   set = wordSet();
   let size = set.size;
   const randomOrder = shuffle([...words]);

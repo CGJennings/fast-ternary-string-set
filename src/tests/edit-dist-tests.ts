@@ -49,7 +49,7 @@ beforeEach(() => {
   set = new TernaryStringSet();
 });
 
-test("bad arguments throw", () => {
+test("getWithinEditDistanceOf() bad arguments throw", () => {
   expect(() => set.getWithinEditDistanceOf(null, 0)).toThrow();
   expect(() => set.getWithinEditDistanceOf("", -1)).toThrow();
   expect(() => set.getWithinEditDistanceOf("", NaN)).toThrow();
@@ -58,12 +58,12 @@ test("bad arguments throw", () => {
   ).toThrow();
 });
 
-test("Empty tree has no results", () => {
+test("getWithinEditDistanceOf() empty tree has no results", () => {
   expect(set.getWithinEditDistanceOf("", 10)).toEqual([]);
   expect(set.getWithinEditDistanceOf("a", 10)).toEqual([]);
 });
 
-test("Can delete to empty string if present", () => {
+test("getWithinEditDistanceOf() can delete to empty string if present", () => {
   set.add("");
   expect(set.getWithinEditDistanceOf("", 0)).toEqual([""]);
   expect(set.getWithinEditDistanceOf("", 1)).toEqual([""]);
@@ -93,7 +93,7 @@ test("Can delete to empty string if present", () => {
   expect(set.getWithinEditDistanceOf("ab", 3)).toEqual([]);
 });
 
-test("Insert after end of pattern", () => {
+test("getWithinEditDistanceOf() insert after end of pattern", () => {
   set.addAll(["a", "ab", "abc", "b"]);
   expect(set.getWithinEditDistanceOf("", 0)).toEqual([]);
   expect(set.getWithinEditDistanceOf("", 1)).toEqual(["a", "b"]);
@@ -111,7 +111,7 @@ test("Insert after end of pattern", () => {
   expect(set.getWithinEditDistanceOf("a", 3)).toEqual(["ab", "abc", "abcd"]);
 });
 
-test("Insert before end of pattern", () => {
+test("getWithinEditDistanceOf() insert before end of pattern", () => {
   set.addAll(["a", "ab", "abc", "b"]);
   expect(set.getWithinEditDistanceOf("b", 0)).toEqual(["b"]);
   expect(set.getWithinEditDistanceOf("b", 1)).toEqual(["a", "ab", "b"]);
@@ -119,7 +119,7 @@ test("Insert before end of pattern", () => {
   expect(set.getWithinEditDistanceOf("ac", 1)).toEqual(["a", "ab", "abc"]);
 });
 
-test("Single substitution", () => {
+test("getWithinEditDistanceOf() single substitution", () => {
   set.addAll(["a", "b", "c", "d"]);
   expect(set.getWithinEditDistanceOf("z", 0)).toEqual([]);
   expect(set.getWithinEditDistanceOf("z", 1)).toEqual(["a", "b", "c", "d"]);
@@ -130,7 +130,7 @@ test("Single substitution", () => {
   expect(set.getWithinEditDistanceOf("a", 2)).toEqual(["a", "b", "c", "d"]);
 });
 
-test("Multiple substitutions", () => {
+test("getWithinEditDistanceOf() multiple substitutions", () => {
   const words = [
     "bat",
     "bit",
@@ -167,7 +167,7 @@ test("Multiple substitutions", () => {
   expect(set.getWithinEditDistanceOf("cat", 4)).toEqual(words);
 });
 
-test("Delete from start of pattern", () => {
+test("getWithinEditDistanceOf() delete from start of pattern", () => {
   set.addAll(["abc", "def", "ghi"]);
   expect(set.getWithinEditDistanceOf("aabc", 1)).toEqual(["abc"]);
   expect(set.getWithinEditDistanceOf("adef", 1)).toEqual(["def"]);
@@ -179,7 +179,7 @@ test("Delete from start of pattern", () => {
   expect(set.getWithinEditDistanceOf("azdef", 2)).toEqual(["def"]);
 });
 
-test("Delete from middle of pattern", () => {
+test("getWithinEditDistanceOf() delete from middle of pattern", () => {
   set.addAll(["abc", "def", "ghi"]);
   expect(set.getWithinEditDistanceOf("axbc", 1)).toEqual(["abc"]);
   expect(set.getWithinEditDistanceOf("deef", 1)).toEqual(["def"]);
@@ -192,7 +192,7 @@ test("Delete from middle of pattern", () => {
   expect(set.getWithinEditDistanceOf("abxbc", 2)).toEqual(["abc"]);
 });
 
-test("Delete from end of pattern", () => {
+test("getWithinEditDistanceOf() delete from end of pattern", () => {
   set.addAll(["abc", "def", "ghi"]);
   expect(set.getWithinEditDistanceOf("abca", 1)).toEqual(["abc"]);
   expect(set.getWithinEditDistanceOf("abcc", 1)).toEqual(["abc"]);
@@ -206,7 +206,7 @@ test("Delete from end of pattern", () => {
 });
 
 function wordListTest(pattern: string, dist: number) {
-  test(`Word list with pattern "${pattern}", distance ${dist}`, () => {
+  test(`getWithinEditDistanceOf() word list with pattern "${pattern}", distance ${dist}`, () => {
     set = wordSet(false);
     verify(set, pattern, dist);
   });
@@ -239,7 +239,7 @@ wordListTest("", 2);
 wordListTest("", 3);
 wordListTest("", 24);
 
-test("Base 4 number strings", () => {
+test("getWithinEditDistanceOf() base 4 number strings", () => {
   let base4list = [];
   for (let i = 0; i < 4 ** 4; ++i) {
     base4list[base4list.length] = i.toString(4);
