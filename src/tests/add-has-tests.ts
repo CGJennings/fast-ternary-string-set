@@ -79,36 +79,45 @@ test("Add multiple strings", () => {
   expect(set.size).toBe(words.length);
 });
 
+function addAll(...args: string[]) {
+  let strings: Iterable<string> = args;
+  for (let iterableType=0; iterableType<2; ++iterableType) {
+    const set = new TernaryStringSet();
+    set.addAll(strings);
+    expect(set.size).toBe(args.length);
+    args.forEach((s) => {
+      expect(set.has(s)).toBe(true);
+    });
+    strings = new Set(args);
+  }
+}
+
 test("Add all with length 0", () => {
-  set.addAll([]);
-  expect(set.size).toBe(0);
+  addAll()
 });
 
 test("Add all with length 1", () => {
-  set.addAll(["ape"]);
-  expect(set.size).toBe(1);
+  addAll("ape");
 });
 
 test("Add all with length 2", () => {
-  set.addAll(["ape", "pancake"]);
-  expect(set.size).toBe(2);
+  addAll("ape", "cat");
 });
 
 test("Add all with length 3", () => {
-  set.addAll(["ape", "pancake", "rhubarb"]);
-  expect(set.size).toBe(3);
+  addAll("ape", "cat", "eel");
 });
 
 test("Adding duplicate words yields correct size", () => {
   set.addAll([
     "ape",
     "crab",
-    "pancake",
+    "porcupine",
     "crab",
     "crab",
     "crab",
     "ape",
-    "pancake",
+    "porcupine",
   ]);
   expect(set.size).toBe(3);
 });
@@ -122,7 +131,7 @@ test("Add all from short English list", () => {
 });
 
 test("Add strings with spaces, punctuation, emoji, etc.", () => {
-  const words = [
+  addAll(
     "Mt. Doom",
     "a dog—smelly",
     "line 1\nline2",
@@ -133,12 +142,7 @@ test("Add strings with spaces, punctuation, emoji, etc.", () => {
     "𝄞𝅘𝅥𝅘𝅥𝅮𝅘𝅥𝅯𝅘𝅥𝅰𝄽",
     "The \0 NUL Zone",
     "max code point \udbff\udfff",
-  ];
-  set.addAll(words);
-  expect(set.size).toBe(words.length);
-  words.forEach((s) => {
-    expect(set.has(s)).toBe(true);
-  });
+  );
 });
 
 const BAD_INDEX_PREFIX = "non-string at index ";
@@ -161,7 +165,6 @@ test("addAll() throws on bad array element", () => {
   /* eslint-disable @typescript-eslint/no-explicit-any */
   expect(() => (set as any).addAll()).toThrow();
   expect(() => (set as any).addAll(null)).toThrow();
-  expect(() => (set as any).addAll("yup")).toThrow();
   expect(() => (set as any).addAll([null])).toThrow();
   expect(() => (set as any).addAll([0])).toThrow();
   expect(() => (set as any).addAll([{}])).toThrow();

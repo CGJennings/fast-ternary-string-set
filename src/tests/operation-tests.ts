@@ -1,34 +1,25 @@
 import { TernaryStringSet } from "../index";
 
-function union(a: string[], b: string[]): string[] {
-  const u = new TernaryStringSet(a).union(new TernaryStringSet(b));
-  const v = Array.from(u);
-  expect(u.size).toBe(v.length);
-  return v;
+function makeOpHelper(
+  name: keyof typeof TernaryStringSet.prototype,
+): (a: string[], b: string[]) => string[] {
+  return function (a: string[], b: string[]): string[] {
+    const aSet = new TernaryStringSet(a);
+    const bSet = new TernaryStringSet(b);
+    const valSet = (aSet[name] as CallableFunction)(bSet);
+    const valIterable = (aSet[name] as CallableFunction)(b);
+    const valArray = valSet.toArray();
+    expect(valArray.length).toBe(valSet.size);
+    expect(valArray.length).toBe(valIterable.size);
+    expect(valSet.equals(valIterable)).toBeTruthy();
+    return valArray;
+  };
 }
 
-function inter(a: string[], b: string[]): string[] {
-  const u = new TernaryStringSet(a).intersection(new TernaryStringSet(b));
-  const v = Array.from(u);
-  expect(u.size).toBe(v.length);
-  return v;
-}
-
-function sub(a: string[], b: string[]): string[] {
-  const u = new TernaryStringSet(a).subtract(new TernaryStringSet(b));
-  const v = Array.from(u);
-  expect(u.size).toBe(v.length);
-  return v;
-}
-
-function sdiff(a: string[], b: string[]): string[] {
-  const u = new TernaryStringSet(a).symmetricDifference(
-    new TernaryStringSet(b),
-  );
-  const v = Array.from(u);
-  expect(u.size).toBe(v.length);
-  return v;
-}
+const union = makeOpHelper("union");
+const inter = makeOpHelper("intersection");
+const diff = makeOpHelper("difference");
+const sdiff = makeOpHelper("symmetricDifference");
 
 test("Union", () => {
   expect(union([], [])).toEqual([]);
@@ -90,32 +81,32 @@ test("Intersection", () => {
   ).toEqual(["frog", "monkey"]);
 });
 
-test("Subtraction", () => {
-  expect(sub([], [])).toEqual([]);
-  expect(sub([], [""])).toEqual([]);
-  expect(sub([""], [])).toEqual([""]);
-  expect(sub([""], [""])).toEqual([]);
-  expect(sub([""], ["a"])).toEqual([""]);
-  expect(sub(["a"], [""])).toEqual(["a"]);
-  expect(sub(["a"], ["a"])).toEqual([]);
-  expect(sub(["a"], ["b"])).toEqual(["a"]);
-  expect(sub(["b"], ["a"])).toEqual(["b"]);
-  expect(sub(["a", "b"], [])).toEqual(["a", "b"]);
-  expect(sub([], ["a", "b"])).toEqual([]);
-  expect(sub(["a", "b"], ["b"])).toEqual(["a"]);
-  expect(sub(["a", "b"], ["a"])).toEqual(["b"]);
-  expect(sub(["a"], ["a", "b"])).toEqual([]);
-  expect(sub(["b"], ["a", "b"])).toEqual([]);
-  expect(sub(["a", "b"], ["a", "b"])).toEqual([]);
-  expect(sub(["a", "b", "c"], ["a", "b"])).toEqual(["c"]);
-  expect(sub(["a", "b"], ["a", "b", "c"])).toEqual([]);
-  expect(sub(["b", "c"], ["a", "b"])).toEqual(["c"]);
-  expect(sub(["b"], ["a", "b", "c"])).toEqual([]);
-  expect(sub(["a", "c"], ["b"])).toEqual(["a", "c"]);
-  expect(sub(["b", "c"], ["a"])).toEqual(["b", "c"]);
-  expect(sub(["a", "b", "c"], ["a", "b", "c"])).toEqual([]);
+test("Difference", () => {
+  expect(diff([], [])).toEqual([]);
+  expect(diff([], [""])).toEqual([]);
+  expect(diff([""], [])).toEqual([""]);
+  expect(diff([""], [""])).toEqual([]);
+  expect(diff([""], ["a"])).toEqual([""]);
+  expect(diff(["a"], [""])).toEqual(["a"]);
+  expect(diff(["a"], ["a"])).toEqual([]);
+  expect(diff(["a"], ["b"])).toEqual(["a"]);
+  expect(diff(["b"], ["a"])).toEqual(["b"]);
+  expect(diff(["a", "b"], [])).toEqual(["a", "b"]);
+  expect(diff([], ["a", "b"])).toEqual([]);
+  expect(diff(["a", "b"], ["b"])).toEqual(["a"]);
+  expect(diff(["a", "b"], ["a"])).toEqual(["b"]);
+  expect(diff(["a"], ["a", "b"])).toEqual([]);
+  expect(diff(["b"], ["a", "b"])).toEqual([]);
+  expect(diff(["a", "b"], ["a", "b"])).toEqual([]);
+  expect(diff(["a", "b", "c"], ["a", "b"])).toEqual(["c"]);
+  expect(diff(["a", "b"], ["a", "b", "c"])).toEqual([]);
+  expect(diff(["b", "c"], ["a", "b"])).toEqual(["c"]);
+  expect(diff(["b"], ["a", "b", "c"])).toEqual([]);
+  expect(diff(["a", "c"], ["b"])).toEqual(["a", "c"]);
+  expect(diff(["b", "c"], ["a"])).toEqual(["b", "c"]);
+  expect(diff(["a", "b", "c"], ["a", "b", "c"])).toEqual([]);
   expect(
-    sub(
+    diff(
       ["fish", "frog", "horse", "monkey", "rhino"],
       ["emu", "frog", "monkey", "mouse"],
     ),
@@ -154,11 +145,11 @@ test("Symmetric difference", () => {
   ).toEqual(["emu", "fish", "horse", "mouse", "rhino"]);
 });
 
-test("operations on non-sets throw", () => {
+test("Operations on non-iterables throw", () => {
   const set = new TernaryStringSet();
   expect(() => set.union(1 as unknown as TernaryStringSet)).toThrow();
   expect(() => set.intersection(1 as unknown as TernaryStringSet)).toThrow();
-  expect(() => set.subtract(1 as unknown as TernaryStringSet)).toThrow();
+  expect(() => set.difference(1 as unknown as TernaryStringSet)).toThrow();
   expect(() =>
     set.symmetricDifference(1 as unknown as TernaryStringSet),
   ).toThrow();
