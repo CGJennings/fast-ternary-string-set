@@ -14,9 +14,15 @@ function filter(
   thisArg?: unknown,
 ) {
   expect(
-    new TernaryStringSet(str).filter(predicate, thisArg).toArray()
+    new TernaryStringSet(str).filter(predicate, thisArg).toArray(),
   ).toEqual(str.filter(predicate));
 }
+
+test("filter() throws if passed non-function", () => {
+  expect(() => set.filter(null)).toThrow();
+  expect(() => set.filter(1 as unknown as (s: string) => boolean)).toThrow();
+  expect(() => set.filter({} as unknown as (s: string) => boolean)).toThrow();
+});
 
 test("filter() empty set", () => {
   expect(set.filter(() => true).size).toBe(0);

@@ -97,7 +97,7 @@ test("stats for deleted word indicate note remains", () => {
   set.add("B");
   set.add("A");
   set.add("C");
-  set.add("D");  
+  set.add("D");
   set.delete("C");
   st = set.stats;
   expect(st.size).toBe(3);

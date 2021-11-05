@@ -66,7 +66,15 @@ test("add() singleton", () => {
 });
 
 test("add() multiple strings", () => {
-  const words = ["moose", "dolphin", "caribou", "emu", "snake", "zebra", "narwhal"];
+  const words = [
+    "moose",
+    "dolphin",
+    "caribou",
+    "emu",
+    "snake",
+    "zebra",
+    "narwhal",
+  ];
   // test each as added
   words.forEach((s) => {
     set.add(s);

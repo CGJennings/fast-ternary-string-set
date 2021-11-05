@@ -89,6 +89,8 @@ test("fromBuffer() restore v3 coverage buffer from file", () => {
 
 test("fromBuffer() null or invalid buffer throws", () => {
   expect(() => TernaryStringSet.fromBuffer(null)).toThrow();
-  expect(() => TernaryStringSet.fromBuffer(1 as unknown as ArrayBuffer)).toThrow();
+  expect(() =>
+    TernaryStringSet.fromBuffer(1 as unknown as ArrayBuffer),
+  ).toThrow();
   expect(() => TernaryStringSet.fromBuffer(new Uint8Array(16))).toThrow();
 });

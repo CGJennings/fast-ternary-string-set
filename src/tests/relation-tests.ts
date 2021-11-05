@@ -86,7 +86,6 @@ test("equals() with word list", () => {
   expect(lhs.equals(rhs)).toBeFalsy();
 });
 
-
 test("isDisjointFrom() with same object is false", () => {
   const set = new TernaryStringSet(["grasshopper", "hippopotamus", "skunk"]);
   expect(set.isDisjointFrom(set)).toBeFalsy();
@@ -94,7 +93,9 @@ test("isDisjointFrom() with same object is false", () => {
 
 test("isDisjointFrom() throws on non-iterator", () => {
   const set = new TernaryStringSet();
-  expect(() => set.isDisjointFrom(null as unknown as TernaryStringSet)).toThrow();
+  expect(() =>
+    set.isDisjointFrom(null as unknown as TernaryStringSet),
+  ).toThrow();
   expect(() => set.isDisjointFrom(1 as unknown as TernaryStringSet)).toThrow();
 });
 
@@ -145,7 +146,6 @@ test("isDisjointFrom() permutations", () => {
   expect(disjoint(["b", "c"], ["a", "b", "c"])).toBeFalsy();
   expect(disjoint(["a", "b", "c"], ["a", "b", "c"])).toBeFalsy();
 });
-
 
 test("isSubsetOf() with same object is true", () => {
   const set = new TernaryStringSet(["grasshopper", "hippopotamus", "skunk"]);
@@ -208,7 +208,6 @@ test("isSubsetOf() with word list", () => {
   expect(lhs.isSubsetOf(rhs)).toBeFalsy();
   expect(rhs.isSubsetOf(lhs)).toBeTruthy();
 });
-
 
 test("isSupersetOf() with same object is true", () => {
   const set = new TernaryStringSet(["grasshopper", "hippopotamus", "skunk"]);

@@ -113,7 +113,7 @@ test("compact() automatic decompaction on mutation", () => {
     "dove",
     "eagle",
     "flea",
-    "porcupine"
+    "porcupine",
   ]);
   compactOriginal.compact();
   expect(compactOriginal.compacted).toBeTruthy();
@@ -173,13 +173,7 @@ test("compact() non-mutating methods do not decompact", () => {
 
 test("compact() operation results are never compact", () => {
   const compactOriginal = set;
-  compactOriginal.addAll([
-    "bobcat",
-    "camel",
-    "dinosaur",
-    "fly",
-    "gopher",
-  ]);
+  compactOriginal.addAll(["bobcat", "camel", "dinosaur", "fly", "gopher"]);
   compactOriginal.compact();
 
   set = new TernaryStringSet(["fly", "otter"]);

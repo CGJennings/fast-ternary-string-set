@@ -65,7 +65,6 @@ test("union() with complex strings", () => {
   ).toEqual(["emu", "fish", "horse", "monkey", "mouse", "rhino"]);
 });
 
-
 test("intersection() on non-iterable throws", () => {
   expect(() => set.intersection(null as unknown as TernaryStringSet)).toThrow();
   expect(() => set.intersection(1 as unknown as TernaryStringSet)).toThrow();
@@ -109,7 +108,6 @@ test("intersection() with complex strings", () => {
   ).toEqual(["frog", "monkey"]);
 });
 
-
 test("difference() on non-iterable throws", () => {
   expect(() => set.difference(null as unknown as TernaryStringSet)).toThrow();
   expect(() => set.difference(1 as unknown as TernaryStringSet)).toThrow();
@@ -152,7 +150,6 @@ test("difference() with complex strings", () => {
     ),
   ).toEqual(["fish", "horse", "rhino"]);
 });
-
 
 test("symmetricDifference() on non-iterable throws", () => {
   expect(() =>

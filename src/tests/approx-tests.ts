@@ -71,7 +71,6 @@ test("getArrangementsOf() includes empty string if present", () => {
   expect(set.getArrangementsOf("a")).toEqual(["", "a"]);
 });
 
-
 test("getCompletionsOf() bad arguments throw", () => {
   expect(() => set.getCompletionsOf(null)).toThrow();
 });
@@ -88,7 +87,11 @@ test("getCompletionsOf() basic completions", () => {
   ];
   set.addAll(elements);
   expect(set.getCompletionsOf("")).toEqual(elements);
-  expect(set.getCompletionsOf("a")).toEqual(["aardvark", "aardvarks", "armadillo"]);
+  expect(set.getCompletionsOf("a")).toEqual([
+    "aardvark",
+    "aardvarks",
+    "armadillo",
+  ]);
   expect(set.getCompletionsOf("aa")).toEqual(["aardvark", "aardvarks"]);
   expect(set.getCompletionsOf("aardvark")).toEqual(["aardvark", "aardvarks"]);
   expect(set.getCompletionsOf("aardvarks")).toEqual(["aardvarks"]);

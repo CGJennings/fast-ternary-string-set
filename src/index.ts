@@ -772,11 +772,14 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param thisArg An optional value to use as `this` when calling the predicate.
    * @returns A new set containing only those elements for which the predicate return
    *   value is true.
+   * @throws {TypeError} If the predicate is not a function.
    */
   filter(
     predicate: (value: string, index: number, set: TernaryStringSet) => boolean,
     thisArg?: unknown,
   ): TernaryStringSet {
+    if (!(predicate instanceof Function))
+      throw new TypeError("predicate must be a function");
     if (this._size === 0) return new TernaryStringSet();
     if (thisArg !== undefined) predicate = predicate.bind(thisArg);
 
@@ -806,6 +809,67 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
 
     return results;
+  }
+
+  /**
+   * Returns whether at least one element in this set passes a test implemented
+   * by the specified function.
+   *
+   * @param predicate A function that accepts strings from this set and returns
+   *  true if the string passes the desired test.
+   * @param thisArg An optional value to use as `this` when calling the predicate.
+   * @returns True if at least one element in this set passes the test.
+   * @throws {TypeError} If the predicate is not a function.
+   */
+  some(
+    predicate: (value: string, index: number, set: TernaryStringSet) => boolean,
+    thisArg?: unknown,
+  ): boolean {
+    return this._predicateImpl(true, predicate, thisArg);
+  }
+
+  /**
+   * Returns whether every element in this set passes a test implemented
+   * by the specified function.
+   *
+   * @param predicate A function that accepts strings from this set and returns
+   *  true if the string passes the desired test.
+   * @param thisArg An optional value to use as `this` when calling the predicate.
+   * @returns True if at every element in this set passes the test.
+   * @throws {TypeError} If the predicate is not a function.
+   */
+  every(
+    predicate: (value: string, index: number, set: TernaryStringSet) => boolean,
+    thisArg?: unknown,
+  ): boolean {
+    return this._predicateImpl(false, predicate, thisArg);
+  }
+
+  private _predicateImpl(
+    cond: boolean,
+    predicate: (value: string, index: number, set: TernaryStringSet) => boolean,
+    thisArg?: unknown,
+  ): boolean {
+    if (!(predicate instanceof Function))
+      throw new TypeError("predicate must be a function");
+    if (this._size === 0) return !cond;
+    if (thisArg !== undefined) predicate = predicate.bind(thisArg);
+
+    let index = 0;
+    if (this._hasEmpty) {
+      if (cond == !!predicate("", index++, this)) {
+        return cond;
+      }
+    }
+
+    let result = !cond;
+    this._visitCodePoints(0, [], (cp) => {
+      if (cond == !!predicate(String.fromCodePoint(...cp), index++, this)) {
+        result = cond;
+        return false;
+      }
+    });
+    return result;
   }
 
   /**
@@ -911,7 +975,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   equals(rhs: any): boolean {
     if (this === rhs) return true;
 
-    if (!(rhs instanceof TernaryStringSet)) {      
+    if (!(rhs instanceof TernaryStringSet)) {
       if (rhs == null || typeof rhs[Symbol.iterator] !== "function") {
         return false;
       }
