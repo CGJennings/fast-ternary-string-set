@@ -11,16 +11,18 @@ function some(
   set: string[],
   expected: boolean,
   predicate: (value: string) => boolean,
+  thisArg?: unknown
 ): void {
-  expect(new TernaryStringSet(set).some(predicate)).toBe(expected);
+  expect(new TernaryStringSet(set).some(predicate, thisArg)).toBe(expected);
 }
 
 function every(
   set: string[],
   expected: boolean,
   predicate: (value: string) => boolean,
+  thisArg?: unknown
 ): void {
-  expect(new TernaryStringSet(set).every(predicate)).toBe(expected);
+  expect(new TernaryStringSet(set).every(predicate, thisArg)).toBe(expected);
 }
 
 test("some() throws if passed non-function", () => {
@@ -60,6 +62,11 @@ test("some() against word list", () => {
   expect(wordSet(false).some((s) => s.endsWith("zzz"))).toBeFalsy();
 });
 
+test("some() predicate called with thisArg", () => {
+  const thisArg = {};
+  some([""], true, (s) => this === thisArg, thisArg);
+});
+
 test("every() throws if passed non-function", () => {
   expect(() => set.every(null)).toThrow();
   expect(() => set.every(1 as unknown as (s: string) => boolean)).toThrow();
@@ -96,4 +103,9 @@ test("every() against word list", () => {
   expect(wordSet(false).every((s) => s.length > 0)).toBeTruthy();
   expect(wordSet(false).every((s) => s.endsWith("ing"))).toBeFalsy();
   expect(wordSet(false).every((s) => s.endsWith("zzz"))).toBeFalsy();
+});
+
+test("every() predicate called with thisArg", () => {
+  const thisArg = {};
+  every([""], true, () => this === thisArg, thisArg);
 });
