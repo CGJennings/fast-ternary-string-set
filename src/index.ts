@@ -885,11 +885,12 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     // ```
 
     let subset = true;
-    this._visitCodePoints(0, [], (s) => {
+    this._searchCodePoints(0, [], (s) => {
       if (rhs._hasCodePoints(0, s, 0) < 0) {
         subset = false;
-        return false;
+        return true;
       }
+      return false;
     });
     return subset;
   }
@@ -1207,24 +1208,54 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param node The starting node index (0 for tree root).
    * @param prefix The non-null array that will hold string code points;
    *     any existing elements are retained as a prefix of every string.
-   * @param visitFn The non-null function to invoke for each string; returning
-   *     `false` will stop and return without visiting more strings.
+   * @param visitFn The non-null function to invoke for each string.
    */
   private _visitCodePoints(
     node: number,
     prefix: number[],
-    visitFn: (prefix: number[], node: number) => void | boolean,
+    visitFn: (prefix: number[], node: number) => void,
   ) {
     const tree = this._tree;
     if (node >= tree.length) return;
     this._visitCodePoints(tree[node + 1], prefix, visitFn);
     prefix.push(tree[node] & CP_MASK);
-    if (tree[node] & EOS) {
-      if (visitFn(prefix, node) === false) return;
-    }
+    if (tree[node] & EOS) visitFn(prefix, node);
     this._visitCodePoints(tree[node + 2], prefix, visitFn);
     prefix.pop();
     this._visitCodePoints(tree[node + 3], prefix, visitFn);
+  }
+
+  /**
+   * This behaves identically to `_visitCodePoints`, except that the
+   * `visitFn` is expected to return a boolean value that indicates
+   * whether or not the search (string visiting) should stop.
+   *
+   * @param node The starting node index (0 for tree root).
+   * @param prefix The non-null array that will hold string code points;
+   *     any existing elements are retained as a prefix of every string.
+   * @param visitFn The non-null function to invoke for each string; returning
+   *     `true` stops and returns without visiting more strings.
+   * @returns A boolean indicating if the search was stopped by the callback.
+   */
+  private _searchCodePoints(
+    node: number,
+    prefix: number[],
+    visitFn: (prefix: number[], node: number) => boolean,
+  ): boolean {
+    const tree = this._tree;
+    if (node >= tree.length) return false;
+    if (this._searchCodePoints(tree[node + 1], prefix, visitFn)) return true;
+    prefix.push(tree[node] & CP_MASK);
+    if (tree[node] & EOS) {
+      if (visitFn(prefix, node) === true) {
+        prefix.pop();
+        return true;
+      }
+    }
+    if (this._searchCodePoints(tree[node + 2], prefix, visitFn)) return true;
+    prefix.pop();
+    if (this._searchCodePoints(tree[node + 3], prefix, visitFn)) return true;
+    return false;
   }
 
   /**
