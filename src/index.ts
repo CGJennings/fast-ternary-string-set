@@ -424,7 +424,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
 
     // continue from end of prefix by taking equal branch
-    this._visitAllCodePoints(this._tree[node + 2], pat, (s) => {
+    this._visitCodePoints(this._tree[node + 2], pat, (s) => {
       results.push(String.fromCodePoint(...s));
     });
     return results;
@@ -451,7 +451,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     const pat = toCodePoints(suffix);
 
     // unlike getCompletionsOf, we have to search the entire tree
-    this._visitAllCodePoints(0, [], (s) => {
+    this._visitCodePoints(0, [], (s) => {
       if (s.length >= pat.length) {
         for (let i = 1; i <= pat.length; ++i) {
           if (s[s.length - i] !== pat[pat.length - i]) {
@@ -583,7 +583,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
     // optimize case where any string the same length as the pattern will match
     if (distance >= pattern.length) {
-      this._visitAllCodePoints(0, [], (prefix) => {
+      this._visitCodePoints(0, [], (prefix) => {
         if (prefix.length === pattern.length) {
           matches.push(String.fromCodePoint(...prefix));
         }
@@ -680,7 +680,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       // make patterns for the next iteration by deleting
       // each character in turn from this iteration's patterns
       // abc => ab ac bc => a b c => empty string
-      patterns._visitAllCodePoints(0, [], (cp) => {
+      patterns._visitCodePoints(0, [], (cp) => {
         this._getWithinEditImpl(0, cp, 0, d, [], results);
         if (d > 0 && cp.length > 0) {
           if (cp.length === 1) {
@@ -793,7 +793,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       }
     }
 
-    this._visitAllCodePoints(0, [], (cp) => {
+    this._visitCodePoints(0, [], (cp) => {
       if (!predicate(String.fromCodePoint(...cp), index++, this)) {
         const node = results._hasCodePoints(0, cp, 0);
         results._tree[node] &= ~EOS;
@@ -936,7 +936,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       const s = "";
       callbackFn(s, s, this);
     }
-    this._visitAllCodePoints(0, [], (prefix) => {
+    this._visitCodePoints(0, [], (prefix) => {
       const s = String.fromCodePoint(...prefix);
       callbackFn(s, s, this);
     });
@@ -1015,7 +1015,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     separator = String(separator);
     let result = "";
     let first = !this._hasEmpty;
-    this._visitAllCodePoints(0, [], (s) => {
+    this._visitCodePoints(0, [], (s) => {
       if (first) {
         first = false;
       } else {
@@ -1191,7 +1191,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       union._hasEmpty = true;
       ++union._size;
     }
-    rhs._visitAllCodePoints(0, [], (s) => {
+    rhs._visitCodePoints(0, [], (s) => {
       union._addCodePoints(0, s, 0);
     });
     return union;
@@ -1229,7 +1229,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       --intersect._size;
     }
     intersect._hasEmpty &&= rhs._hasEmpty;
-    intersect._visitAllCodePoints(0, [], (s, node) => {
+    intersect._visitCodePoints(0, [], (s, node) => {
       // delete if not also in rhs
       if (rhs._hasCodePoints(0, s, 0) < 0) {
         intersect._tree[node] &= CP_MASK;
@@ -1272,7 +1272,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       diff._hasEmpty = false;
       --diff._size;
     }
-    diff._visitAllCodePoints(0, [], (s, node) => {
+    diff._visitCodePoints(0, [], (s, node) => {
       // delete if in rhs
       if (rhs._hasCodePoints(0, s, 0) >= 0) {
         diff._tree[node] &= CP_MASK;
@@ -1308,7 +1308,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         --diff._size;
       }
     }
-    (rhs as TernaryStringSet)._visitAllCodePoints(0, [], (s) => {
+    (rhs as TernaryStringSet)._visitCodePoints(0, [], (s) => {
       // if s is also in diff, delete in diff; otherwise add to diff
       const node = diff._hasCodePoints(0, s, 0);
       if (node >= 0) {
@@ -1444,7 +1444,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    */
   toArray(): string[] {
     const a = this._hasEmpty ? [""] : [];
-    this._visitAllCodePoints(0, [], (s) => {
+    this._visitCodePoints(0, [], (s) => {
       a[a.length] = String.fromCodePoint(...s);
     });
     return a;
@@ -1498,19 +1498,19 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    *     any existing elements are retained as a prefix of every string.
    * @param visitFn The non-null function to invoke for each string.
    */
-  private _visitAllCodePoints(
+  private _visitCodePoints(
     node: number,
     prefix: number[],
     visitFn: (prefix: number[], node: number) => void,
   ) {
     const tree = this._tree;
     if (node >= tree.length) return;
-    this._visitAllCodePoints(tree[node + 1], prefix, visitFn);
+    this._visitCodePoints(tree[node + 1], prefix, visitFn);
     prefix.push(tree[node] & CP_MASK);
     if (tree[node] & EOS) visitFn(prefix, node);
-    this._visitAllCodePoints(tree[node + 2], prefix, visitFn);
+    this._visitCodePoints(tree[node + 2], prefix, visitFn);
     prefix.pop();
-    this._visitAllCodePoints(tree[node + 3], prefix, visitFn);
+    this._visitCodePoints(tree[node + 3], prefix, visitFn);
   }
 
   /**
