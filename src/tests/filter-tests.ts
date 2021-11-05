@@ -15,7 +15,7 @@ function filter(
 ) {
   expect(
     new TernaryStringSet(str).filter(predicate, thisArg).toArray(),
-  ).toEqual(str.filter(predicate));
+  ).toEqual(str.filter(predicate, thisArg));
 }
 
 test("filter() throws if passed non-function", () => {
@@ -77,5 +77,8 @@ test("filter() index parameter", () => {
 
 test("filter() callback called with thisArg", () => {
   const thisArg: unknown = {};
-  filter(["", "aphid", "crow", "walrus"], () => this === thisArg, thisArg);
+  function callback(this: unknown) {
+    return this === thisArg;
+  }
+  filter(["", "aphid", "crow", "walrus"], callback, thisArg);
 });

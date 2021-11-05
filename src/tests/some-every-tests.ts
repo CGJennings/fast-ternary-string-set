@@ -11,7 +11,7 @@ function some(
   set: string[],
   expected: boolean,
   predicate: (value: string) => boolean,
-  thisArg?: unknown
+  thisArg?: unknown,
 ): void {
   expect(new TernaryStringSet(set).some(predicate, thisArg)).toBe(expected);
 }
@@ -20,7 +20,7 @@ function every(
   set: string[],
   expected: boolean,
   predicate: (value: string) => boolean,
-  thisArg?: unknown
+  thisArg?: unknown,
 ): void {
   expect(new TernaryStringSet(set).every(predicate, thisArg)).toBe(expected);
 }
@@ -63,8 +63,11 @@ test("some() against word list", () => {
 });
 
 test("some() predicate called with thisArg", () => {
-  const thisArg = {};
-  some([""], true, (s) => this === thisArg, thisArg);
+  const thisArg: unknown = "shrew";
+  function callback(this: unknown) {
+    return this === thisArg;
+  }
+  some([""], true, callback, thisArg);
 });
 
 test("every() throws if passed non-function", () => {
@@ -106,6 +109,9 @@ test("every() against word list", () => {
 });
 
 test("every() predicate called with thisArg", () => {
-  const thisArg = {};
-  every([""], true, () => this === thisArg, thisArg);
+  const thisArg: unknown = "shrew";
+  function callback(this: unknown) {
+    return this === thisArg;
+  }
+  every([""], true, callback, thisArg);
 });

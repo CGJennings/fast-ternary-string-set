@@ -424,7 +424,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
 
     // continue from end of prefix by taking equal branch
-    this._visitCodePoints(this._tree[node + 2], pat, (s) => {
+    this._visitAllCodePoints(this._tree[node + 2], pat, (s) => {
       results.push(String.fromCodePoint(...s));
     });
     return results;
@@ -451,7 +451,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     const pat = toCodePoints(suffix);
 
     // unlike getCompletionsOf, we have to search the entire tree
-    this._visitCodePoints(0, [], (s) => {
+    this._visitAllCodePoints(0, [], (s) => {
       if (s.length >= pat.length) {
         for (let i = 1; i <= pat.length; ++i) {
           if (s[s.length - i] !== pat[pat.length - i]) {
@@ -583,7 +583,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
     // optimize case where any string the same length as the pattern will match
     if (distance >= pattern.length) {
-      this._visitCodePoints(0, [], (prefix) => {
+      this._visitAllCodePoints(0, [], (prefix) => {
         if (prefix.length === pattern.length) {
           matches.push(String.fromCodePoint(...prefix));
         }
@@ -680,7 +680,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       // make patterns for the next iteration by deleting
       // each character in turn from this iteration's patterns
       // abc => ab ac bc => a b c => empty string
-      patterns._visitCodePoints(0, [], (cp) => {
+      patterns._visitAllCodePoints(0, [], (cp) => {
         this._getWithinEditImpl(0, cp, 0, d, [], results);
         if (d > 0 && cp.length > 0) {
           if (cp.length === 1) {
@@ -793,7 +793,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       }
     }
 
-    this._visitCodePoints(0, [], (cp) => {
+    this._visitAllCodePoints(0, [], (cp) => {
       if (!predicate(String.fromCodePoint(...cp), index++, this)) {
         const node = results._hasCodePoints(0, cp, 0);
         results._tree[node] &= ~EOS;
@@ -809,6 +809,45 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
 
     return results;
+  }
+
+  /**
+   * Returns the first element in this set that satisfies a test implemented by
+   * the specified function. If no element satisfies the test, the result is
+   * `undefined`.
+   *
+   * @param predicate A function that accepts strings from this set and returns
+   *  true if the string passes the desired test.
+   * @param thisArg An optional value to use as `this` when calling the predicate.
+   * @returns The first string to pass the test when tested in sorted order, or `undefined`.
+   */
+  find(
+    predicate: (value: string, index: number, set: TernaryStringSet) => boolean,
+    thisArg?: unknown,
+  ): string | undefined {
+    if (!(predicate instanceof Function)) {
+      throw new TypeError("predicate must be a function");
+    }
+    if (this._size === 0) return undefined;
+    if (thisArg !== undefined) predicate = predicate.bind(thisArg);
+
+    let index = 0;
+    if (this._hasEmpty && predicate("", index++, this)) {
+      return "";
+    }
+
+    let result: string = undefined;
+    this._searchCodePoints(0, [], (cp) => {
+      const s = String.fromCodePoint(...cp);
+      if (predicate(s, index++, this)) {
+        if (result === undefined) {
+          result = s;
+          return true;
+        }
+      }
+      return false;
+    });
+    return result;
   }
 
   /**
@@ -850,8 +889,9 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     predicate: (value: string, index: number, set: TernaryStringSet) => boolean,
     thisArg?: unknown,
   ): boolean {
-    if (!(predicate instanceof Function))
+    if (!(predicate instanceof Function)) {
       throw new TypeError("predicate must be a function");
+    }
     if (this._size === 0) return !cond;
     if (thisArg !== undefined) predicate = predicate.bind(thisArg);
 
@@ -863,11 +903,12 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
 
     let result = !cond;
-    this._visitCodePoints(0, [], (cp) => {
+    this._searchCodePoints(0, [], (cp) => {
       if (cond == !!predicate(String.fromCodePoint(...cp), index++, this)) {
         result = cond;
-        return false;
+        return true;
       }
+      return false;
     });
     return result;
   }
@@ -895,7 +936,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       const s = "";
       callbackFn(s, s, this);
     }
-    this._visitCodePoints(0, [], (prefix) => {
+    this._visitAllCodePoints(0, [], (prefix) => {
       const s = String.fromCodePoint(...prefix);
       callbackFn(s, s, this);
     });
@@ -963,6 +1004,29 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
+   * Returns a string that is the concatenation of all the strings in this set,
+   * separated by a comma or the specified separator string.
+   *
+   * @param separator Optional string to use as separator. Default is `","`.
+   * @returns A string containing all of the sets elements, in sorted order,
+   *   separated by the specified string.
+   */
+  join(separator = ","): string {
+    separator = String(separator);
+    let result = "";
+    let first = !this._hasEmpty;
+    this._visitAllCodePoints(0, [], (s) => {
+      if (first) {
+        first = false;
+      } else {
+        result += separator;
+      }
+      result += String.fromCodePoint(...s);
+    });
+    return result;
+  }
+
+  /**
    * Returns whether this set contains exactly the same elements as the specified iterable.
    * Any object is accepted for comparison; if it is not a set or iterable, the result
    * is always `false`.
@@ -1017,11 +1081,12 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (this._hasEmpty && rhs._hasEmpty) return false;
 
     let disjoint = true;
-    this._visitCodePoints(0, [], (s) => {
+    this._searchCodePoints(0, [], (s) => {
       if (rhs._hasCodePoints(0, s, 0) >= 0) {
         disjoint = false;
-        return false;
+        return true;
       }
+      return false;
     });
     return disjoint;
   }
@@ -1062,11 +1127,12 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     // ```
 
     let subset = true;
-    this._visitCodePoints(0, [], (s) => {
+    this._searchCodePoints(0, [], (s) => {
       if (rhs._hasCodePoints(0, s, 0) < 0) {
         subset = false;
-        return false;
+        return true;
       }
+      return false;
     });
     return subset;
   }
@@ -1125,7 +1191,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       union._hasEmpty = true;
       ++union._size;
     }
-    rhs._visitCodePoints(0, [], (s) => {
+    rhs._visitAllCodePoints(0, [], (s) => {
       union._addCodePoints(0, s, 0);
     });
     return union;
@@ -1163,7 +1229,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       --intersect._size;
     }
     intersect._hasEmpty &&= rhs._hasEmpty;
-    intersect._visitCodePoints(0, [], (s, node) => {
+    intersect._visitAllCodePoints(0, [], (s, node) => {
       // delete if not also in rhs
       if (rhs._hasCodePoints(0, s, 0) < 0) {
         intersect._tree[node] &= CP_MASK;
@@ -1206,7 +1272,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       diff._hasEmpty = false;
       --diff._size;
     }
-    diff._visitCodePoints(0, [], (s, node) => {
+    diff._visitAllCodePoints(0, [], (s, node) => {
       // delete if in rhs
       if (rhs._hasCodePoints(0, s, 0) >= 0) {
         diff._tree[node] &= CP_MASK;
@@ -1242,7 +1308,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         --diff._size;
       }
     }
-    (rhs as TernaryStringSet)._visitCodePoints(0, [], (s) => {
+    (rhs as TernaryStringSet)._visitAllCodePoints(0, [], (s) => {
       // if s is also in diff, delete in diff; otherwise add to diff
       const node = diff._hasCodePoints(0, s, 0);
       if (node >= 0) {
@@ -1378,7 +1444,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    */
   toArray(): string[] {
     const a = this._hasEmpty ? [""] : [];
-    this._visitCodePoints(0, [], (s) => {
+    this._visitAllCodePoints(0, [], (s) => {
       a[a.length] = String.fromCodePoint(...s);
     });
     return a;
@@ -1430,24 +1496,54 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param node The starting node index (0 for tree root).
    * @param prefix The non-null array that will hold string code points;
    *     any existing elements are retained as a prefix of every string.
-   * @param visitFn The non-null function to invoke for each string; returning
-   *     `false` will stop and return without visiting more strings.
+   * @param visitFn The non-null function to invoke for each string.
    */
-  private _visitCodePoints(
+  private _visitAllCodePoints(
     node: number,
     prefix: number[],
-    visitFn: (prefix: number[], node: number) => void | boolean,
+    visitFn: (prefix: number[], node: number) => void,
   ) {
     const tree = this._tree;
     if (node >= tree.length) return;
-    this._visitCodePoints(tree[node + 1], prefix, visitFn);
+    this._visitAllCodePoints(tree[node + 1], prefix, visitFn);
+    prefix.push(tree[node] & CP_MASK);
+    if (tree[node] & EOS) visitFn(prefix, node);
+    this._visitAllCodePoints(tree[node + 2], prefix, visitFn);
+    prefix.pop();
+    this._visitAllCodePoints(tree[node + 3], prefix, visitFn);
+  }
+
+  /**
+   * This behaves identically to `_visitCodePoints`, except that the
+   * `visitFn` is expected to return a boolean value that indicates
+   * whether or not the search (string visiting) should stop.
+   *
+   * @param node The starting node index (0 for tree root).
+   * @param prefix The non-null array that will hold string code points;
+   *     any existing elements are retained as a prefix of every string.
+   * @param visitFn The non-null function to invoke for each string; returning
+   *     `true` stops and returns without visiting more strings.
+   * @returns A boolean indicating if the search was stopped by the callback.
+   */
+  private _searchCodePoints(
+    node: number,
+    prefix: number[],
+    visitFn: (prefix: number[], node: number) => boolean,
+  ): boolean {
+    const tree = this._tree;
+    if (node >= tree.length) return false;
+    if (this._searchCodePoints(tree[node + 1], prefix, visitFn)) return true;
     prefix.push(tree[node] & CP_MASK);
     if (tree[node] & EOS) {
-      if (visitFn(prefix, node) === false) return;
+      if (visitFn(prefix, node) === true) {
+        prefix.pop();
+        return true;
+      }
     }
-    this._visitCodePoints(tree[node + 2], prefix, visitFn);
+    if (this._searchCodePoints(tree[node + 2], prefix, visitFn)) return true;
     prefix.pop();
-    this._visitCodePoints(tree[node + 3], prefix, visitFn);
+    if (this._searchCodePoints(tree[node + 3], prefix, visitFn)) return true;
+    return false;
   }
 
   /**
