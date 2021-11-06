@@ -818,7 +818,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * can return any value, but non-string values will be coerced for
    * compatibility with the new set.
    *
-   * @param mappingFn A function that accepts strings from this set and returns
+   * @param mapper A function that accepts strings from this set and returns
    *   the string to be added to the new set.
    * @param thisArg An optional value to use as `this` when calling the mapping function.
    * @returns A new set containing the results of applying the mapping function to each
@@ -827,13 +827,13 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    */
   map(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mappingFn: (value: string, index: number, set: TernaryStringSet) => any,
+    mapper: (value: string, index: number, set: TernaryStringSet) => any,
     thisArg?: unknown,
   ): TernaryStringSet {
-    if (!(mappingFn instanceof Function)) {
-      throw new TypeError("predicate must be a function");
+    if (!(mapper instanceof Function)) {
+      throw new TypeError("mapper must be a function");
     }
-    if (thisArg !== undefined) mappingFn = mappingFn.bind(thisArg);
+    if (thisArg !== undefined) mapper = mapper.bind(thisArg);
 
     // We guarantee that we will process the strings in sorted order, but
     // if the mapping function also produces sorted output and we build
@@ -843,9 +843,111 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
     const array = this.toArray();
     for (let i = 0; i < array.length; ++i) {
-      array[i] = String(mappingFn(array[i], i, this));
+      array[i] = String(mapper(array[i], i, this));
     }
     return new TernaryStringSet(array);
+  }
+
+  /**
+   * Returns a string that reduces this set to a single accumulated
+   * value by calling the specified reducer function with each element
+   * in turn. The reducer is passed the accumulator and the next element
+   * and returns the new value of the accumulator.
+   *
+   * Examples:
+   * 
+   * ```js
+   * // list elements in reverse order
+   * set.reduce((acc, el) => `${el}, ${acc}`);
+   * ```
+   * 
+   * ```js
+   * // group elements by their first letter
+   * set.reduce((acc, el) => {
+   *   const letter = el.charAt(0);
+   *   if (acc[letter] === undefined) {
+   *     acc[letter] = [];
+   *   }
+   *   acc[letter].push(el);
+   * }, {});
+   * ```
+   *
+   * @param reducer A function called with the previous accumulator value,
+   *   the next element to reduce, the sequential index of the element,
+   *   and this set.
+   * @param initialValue An optional initial value for the accumulator.
+   *   If no initial value is provided, the first element in the set is used.
+   * @returns The final value of the accumulator.
+   * @throws {TypeError} If the reducer is not a function or if the set is
+   *   empty and no initial value is provided.
+   */
+  reduce<T>(
+    reducer: (
+      previous: T,
+      current: string,
+      index: number,
+      set: TernaryStringSet,
+    ) => T,
+    initialValue: T,
+  ): T;
+
+  reduce(
+    reducer: (
+      previous: string,
+      current: string,
+      index: number,
+      set: TernaryStringSet,
+    ) => string,
+    initialValue?: string,
+  ): string;
+
+  reduce<T>(
+    reducer: (
+      previous: T | string,
+      current: string,
+      index: number,
+      set: TernaryStringSet,
+    ) => T | string,
+    initialValue?: T | string,
+  ): T | string {
+    if (!(reducer instanceof Function)) {
+      throw new TypeError("reducer must be a function");
+    }
+    if (this._size === 0 && initialValue === undefined) {
+      throw new TypeError("reduce of empty set with no initial value");
+    }
+
+    let index = 0;
+    let initialized = false;
+    let accumulator: T | string;
+
+    if (initialValue !== undefined) {
+      accumulator = initialValue;
+      initialized = true;
+    }
+
+    if (this._hasEmpty) {
+      if (!initialized) {
+        accumulator = "";
+        initialized = true;
+      } else {
+        accumulator = reducer(accumulator, "", 0, this);
+      }
+      index = 1;
+    }
+
+    this._visitCodePoints(0, [], (cp) => {
+      const s = String.fromCodePoint(...cp);
+      if (!initialized) {
+        ++index;
+        accumulator = s;
+        initialized = true;
+      } else {
+        accumulator = reducer(accumulator, s, index++, this);
+      }
+    });
+
+    return accumulator;
   }
 
   /**
