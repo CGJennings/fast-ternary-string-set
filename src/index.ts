@@ -62,7 +62,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     this.clear();
 
     if (source != null) {
-      if (typeof source[Symbol.iterator] !== "function") {
+      if (!(source[Symbol.iterator] instanceof Function)) {
         throw new TypeError("source object is not iterable");
       }
       if (source instanceof TernaryStringSet) {
@@ -182,7 +182,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   addAll(strings: Iterable<string>, start = 0, end?: number): TernaryStringSet {
     if (strings == null) throw new ReferenceError("null strings");
     if (!Array.isArray(strings)) {
-      if (typeof strings[Symbol.iterator] !== "function") {
+      if (!(strings[Symbol.iterator] instanceof Function)) {
         throw new TypeError("strings is not iterable");
       }
       strings = Array.from(strings);
@@ -778,8 +778,9 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     predicate: (value: string, index: number, set: TernaryStringSet) => boolean,
     thisArg?: unknown,
   ): TernaryStringSet {
-    if (!(predicate instanceof Function))
+    if (!(predicate instanceof Function)) {
       throw new TypeError("predicate must be a function");
+    }
     if (this._size === 0) return new TernaryStringSet();
     if (thisArg !== undefined) predicate = predicate.bind(thisArg);
 
@@ -809,6 +810,42 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
 
     return results;
+  }
+
+  /**
+   * Returns a new set populated with the results of calling the specified mapping
+   * function on each element of this set. Like `Array.map()`, the mapping function
+   * can return any value, but non-string values will be coerced for
+   * compatibility with the new set.
+   *
+   * @param mappingFn A function that accepts strings from this set and returns
+   *   the string to be added to the new set.
+   * @param thisArg An optional value to use as `this` when calling the mapping function.
+   * @returns A new set containing the results of applying the mapping function to each
+   *   element in this set.
+   * @throws {TypeError} If the mapping function is not a function.
+   */
+  map(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mappingFn: (value: string, index: number, set: TernaryStringSet) => any,
+    thisArg?: unknown,
+  ): TernaryStringSet {
+    if (!(mappingFn instanceof Function)) {
+      throw new TypeError("predicate must be a function");
+    }
+    if (thisArg !== undefined) mappingFn = mappingFn.bind(thisArg);
+
+    // We guarantee that we will process the strings in sorted order, but
+    // if the mapping function also produces sorted output and we build
+    // the set on the fly, the result will be unbalanced and slow.
+    // To avoid this we convert the tree to an array, map it in place,
+    // then convert the result back to a tree.
+
+    const array = this.toArray();
+    for (let i = 0; i < array.length; ++i) {
+      array[i] = String(mappingFn(array[i], i, this));
+    }
+    return new TernaryStringSet(array);
   }
 
   /**
@@ -926,7 +963,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     callbackFn: (value: string, key: string, set: TernaryStringSet) => void,
     thisArg?: unknown,
   ): void {
-    if (typeof callbackFn !== "function") {
+    if (!(callbackFn instanceof Function)) {
       throw new TypeError("callbackFn must be a function");
     }
     if (arguments.length >= 2) {
@@ -1004,11 +1041,11 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Returns a string that is the concatenation of all the strings in this set,
-   * separated by a comma or the specified separator string.
+   * Returns a string that is the concatenation of all strings in this set,
+   * separated by a comma or the specified separator.
    *
    * @param separator Optional string to use as separator. Default is `","`.
-   * @returns A string containing all of the sets elements, in sorted order,
+   * @returns A string containing all of the set's elements, in sorted order,
    *   separated by the specified string.
    */
   join(separator = ","): string {
@@ -1040,7 +1077,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (this === rhs) return true;
 
     if (!(rhs instanceof TernaryStringSet)) {
-      if (rhs == null || typeof rhs[Symbol.iterator] !== "function") {
+      if (rhs == null || !(rhs[Symbol.iterator] instanceof Function)) {
         return false;
       }
       let rhsSize = 0;
@@ -1068,7 +1105,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (this === rhs) return false;
 
     if (!(rhs instanceof TernaryStringSet)) {
-      if (rhs == null || typeof rhs[Symbol.iterator] !== "function") {
+      if (rhs == null || !(rhs[Symbol.iterator] instanceof Function)) {
         throw new TypeError("rhs is not iterable");
       }
       for (const el of rhs) {
@@ -1104,7 +1141,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (this === rhs) return true;
 
     if (!(rhs instanceof TernaryStringSet)) {
-      if (rhs == null || typeof rhs[Symbol.iterator] !== "function") {
+      if (rhs == null || !(rhs[Symbol.iterator] instanceof Function)) {
         throw new TypeError("rhs is not iterable");
       }
       const rhset = rhs instanceof Set ? rhs : new Set(rhs);
@@ -1150,7 +1187,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (this === rhs) return true;
 
     if (!(rhs instanceof TernaryStringSet)) {
-      if (rhs == null || typeof rhs[Symbol.iterator] !== "function") {
+      if (rhs == null || !(rhs[Symbol.iterator] instanceof Function)) {
         throw new TypeError("rhs is not iterable");
       }
       let rhsSize = 0;
@@ -1176,16 +1213,18 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    */
   union(rhs: Iterable<string>): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
-      if (rhs == null || typeof rhs[Symbol.iterator] !== "function") {
+      if (rhs == null || !(rhs[Symbol.iterator] instanceof Function)) {
         throw new TypeError("rhs is not iterable");
       }
       const union = this._cloneDecompacted();
       union.addAll(rhs);
       return union;
     }
+
     if (rhs._size > this._size) {
       return rhs.union(this);
     }
+
     const union = this._cloneDecompacted();
     if (!union._hasEmpty && rhs._hasEmpty) {
       union._hasEmpty = true;
@@ -1209,7 +1248,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   intersection(rhs: Iterable<any>): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
-      if (rhs == null || typeof rhs[Symbol.iterator] !== "function") {
+      if (rhs == null || !(rhs[Symbol.iterator] instanceof Function)) {
         throw new TypeError("rhs is not iterable");
       }
       const intersect: string[] = [];
@@ -1220,15 +1259,17 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       }
       return new TernaryStringSet(intersect);
     }
+
     if (rhs._size < this._size) {
       return rhs.intersection(this);
     }
+
     const intersect = this._cloneDecompacted();
     if (intersect._hasEmpty && !rhs._hasEmpty) {
       intersect._hasEmpty = false;
       --intersect._size;
     }
-    intersect._hasEmpty &&= rhs._hasEmpty;
+
     intersect._visitCodePoints(0, [], (s, node) => {
       // delete if not also in rhs
       if (rhs._hasCodePoints(0, s, 0) < 0) {
@@ -1258,7 +1299,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   difference(rhs: Iterable<any>): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
-      if (rhs == null || typeof rhs[Symbol.iterator] !== "function") {
+      if (rhs == null || !(rhs[Symbol.iterator] instanceof Function)) {
         throw new TypeError("rhs is not iterable");
       }
       const diff = this._cloneDecompacted();
@@ -1267,11 +1308,13 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
       }
       return diff;
     }
+
     const diff = this._cloneDecompacted();
     if (rhs._hasEmpty && diff._hasEmpty) {
       diff._hasEmpty = false;
       --diff._size;
     }
+
     diff._visitCodePoints(0, [], (s, node) => {
       // delete if in rhs
       if (rhs._hasCodePoints(0, s, 0) >= 0) {
@@ -1294,11 +1337,12 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    */
   symmetricDifference(rhs: Iterable<string>): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
-      if (rhs == null || typeof rhs[Symbol.iterator] !== "function") {
+      if (rhs == null || !(rhs[Symbol.iterator] instanceof Function)) {
         throw new TypeError("rhs is not iterable");
       }
       rhs = new TernaryStringSet(rhs);
     }
+
     const diff = this._cloneDecompacted();
     diff._hasEmpty = this._hasEmpty !== (rhs as TernaryStringSet)._hasEmpty;
     if (this._hasEmpty !== diff._hasEmpty) {
@@ -1308,6 +1352,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         --diff._size;
       }
     }
+
     (rhs as TernaryStringSet)._visitCodePoints(0, [], (s) => {
       // if s is also in diff, delete in diff; otherwise add to diff
       const node = diff._hasCodePoints(0, s, 0);
@@ -1400,9 +1445,9 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     in the previously built map to find the slot it was assigned in the output array. If the
     slot is past the end of the array, then we haven't added it to the output yet. We can
     write the node's value unchanged, but the three pointers to the child branches need to
-    be rewritten to point to the new, deduplicated equivalent of the nodes that they point to.
-    For each branch, if the pointer is NUL we write it unchanged. Otherwise we look up the node
-    that that branch points to in our unique node map to get its new slot number (i.e. array offset)
+    be rewritten to point to the new, deduplicated equivalent of the nodes that they point to now.
+    Thus for each branch, if the pointer is NUL we write it unchanged. Otherwise we look up the node
+    that the branch points to in our unique node map to get its new slot number (i.e. array offset)
     and write the translated address.
 
     After doing this once, we will have deduplicated just the leaf nodes. In the original tree,
@@ -1412,9 +1457,11 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     So, we can repeat the rewriting step above to remove these newly generated duplicates as well.
     This may again lead to new duplicates, and so on: the rewriting can continue until the output
     doesn't shrink anymore.
+
     */
 
     let source = this._tree;
+    this._tree = null;
     for (;;) {
       const compacted = compactionPass(source);
       if (compacted.length === source.length) {

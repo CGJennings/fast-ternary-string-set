@@ -15,6 +15,8 @@ function makeOperationHelper(
     const setResult = (aSet[name] as CallableFunction)(bSet);
     const iterableResult = (aSet[name] as CallableFunction)(b);
     const resultArray = setResult.toArray();
+    expect(setResult.size).toBe(resultArray.length);
+    expect(iterableResult.size).toBe(resultArray.length);
     expect(resultArray).toEqual(iterableResult.toArray());
     expect(setResult.equals(iterableResult)).toBeTruthy();
     return resultArray;
