@@ -641,6 +641,31 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
+   * Returns an array of all strings in this set that pass a test implemented
+   * by the specified function. The result is equivalent to
+   * `Array.from(set).filter(predicate)`, without creating an intermediate array.
+   *
+   * @param predicate A function that accepts strings from this set and returns
+   *   true if the string should be included in the results.
+   * @returns A (possibly empty) array of elements that pass the test.
+   * @throws {TypeError} If the predicate is not a function.
+   */
+  getMatchesOf(predicate: (value: string) => boolean): string[] {
+    if (!(predicate instanceof Function)) {
+      throw new TypeError("predicate must be a function");
+    }
+
+    const results: string[] = this._hasEmpty && predicate("") ? [""] : [];
+
+    this._visitCodePoints(0, [], (cp) => {
+      const s = String.fromCodePoint(...cp);
+      if (predicate(s)) results.push(s);
+    });
+
+    return results;
+  }
+
+  /**
    * Returns an array of all strings in the set that are within the specified Hamming distance
    * of the given pattern string. A string is within Hamming distance *n* of the pattern if at
    * most *n* of its code points are different from those of the pattern. For example:
