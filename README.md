@@ -23,6 +23,7 @@ A fast, space-efficient, serializable string set based on [*ternary search trees
    4. List strings within a certain [Hamming distance](https://en.wikipedia.org/wiki/Hamming_distance) of a pattern.
    5. List strings within a certain [edit distance](https://en.wikipedia.org/wiki/Levenshtein_distance) of a pattern.
    6. List strings that match a pattern including "don't care" letters (as `.` in a regular expression).
+   7. List strings that exactly match a regular expression.
  - Time and space efficient:
    - Leverages common JS engine optimizations under the hood.
    - Elements share tree nodes and do not retain references to the original strings.
