@@ -6,15 +6,16 @@ A fast, space-efficient, serializable string set based on [*ternary search trees
 
 **Common applications:** autocompletion, text prediction, spelling checking, word games and puzzles
 
-[API docs](https://cgjennings.github.io/fast-ternary-string-set/classes/TernaryStringSet.html)
+**Jump to:** [Features](#features)&nbsp;/ [Installation](#installation)&nbsp;/ [Examples](#examples)&nbsp;/ [Usage notes](#usage-notes)&nbsp;/ [Serialization format](#serialization-format)&nbsp;/ [API docs](https://cgjennings.github.io/fast-ternary-string-set/classes/TernaryStringSet.html)
 
 ## Features
 
  - Drop-in replacement for [nearly any use](#differences-from-standard-js-set) of a [JavaScript `Set`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set) of strings.
  - Serializes to an `ArrayBuffer`: load sets directly without the overhead of initializing from a list of strings.
  - Search and iteration methods return elements in ascending sorted order (lexicographic by code point).
- - Set relations (equality, subset, superset) and operations (union, intersection, difference, symmetric difference).
- - Functional utility methods (forEach, filter, map, find, reduce, join, some, every).
+ - Set relations (equal, subset, superset, disjoint).
+ - Set operations (union, intersection, difference, symmetric difference).
+ - `Array`-like functional methods (forEach, filter, map, find, reduce, join, some, every).
  - Several approximate matching methods:
    1. List strings that complete a prefix.
    2. List strings that are completed by a suffix.
@@ -120,7 +121,7 @@ set.getWithinHammingDistanceOf("cat", 1);
 // => ["bat", "can", "cat", "cot", "sat"] (for example)
 ```
 
-Get all elements within edit distance 1 of `"cat"`:
+Get all elements within edit distance (Levenshtein distance) 1 of `"cat"`:
 
 ```js
 set.getWithinEditDistanceOf("cat", 1);
@@ -141,7 +142,7 @@ set.map((el) => [...el].reverse().join("")).toArray();
 // => ["olleH", "rotcoD"] (for example)
 ```
 
-Get the subset of 4-letter words:
+Get the subset of 4-letter strings:
 
 ```js
 set.filter((el) => el.length === 4).toArray();
@@ -153,6 +154,13 @@ List elements in reverse sorted order:
 ```js
 set.reduce((acc, el) => `${el}, ${acc}`);
 // => "cherry, banana, apple" (for example)
+```
+
+Test if any element is longer than 9 characters:
+
+```js
+set.add("ambidextrous").some((el) => el.length > 9);
+// => true
 ```
 
 Compare sets:
