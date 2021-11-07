@@ -9,6 +9,19 @@ const CP_MASK = EOS - 1;
 /** Smallest code point that requires a surrogate pair. */
 const CP_MIN_SURROGATE = 0x10000;
 
+/** Code points which end a literal prefix in a regular expression. Initialized only if needed. */
+let REGEX_LIT_STOP: number[];
+/**
+ * Code points of `REGEX_LIT_STOP` which require backing up one character in the prefix;
+ * for example, in `/ab*c/`, the `b` cannot be part of the literal prefix since it may
+ * occur 0 times. Initialized only if needed.
+ */
+let REGEX_LIT_ZERO: number[];
+/** If a literal regular expression prefix ends on `|`, the prefix is empty (e.g., `/abc|def/`). */
+const REGEX_LIT_NONE = 124;
+/** If a literal regular expression prefix starts with the `^` anchor, skip past it since it is implied. */
+const REGEX_ANCHOR = 94;
+
 /**
  * A sorted string set that implements a superset of the standard JS `Set` interface.
  * Supports approximate matching and allows serialization to/from a binary format.
@@ -540,6 +553,91 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         matches,
       );
     }
+  }
+
+  /**
+   * Returns all elements that exactly match a regular expression. That is, the pattern
+   * must match the entire string and not just a substring, as if the pattern were
+   * implicitly anchored (`/^pattern$/`).
+   *
+   * @param pattern The regular expression that elements, in their entirety, must match.
+   * @returns A (possibly empty) array of strings that exactly match the pattern expression.
+   * @throws `ReferenceError` If the pattern is null.
+   * @throws `TypeError` If the pattern is not a string or `RegExp`.
+   * @throws `SyntaxError` If the pattern is passed in as a string, but isn't valid.
+   */
+  getRegexMatchesOf(pattern: RegExp | string): string[] {
+    if (pattern == null) throw new ReferenceError("null pattern");
+
+    if (!(pattern instanceof RegExp)) {
+      if (
+        typeof pattern === "string" ||
+        (pattern as unknown) instanceof String
+      ) {
+        pattern = RegExp(pattern);
+      } else {
+        throw new TypeError("pattern must be a string or a RegExp");
+      }
+    }
+
+    const results: string[] = this._hasEmpty && pattern.test("") ? [""] : [];
+
+    // scan the start of the pattern for a literal prefix; then we need only
+    // search the subtree that starts with that prefix
+    const regex = String(pattern);
+    let prefix: number[] = [];
+    REGEX_LIT_STOP = REGEX_LIT_STOP ?? toCodePoints(".*?+|\\{([^$/");
+    REGEX_LIT_ZERO = REGEX_LIT_ZERO ?? toCodePoints("*?{");
+    // initialize i to skip "/" or "/^"
+    for (
+      let i = regex.charCodeAt(1) === REGEX_ANCHOR ? 2 : 1;
+      i < regex.length;
+      ++i
+    ) {
+      const cp = regex.codePointAt(i);
+      if (REGEX_LIT_STOP.includes(cp)) {
+        // remove last prefix char if it could match 0 times
+        if (prefix.length > 0 && REGEX_LIT_ZERO.includes(cp)) {
+          prefix.pop();
+        }
+        // if the stop char is "|" then the prefix is actually empty
+        if (cp === REGEX_LIT_NONE) {
+          prefix = [];
+        }
+        break;
+      }
+      prefix.push(cp);
+      if (cp >= CP_MIN_SURROGATE) ++i;
+    }
+
+    // helper function: append new result if code points match the pattern
+    const appendIfMatches = (cp: number[]) => {
+      const s = String.fromCodePoint(...cp);
+      const m = s.match(pattern);
+      if (m && m[0].length === s.length) {
+        results.push(s);
+      }
+    };
+
+    // if there is a literal prefix, find the start of its subtree
+    let node = 0;
+    if (prefix.length > 0) {
+      node = this._hasCodePoints(0, prefix, 0);
+      if (node < 0) {
+        node = -node - 1;
+        // the prefix is not in the set, so there are no matches
+        if (node >= this._tree.length) return results;
+      } else {
+        // prefix is in the tree, add result if it matches
+        appendIfMatches(prefix);
+      }
+      // take the equals branch to the root of the prefix subtree
+      node = this._tree[node + 2];
+    }
+
+    // continue from the prefix subtree (or the root if no prefix)
+    this._visitCodePoints(node, prefix, appendIfMatches);
+    return results;
   }
 
   /**
