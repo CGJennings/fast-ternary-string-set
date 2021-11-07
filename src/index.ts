@@ -1092,6 +1092,12 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     return intersect;
   }
 
+
+  /** @deprecated since 2.2.0, to be removed in 3.0.0. Use `difference` instead. */
+  subtract(rhs: TernaryStringSet): TernaryStringSet {
+    return this.difference(rhs);
+  }
+
   /**
    * Returns a new set that is the difference of this set and the specified set.
    * The new set will include all of the elements of this set *except* for those
@@ -1102,7 +1108,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    *   in the specified set.
    * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
    */
-  subtract(rhs: TernaryStringSet): TernaryStringSet {
+  difference(rhs: TernaryStringSet): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
       throw new TypeError("not a TernaryStringSet");
     }
