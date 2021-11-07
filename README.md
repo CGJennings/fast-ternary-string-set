@@ -11,9 +11,10 @@ A fast, space-efficient, serializable string set based on [*ternary search trees
 ## Features
 
  - Drop-in replacement for [nearly any use](#differences-from-standard-js-set) of a [JavaScript `Set`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set) of strings.
- - Serialize sets to an `ArrayBuffer`: load/download sets directly without the overhead of initializing from a list of strings.
- - Search and iteration methods return elements in ascending sorted (lexicographic) order.
+ - Serializes to an `ArrayBuffer`: load sets directly without the overhead of initializing from a list of strings.
+ - Search and iteration methods return elements in ascending sorted order (lexicographic by code point).
  - Set relations (equality, subset, superset) and operations (union, intersection, difference, symmetric difference).
+ - Functional utility methods (forEach, filter, map, find, reduce, join, some, every).
  - Several approximate matching methods:
    1. List strings that complete a prefix.
    2. List strings that are completed by a suffix.
@@ -49,12 +50,12 @@ To use it without Node.js, you can simply copy the main source file (`src/index.
 
 ## Examples
 
-[Complete API docs are available.](https://cgjennings.github.io/fast-ternary-string-set/classes/TernaryStringSet.html) Here are some examples of common tasks to get you started:
+[Complete API docs are available.](https://cgjennings.github.io/fast-ternary-string-set/classes/TernaryStringSet.html) Here are some examples to get you started:
 
 Loading the module:
 
 ```js
-// From node with CommonJS-style modules:
+// From Node.js with CommonJS-style modules:
 const { TernaryStringSet } = require("fast-ternary-string-set");
 // From TypeScript:
 import { TernaryStringSet } from "fast-ternary-string-set";
@@ -133,6 +134,27 @@ set.getPartialMatchesOf("b.t");
 // => ["bat", "bet", "bit", "bot", "but"] (for example)
 ```
 
+Create a new set with the elements reversed:
+
+```js
+set.map((el) => [...el].reverse().join("")).toArray();
+// => ["olleH", "rotcoD"] (for example)
+```
+
+Get the subset of 4-letter words:
+
+```js
+set.filter((el) => el.length === 4).toArray();
+// => ["bank", "cave", "door", "four"] (for example)
+```
+
+List elements in reverse sorted order:
+
+```js
+set.reduce((acc, el) => `${el}, ${acc}`);
+// => "cherry, banana, apple" (for example)
+```
+
 Compare sets:
 
 ```js
@@ -167,7 +189,7 @@ Recreate a set from a buffer previously stored on a server:
 async function loadTernaryStringSet(url) {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`tree download "${url}" failed: ${response.status} ${response.statusText}`);
+    throw new Error(`set download "${url}" failed: ${response.status} ${response.statusText}`);
   }
   const buffer = await resonse.arrayBuffer();
   return TernaryStringSet.fromBuffer(buffer);
@@ -210,8 +232,7 @@ If the node contains the letter you are currently looking for, you follow the "e
 Otherwise, you follow the "less-than" or "greater-than" branch depending on whether the target letter comes before or after the node letter in lexicographic order, respectively.
 For details, [this article introduces them to solve a practical problem](https://cgjennings.ca/articles/countdown-letters/), or you can refer to the [Wikipedia entry](https://en.wikipedia.org/wiki/Ternary_search_tree).
 
-TSTs can be an excellent option for large string sets, especially if most or all strings are known ahead of time or if strings can be added in lexicographic order.
-(TSTs are not self-balancing like, say, a red-black tree.)
+TSTs can be an excellent option for large string sets, especially if most or all strings are known ahead of time.
 TSTs save space, as strings with a common prefix (that is, strings that start the same) share nodes in the tree.
 In *this* TST implementation, strings with a common suffix can also share nodes.
 Their superpower, however, is their facility for performing approximate and pattern-based matching.
@@ -229,6 +250,7 @@ Not even `null` or `undefined`.
 
 ### Tree health
 
+Ternary search trees are not self-balancing&mdash;unlike, say, a red-black tree.
 Adding strings in sorted order produces a worst-case tree structure.
 This can be avoided by adding strings all at once using the constructor or `addAll()`.
 Given sorted input, both of these methods will produce an optimal tree structure.
@@ -254,15 +276,15 @@ For example, since the above string is one code point, it would match `getPartia
 
 Calling `compact()` can significantly reduce a set's memory footprint.
 For large sets of typical strings, this can reduce the set's footprint by around 50–80%.
-However, no new strings can be added or deleted without first undoing the compaction.
+However, no strings can be added or deleted without first undoing the compaction (this is done automatically when needed).
 Compaction is relatively expensive, but can be a one-time or even ahead-of-time step for many use cases.
 
 ### Serialization
 
 A common use case is to match user input against a fixed set of strings.
 For example, checking input against a spelling dictionary or suggesting completions for partial input.
-In such cases it is often desirable to build a set ahead of time, serialize it to a buffer, and then save the buffer data on a server where it can be downloaded as needed.
-Recreating a set directly from buffer data is often much faster than downloading a file containing the strings and adding them to a new set on the client.
+In such cases it is often desirable to build a set ahead of time, serialize it to a buffer, and then save the buffer data on a server to downloaded when needed.
+Recreating a set directly from buffer data is generally much faster than downloading a file containing the strings and adding them to a new set on the client.
 
 The following steps will make such ahead-of-time sets as small as possible:
 
@@ -289,7 +311,7 @@ Compiled output is written to `lib`. To build the project:
 npm run build
 ```
 
-The included `tsconfig.json` targets ES2015 (ES6).
+The included `tsconfig.json` targets ES2020.
 To target old JavaScript engines or browsers you will need to modify this configuration and/or use a tool like Babel.
 
 The project includes an extensive suite of tests under `src/tests`.
@@ -322,7 +344,7 @@ For brevity, the serialized data is described as a "file", but the data could co
 
 ### Header
 
-The file begins with an 8-byte header consisting of the following:
+The file begins with an 8 byte header consisting of:
 
 **Magic (int16)**  
 A magic number identifying the file format.
@@ -354,7 +376,7 @@ The format closely follows that used internally by `TernaryStringSet`s, which wa
 This format consists of an array of integers, with each tree node represented by 4 integers in sequence: one for the code point and flags, and three for pointers (array offsets) to each of the less-than, equal-to, and greater-than branches, respectively.
 The node starting at index 0 is the tree root.
 
-The file format also follows this basic structure.
+The file format also follows this basic structure:
 Elements of the original array are written out in order, but they may be represented by a variable number of bytes.
 Before each node, a single byte is written whose bits describe how each of the node's four elements are encoded:
 
@@ -394,7 +416,7 @@ The lowest 15 bits store the code point and the highest bit is set if the node t
 
 **Encoding bits 10: code point ≤ 127**  
 Small code points are written as a single int8 value.
-The lowest 15 bits store the code point and the highest bit is set if the node terminates a string.
+The lowest 7 bits store the code point and the highest bit is set if the node terminates a string.
 
 **Encoding bits 11: letter "e"**  
 As a special case, if the code point is exactly 0x65 (the letter "e") *and* the node *does not* terminate a string, no bytes are written for the code point.

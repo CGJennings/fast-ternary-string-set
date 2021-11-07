@@ -854,29 +854,10 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * in turn. The reducer is passed the accumulator and the next element
    * and returns the new value of the accumulator.
    *
-   * Examples:
-   * 
-   * ```js
-   * // list elements in reverse order
-   * set.reduce((acc, el) => `${el}, ${acc}`);
-   * ```
-   * 
-   * ```js
-   * // group elements by their first letter
-   * set.reduce((acc, el) => {
-   *   const letter = el.charAt(0);
-   *   if (acc[letter] === undefined) {
-   *     acc[letter] = [];
-   *   }
-   *   acc[letter].push(el);
-   * }, {});
-   * ```
-   *
    * @param reducer A function called with the previous accumulator value,
-   *   the next element to reduce, the sequential index of the element,
-   *   and this set.
+   *   the next element to reduce, the element index, and this set.
    * @param initialValue An optional initial value for the accumulator.
-   *   If no initial value is provided, the first element in the set is used.
+   *   If no none is provided, the first element is used.
    * @returns The final value of the accumulator.
    * @throws {TypeError} If the reducer is not a function or if the set is
    *   empty and no initial value is provided.
@@ -916,7 +897,6 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     if (this._size === 0 && initialValue === undefined) {
       throw new TypeError("reduce of empty set with no initial value");
     }
-
     let index = 0;
     let initialized = false;
     let accumulator: T | string;
