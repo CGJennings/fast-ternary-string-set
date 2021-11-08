@@ -82,13 +82,17 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         this._compact = source._compact;
         this._size = source._size;
       } else {
+        if (typeof source === "string" || source instanceof String) {
+          // for compatibility with the ES6 Set spec
+          source = [...source];
+        }
         this.addAll(source);
       }
     }
   }
 
   /**
-   * Returns the number of unique strings stored in this set.
+   * Returns the number of unique strings in this set.
    *
    * @returns The non-negative integer number of string elements in the set.
    */
@@ -170,10 +174,25 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Adds an entire collection, or subcollection, of strings to this set. By default,
-   * the entire collection is added. If the optional `start` and `end` parameters
-   * are provided, the result is the same as converting the iterable to an array and
-   * then adding those elements from the index `start` to the index `end` (exclusive).
+   * Adds zero or more strings to this set.
+   *
+   * If the collection is sorted in ascending order and no other strings have been
+   * added to this set, the underlying tree is guaranteed to be balanced, ensuring
+   * good search performance. If the collection is in random order, the tree is *likely*
+   * to be nearly balanced.
+   *
+   * @param strings Zero or more strings to be added to the set.
+   * @returns This set, allowing chained calls.
+   * @throws TypeError If any of the arguments is not a string.
+   */
+  addAll(...strings: string[]): TernaryStringSet;
+
+  /**
+   * Adds an entire collection, or subcollection, of strings to this set from an
+   * iterable. By default, the entire collection is added. If the optional `start`
+   * and `end` parameters are provided, the result is the same as converting the
+   * iterable to an array and then adding those elements from the index
+   * `start` to the index `end` (exclusive).
    *
    * If the collection is sorted in ascending order and no other strings have been
    * added to this set, the underlying tree is guaranteed to be balanced, ensuring
@@ -190,14 +209,44 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @throws `RangeError` If the start or end are out of bounds, that is, less than 0
    *   or greater than `Array.from(strings).length`.
    */
-  addAll(strings: Iterable<string>, start = 0, end?: number): TernaryStringSet {
-    if (strings == null) throw new ReferenceError("null strings");
-    if (!Array.isArray(strings)) {
-      if (!(strings[Symbol.iterator] instanceof Function)) {
-        throw new TypeError("strings is not iterable");
+  addAll(
+    strings: Iterable<string>,
+    start?: number,
+    end?: number,
+  ): TernaryStringSet;
+
+  addAll(...args: (Iterable<string> | string | number)[]): TernaryStringSet {
+    if (args.length === 0) return this;
+
+    let strings: string[];
+    let start: number;
+    let end: number;
+
+    if (
+      (typeof args[0] === "string" || args[0] instanceof String) &&
+      typeof args[1] !== "number" &&
+      typeof args[2] !== "number"
+    ) {
+      // ...strings signature
+      strings = args as string[];
+      start = 0;
+      end = args.length;
+    } else {
+      // Iterable<string> signature
+      if (args[0] == null) throw new ReferenceError("null strings");
+      if (!Array.isArray(args[0])) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (!((args[0] as any)[Symbol.iterator] instanceof Function)) {
+          throw new TypeError("strings is not iterable");
+        }
+        strings = Array.from(args[0] as Iterable<string>);
+      } else {
+        strings = args[0] as string[];
       }
-      strings = Array.from(strings);
+      start = (args[1] as number) ?? 0;
+      end = (args[2] as number) ?? strings.length;
     }
+
     const len = (strings as string[]).length;
 
     if (typeof start !== "number" || start !== Math.trunc(start)) {

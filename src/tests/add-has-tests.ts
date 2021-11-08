@@ -1,5 +1,5 @@
 import { TernaryStringSet } from "../index";
-import { words } from "./utils";
+import { expectSameSet, words } from "./utils";
 
 let set: TernaryStringSet;
 
@@ -138,6 +138,29 @@ test("addAll() from short English list", () => {
   });
 });
 
+test("addAll() ...strings signature", () => {
+  expect(set.addAll().size).toBe(0);
+  expect(set.addAll("mongoose").size).toBe(1);
+  expect(set.addAll("badger", "pelican").size).toBe(3);
+  expect(set.addAll("asp", "mouse", "oyster").size).toBe(6);
+  expect(set.addAll("barracuda", "cricket", "panda", "tiger").size).toBe(10);
+  expect(set.addAll("bison", "caribou", "deer", "elk", "moose").size).toBe(15);
+});
+
+test("addAll() [string, number] or [string, undefined, number] activates iterable signature", () => {
+  // ...strings signature
+  set.addAll("abc");
+  // iterable signature due to number
+  set.addAll("def", 0);
+  // iterable signature due to number
+  set.addAll("ghij", undefined, 3);
+  // iterable signature due to numbers
+  set.addAll("klmno", 1, 2);
+  expect(set.toArray()).toEqual(["abc", "d", "e", "f", "g", "h", "i", "l"]);
+  // ...strings signature, so explicit undefined throws
+  expect(() => set.addAll("pqr", undefined, undefined)).toThrow();
+});
+
 test("addAll() strings with spaces, punctuation, emoji, etc.", () => {
   addAll(
     "Mt. Doom",
@@ -171,7 +194,6 @@ function getAddAllFailureIndex(set: unknown[]): number {
 
 test("addAll() throws on bad array element", () => {
   /* eslint-disable @typescript-eslint/no-explicit-any */
-  expect(() => (set as any).addAll()).toThrow();
   expect(() => (set as any).addAll(null)).toThrow();
   expect(() => (set as any).addAll([null])).toThrow();
   expect(() => (set as any).addAll([0])).toThrow();
