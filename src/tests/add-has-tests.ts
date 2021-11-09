@@ -1,5 +1,5 @@
 import { TernaryStringSet } from "../index";
-import { expectSameSet, words } from "./utils";
+import { words } from "./utils";
 
 let set: TernaryStringSet;
 
@@ -9,7 +9,7 @@ beforeEach(() => {
 
 test("add() and addAll() are fluent", () => {
   expect(set.add("grouse")).toBe(set);
-  expect(set.addAll(["cavy", "mole"])).toBe(set);
+  expect(set.addAll("cavy", "mole")).toBe(set);
 });
 
 test("add() non-string throws", () => {
@@ -117,7 +117,7 @@ test("addAll() all with length 3", () => {
 });
 
 test("addAll() with duplicate words yields correct size", () => {
-  set.addAll([
+  set.addAll(
     "antelope",
     "crab",
     "porcupine",
@@ -126,7 +126,7 @@ test("addAll() with duplicate words yields correct size", () => {
     "crab",
     "antelope",
     "porcupine",
-  ]);
+  );
   expect(set.size).toBe(3);
 });
 

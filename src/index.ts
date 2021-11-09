@@ -392,6 +392,43 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  deleteAll(elements: Iterator<any>): boolean;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  deleteAll(...elements: any[]): boolean;
+
+  /**
+   * Removes multiple elements from this set.
+   *
+   * Unlike `addAll`, this method accepts elements of any type, so
+   * it cannot accept an arbitrary `Iterable<string>`. Use `deleteAll(...iterable)`
+   * instead.
+   *
+   * @param elements The elements to remove.
+   * @returns True if every element was present and was removed.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  deleteAll(...elements: any[]): boolean {
+    // check for Iterable<string> case
+    if (elements.length === 1) {
+      const it = elements[0];
+      if (
+        it[Symbol.iterator] instanceof Function &&
+        typeof it !== "string" &&
+        !(it instanceof String)
+      ) {
+        elements = it;
+      }
+    }
+
+    let allDeleted = true;
+    for (const el of elements) {
+      allDeleted = this.delete(el) && allDeleted;
+    }
+    return allDeleted;
+  }
+
   /**
    * Returns all strings in this set that can be composed from combinations of the characters
    * in the specified string. Unlike an anagram, not all pattern characters need to appear for a match

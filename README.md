@@ -70,7 +70,7 @@ Create a new set and add some strings:
 const set = new TernaryStringSet();
 set.add("dog").add("cat").add("eagle");
 // or alternatively
-set.addAll(["aardvark", "beaver", "dog", "fish", "hamster"]);
+set.addAll("aardvark", "beaver", "dog", "fish", "hamster");
 set.has("cat");
 // => true
 set.delete("cat");
@@ -250,22 +250,23 @@ For example, a TST is excellent for solving crossword puzzles.
 
 ### Differences from standard JS `Set`
 
-`TernaryStringSet` supports a superset of the standard `Set` interface, but it is not a subclass of `Set`.
+`TernaryStringSet`s behave like standard JS `Set`s, with minor differences:
 
-JavaScript `Set` objects guarantee that they iterate over elements in the order that they are added.
-`TernaryStringSet`s always return results in sorted order.
-
-`TernaryStringSet`s can contain the empty string, but cannot contain non-strings.
-Not even `null` or `undefined`.
+ - They iterate over their elements in sorted order (ascending lexicographic order by code point); `Sets` iterate over objects in the order they were added.
+ - They support a superset of the standard `Set` interface, but are not a subclass of `Set`. Testing them with `instanceof Set` will return `false`.
+ - They can contain the empty string, but cannot contain non-strings&mdash;not even `null` or `undefined`.
+ - Methods that would return a new `Set`, such as `filter` or `union`, return a new `TernaryStringSet`.
+ - Methods expect that `this` to be a `TernaryStringSet`; they should not be `call`ed with arbitrary objects.
+ - The `addAll` method accepts either a list of string arguments (like `Set`s), or an `Iterable<string>` with an optional range.
 
 ### Tree health
 
 Ternary search trees are not self-balancing&mdash;unlike, say, a red-black tree.
 Adding strings in sorted order produces a worst-case tree structure.
-This can be avoided by adding strings all at once using the constructor or `addAll()`.
+This can be avoided by adding strings all at once using the constructor or `addAll`.
 Given sorted input, both of these methods will produce an optimal tree structure.
 If this is not practical, adding strings in random order will typically yield a tree that's "close enough" to balanced for most applications.
-Calling `balance()` will rebuild the tree in optimal form, but it can be expensive.
+Calling `balance` will rebuild the tree in optimal form, but it can be expensive.
 
 Since most `TernaryStringSet` methods are recursive, extremely unbalanced trees can provoke "maximum call stack size exceeded" errors.
 
@@ -284,7 +285,7 @@ For example, since the above string is one code point, it would match `getPartia
 
 ### Compaction
 
-Calling `compact()` can significantly reduce a set's memory footprint.
+Calling `compact` can significantly reduce a set's memory footprint.
 For large sets of typical strings, this can reduce the set's footprint by around 50–80%.
 However, no strings can be added or deleted without first undoing the compaction (this is done automatically when needed).
 Compaction is relatively expensive, but can be a one-time or even ahead-of-time step for many use cases.
@@ -298,9 +299,9 @@ Recreating a set directly from buffer data is generally much faster than downloa
 
 The following steps will make such ahead-of-time sets as small as possible:
 
-1. Create a set and insert the desired strings using `add()` or `addAll()`.
-2. Minimize the tree size by calling `balance()` followed by `compact()`.
-3. Create the buffer with `toBuffer()` and write the result to a file.
+1. Create a set and insert the desired strings using `add` or `addAll`.
+2. Minimize the tree size by calling `balance` followed by `compact`.
+3. Create the buffer with `toBuffer` and write the result to a file.
 4. Optionally, compress the result and configure the server to serve the compressed version where supported by the browser.
 
 To recreate the set, download or otherwise obtain the buffer data, then use `TernaryStringSet.fromBuffer(data)`.
