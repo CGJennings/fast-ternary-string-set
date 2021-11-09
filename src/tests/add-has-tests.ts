@@ -91,7 +91,8 @@ function addAll(...args: string[]) {
   let strings: Iterable<string> = args;
   for (let iterableType = 0; iterableType < 2; ++iterableType) {
     const set = new TernaryStringSet();
-    set.addAll(strings);
+    if (Array.isArray(strings)) set.addAll(strings);
+    else set.addAll(...strings);
     expect(set.size).toBe(args.length);
     args.forEach((s) => {
       expect(set.has(s)).toBe(true);
@@ -147,18 +148,22 @@ test("addAll() ...strings signature", () => {
   expect(set.addAll("bison", "caribou", "deer", "elk", "moose").size).toBe(15);
 });
 
-test("addAll() [string, number] or [string, undefined, number] activates iterable signature", () => {
-  // ...strings signature
-  set.addAll("abc");
-  // iterable signature due to number
-  set.addAll("def", 0);
-  // iterable signature due to number
-  set.addAll("ghij", undefined, 3);
-  // iterable signature due to numbers
-  set.addAll("klmno", 1, 2);
-  expect(set.toArray()).toEqual(["abc", "d", "e", "f", "g", "h", "i", "l"]);
-  // ...strings signature, so explicit undefined throws
-  expect(() => set.addAll("pqr", undefined, undefined)).toThrow();
+test("addAll() array signature", () => {
+  expect(set.addAll([]).size).toBe(0);
+  expect(set.addAll(["mongoose"]).size).toBe(1);
+  expect(set.addAll(["badger", "pelican"], 0, 2).size).toBe(3);
+  expect(set.addAll(["asp", "mouse", "oyster"], 1, 3).size).toBe(5);
+  expect(set.has("asp")).toBeFalsy();
+  expect(
+    set.addAll(["barracuda", "cricket", "panda", "tiger"], undefined, 2).size,
+  ).toBe(7);
+  expect(set.has("barracuda") && set.has("cricket")).toBeTruthy();
+  expect(set.has("panda") && set.has("tiger")).toBeFalsy();
+  expect(set.addAll(["bison", "caribou", "deer", "elk", "moose"], 1).size).toBe(
+    11,
+  );
+  expect(set.has("bison")).toBeFalsy();
+  expect(set.has("caribou") && set.has("moose")).toBeTruthy();
 });
 
 test("addAll() strings with spaces, punctuation, emoji, etc.", () => {

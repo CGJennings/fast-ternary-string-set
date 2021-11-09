@@ -61,10 +61,26 @@ test("delete() multiple", () => {
   expect(set.size).toBe(0);
 });
 
+test("deleteAll() deletes listed elements", () => {
+  set = wordSet();
+  const size = set.size;
+  set.deleteAll();
+  expect(set.size).toBe(size);
+  set.deleteAll("bear");
+  expect(set.size).toBe(size - 1);
+  set.deleteAll("chicken", "elephant");
+  expect(set.size).toBe(size - 3);
+  expect(set.has("bear")).toBeFalsy();
+  expect(set.has("chicken")).toBeFalsy();
+  expect(set.has("elephant")).toBeFalsy();
+  set.deleteAll(...new Set(["goat", "hen"]));
+  expect(set.size).toBe(size - 5);
+});
+
 test("deleteAll() returns true if all requested elements removed", () => {
   set = wordSet();
   expect(set.size).toBe(words.length);
-  expect(set.deleteAll(words)).toBe(true);
+  expect(set.deleteAll(...words)).toBe(true);
   expect(set.size).toBe(0);
   set.addAll("fish", "gerbil", "pigeon");
   expect(set.size).toBe(3);
@@ -77,33 +93,4 @@ test("deleteAll() returns true if all requested elements removed", () => {
   expect(set.deleteAll("mongoose")).toBe(false);
   set.addAll("fish", "gerbil", "pigeon");
   expect(set.deleteAll("gerbil", "pigeon")).toBe(true);
-});
-
-test("deleteAll() with single non-string iterable activates iterable signature", () => {
-  set.addAll(
-    "a",
-    "albatross",
-    "b",
-    "bonobo",
-    "c",
-    "chickadee",
-    "d",
-    "dormouse",
-    "e",
-    "ermine",
-  );
-  const size = set.size;
-  set.deleteAll();
-  expect(set.size).toBe(size);
-  // should be treated as one string, not an iterable of code point strings
-  set.deleteAll("abcde");
-  expect(set.size).toBe(size);
-  set.deleteAll(["a", "b"]);
-  expect(set.size).toBe(size - 2);
-  // iterable not activated since more than 1 arg, so "d" is deleted but "c" is not
-  expect(set.has("c")).toBeTruthy();
-  expect(set.has("d")).toBeTruthy();
-  set.deleteAll(["c"], "d");
-  expect(set.has("c")).toBeTruthy();
-  expect(set.has("d")).toBeFalsy();
 });

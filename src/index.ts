@@ -82,11 +82,11 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         this._compact = source._compact;
         this._size = source._size;
       } else {
-        if (typeof source === "string" || source instanceof String) {
-          // for compatibility with the ES6 Set spec
-          source = [...source];
+        if (Array.isArray(source)) {
+          this.addAll(source);
+        } else {
+          this.addAll(...source);
         }
-        this.addAll(source);
       }
     }
   }
@@ -116,12 +116,12 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   /**
    * Adds a string to this set. The string can be empty, but cannot be null.
    * Adding an already present string has no effect.
-   * If inserting multiple strings in sorted (lexicographic) order, prefer
-   * `addAll` over this method.
+   * If inserting multiple strings in sorted order, prefer `addAll`
+   * over this method.
    *
    * @param s The non-null string to add.
    * @returns This set, allowing chained calls.
-   * @throws TypeError If the argument is not a string.
+   * @throws `TypeError` If the argument is not a string.
    */
   add(s: string): this {
     if (typeof s !== "string") {
@@ -183,16 +183,14 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    *
    * @param strings Zero or more strings to be added to the set.
    * @returns This set, allowing chained calls.
-   * @throws TypeError If any of the arguments is not a string.
+   * @throws `TypeError` If any of the arguments is not a string.
    */
   addAll(...strings: string[]): TernaryStringSet;
 
   /**
-   * Adds an entire collection, or subcollection, of strings to this set from an
-   * iterable. By default, the entire collection is added. If the optional `start`
-   * and `end` parameters are provided, the result is the same as converting the
-   * iterable to an array and then adding those elements from the index
-   * `start` to the index `end` (exclusive).
+   * Adds an entire array, or subarray, of strings to this set. By default,
+   * the entire collection is added. If the `start` and/or `end` are specified,
+   * only the elements in the specified range are added.
    *
    * If the collection is sorted in ascending order and no other strings have been
    * added to this set, the underlying tree is guaranteed to be balanced, ensuring
@@ -200,75 +198,57 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * to be nearly balanced.
    *
    * @param strings The non-null collection of strings to add.
-   * @param start The index of the first element to add (inclusive, default is 0).
-   * @param end The index of the last element to add (exclusive, default is all elements)
+   * @param start The optional index of the first element to add (inclusive, default is 0).
+   * @param end The optional index of the last element to add (exclusive, default is all elements)
    * @returns This set, allowing chained calls.
    * @throws `ReferenceError` If the collection is null.
-   * @throws `TypeError` If `strings` is not an iterable or if any element is not a string
+   * @throws `TypeError` If `strings` is not an array or if any element is not a string
    *   or if the start or end are not integer numbers.
    * @throws `RangeError` If the start or end are out of bounds, that is, less than 0
-   *   or greater than `Array.from(strings).length`.
+   *   or greater than `strings.length`.
    */
   addAll(
-    strings: Iterable<string>,
+    strings: readonly string[],
     start?: number,
     end?: number,
   ): TernaryStringSet;
 
-  addAll(...args: (Iterable<string> | string | number)[]): TernaryStringSet {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  addAll(...args: any[]): TernaryStringSet {
     if (args.length === 0) return this;
 
-    let strings: string[];
+    let strings: readonly string[];
     let start: number;
     let end: number;
 
-    if (
-      (typeof args[0] === "string" || args[0] instanceof String) &&
-      typeof args[1] !== "number" &&
-      typeof args[2] !== "number"
-    ) {
-      // ...strings signature
-      strings = args as string[];
-      start = 0;
-      end = args.length;
-    } else {
-      // Iterable<string> signature
-      if (args[0] == null) throw new ReferenceError("null strings");
-      if (!Array.isArray(args[0])) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (!((args[0] as any)[Symbol.iterator] instanceof Function)) {
-          throw new TypeError("strings is not iterable");
-        }
-        strings = Array.from(args[0] as Iterable<string>);
-      } else {
-        strings = args[0] as string[];
-      }
+    if (Array.isArray(args[0])) {
+      strings = args[0];
+      const len = strings.length;
       start = (args[1] as number) ?? 0;
-      end = (args[2] as number) ?? strings.length;
-    }
+      end = (args[2] as number) ?? len;
 
-    const len = (strings as string[]).length;
-
-    if (typeof start !== "number" || start !== Math.trunc(start)) {
-      throw new TypeError("start must be an integer");
-    }
-    // Note: start = strings.length is allowed so that
-    // addAll([], 0, array.length) works as expected
-    if (start < 0 || start > len) {
-      throw new RangeError("start: " + start);
-    }
-
-    if (end === undefined) {
-      end = len;
-    } else if (typeof end !== "number" || end !== Math.trunc(end)) {
-      throw new TypeError("end must be an integer");
-    }
-    if (end < 0 || end > len) {
-      throw new RangeError("end: " + end);
+      // check start and end
+      // start == strings.length is allowed for addAll([], 0, array.length)
+      if (typeof start !== "number" || start !== Math.trunc(start)) {
+        throw new TypeError("start must be an integer");
+      }
+      if (typeof end !== "number" || end !== Math.trunc(end)) {
+        throw new TypeError("end must be an integer");
+      }
+      if (start < 0 || start > len) {
+        throw new RangeError("start: " + start);
+      }
+      if (end < 0 || end > len) {
+        throw new RangeError("end: " + end);
+      }
+    } else {
+      strings = args;
+      start = 0;
+      end = strings.length;
     }
 
     if (start < end) {
-      this._addAllImpl(strings as string[], start, end);
+      this._addAllImpl(strings, start, end);
     }
     return this;
   }
@@ -280,9 +260,9 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   ): void {
     if (--end < start) return;
 
-    // if the tree is empty and the list is sorted, this insertion
-    // order ensures a balanced tree (inserting strings in sorted order
-    // is a degenerate case)
+    // if the tree is empty and the list is sorted, insertion by
+    // repeated bifurcation ensures a balanced tree
+    // (inserting strings in sorted order is a degenerate case)
     const mid = Math.trunc(start + (end - start) / 2);
     try {
       this.add(strings[mid]);
@@ -394,12 +374,12 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
   /**
    * Removes multiple elements from this set.
-   * 
+   *
    * @param elements The elements to remove.
    * @returns True if every element was present and was removed.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  deleteAll(...elements: any[]): boolean {
+  deleteAll(...elements: string[]): boolean {
     let allDeleted = true;
     for (const el of elements) {
       allDeleted = this.delete(el) && allDeleted;
@@ -719,7 +699,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param predicate A function that accepts strings from this set and returns
    *   true if the string should be included in the results.
    * @returns A (possibly empty) array of elements that pass the test.
-   * @throws {TypeError} If the predicate is not a function.
+   * @throws `TypeError` If the predicate is not a function.
    */
   getMatchesOf(predicate: (value: string) => boolean): string[] {
     if (!(predicate instanceof Function)) {
@@ -957,7 +937,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param thisArg An optional value to use as `this` when calling the predicate.
    * @returns A new set containing only those elements for which the predicate return
    *   value is true.
-   * @throws {TypeError} If the predicate is not a function.
+   * @throws `TypeError` If the predicate is not a function.
    */
   filter(
     predicate: (value: string, index: number, set: TernaryStringSet) => boolean,
@@ -1008,7 +988,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param thisArg An optional value to use as `this` when calling the mapping function.
    * @returns A new set containing the results of applying the mapping function to each
    *   element in this set.
-   * @throws {TypeError} If the mapping function is not a function.
+   * @throws `TypeError` If the mapping function is not a function.
    */
   map(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1044,7 +1024,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param initialValue An optional initial value for the accumulator.
    *   If no none is provided, the first element is used.
    * @returns The final value of the accumulator.
-   * @throws {TypeError} If the reducer is not a function or if the set is
+   * @throws `TypeError` If the reducer is not a function or if the set is
    *   empty and no initial value is provided.
    */
   reduce<T>(
@@ -1162,7 +1142,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    *  true if the string passes the desired test.
    * @param thisArg An optional value to use as `this` when calling the predicate.
    * @returns True if at least one element in this set passes the test.
-   * @throws {TypeError} If the predicate is not a function.
+   * @throws `TypeError` If the predicate is not a function.
    */
   some(
     predicate: (value: string, index: number, set: TernaryStringSet) => boolean,
@@ -1179,7 +1159,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    *  true if the string passes the desired test.
    * @param thisArg An optional value to use as `this` when calling the predicate.
    * @returns True if at every element in this set passes the test.
-   * @throws {TypeError} If the predicate is not a function.
+   * @throws `TypeError` If the predicate is not a function.
    */
   every(
     predicate: (value: string, index: number, set: TernaryStringSet) => boolean,
@@ -1484,7 +1464,11 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         throw new TypeError("rhs is not iterable");
       }
       const union = this._cloneDecompacted();
-      union.addAll(rhs);
+      if (Array.isArray(rhs)) {
+        union.addAll(rhs);
+      } else {
+        union.addAll(...rhs);
+      }
       return union;
     }
 
@@ -1679,11 +1663,10 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * Compacts the set to reduce its memory footprint and improve search performance.
    * For large sets, a compacted set is typically *significantly* smaller
    * than a non-compacted set. The tradeoff is that compact sets cannot be modified.
-   * Any method that mutates the set, including
-   * `add`, `addAll`, `balance`, and `delete`
+   * Any method that mutates the set, such as `add`, `balance`, oe `delete`,
    * can therefore cause the set to revert to an non-compacted state.
    *
-   * Compaction is an excellent option if the primary purpose of a set matching
+   * Compaction is an excellent option if the primary purpose of a set is matching
    * against a fixed collection of strings, such as a dictionary. Since
    * compaction and decompaction are expensive operations, it is less attractive
    * in use cases where the set will be intermittently modified.
