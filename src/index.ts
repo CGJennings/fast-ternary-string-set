@@ -558,7 +558,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   /**
    * Returns all elements that exactly match a regular expression. That is, the pattern
    * must match the entire string and not just a substring, as if the pattern were
-   * implicitly anchored (`/^pattern$/`).
+   * explicitly anchored (`/^pattern$/`).
    *
    * @param pattern The regular expression that elements, in their entirety, must match.
    * @returns A (possibly empty) array of strings that exactly match the pattern expression.
