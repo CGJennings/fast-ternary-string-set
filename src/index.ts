@@ -20,7 +20,7 @@ let REGEX_LIT_ZERO: number[];
 /** If a literal regular expression prefix ends on `|`, the prefix is empty (e.g., `/abc|def/`). */
 const REGEX_LIT_NONE = 124;
 /** If a literal regular expression prefix starts with the `^` anchor, skip past it since it is implied. */
-const REGEX_ANCHOR = 94;
+const REGEX_LIT_ANCHOR = 94;
 
 /**
  * A sorted string set that implements a superset of the standard JS `Set` interface.
@@ -582,18 +582,15 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
     const results: string[] = this._hasEmpty && pattern.test("") ? [""] : [];
 
-    // scan the start of the pattern for a literal prefix; then we need only
-    // search the subtree that starts with that prefix
+    // scan the start of the pattern for a prefix to match literally;
+    // then we need only search the subtree that starts with that prefix
     const regex = String(pattern);
     let prefix: number[] = [];
     REGEX_LIT_STOP = REGEX_LIT_STOP ?? toCodePoints(".*?+|\\{([^$/");
     REGEX_LIT_ZERO = REGEX_LIT_ZERO ?? toCodePoints("*?{");
     // initialize i to skip "/" or "/^"
-    for (
-      let i = regex.charCodeAt(1) === REGEX_ANCHOR ? 2 : 1;
-      i < regex.length;
-      ++i
-    ) {
+    let i = regex.charCodeAt(1) === REGEX_LIT_ANCHOR ? 2 : 1;
+    for (; i < regex.length; ++i) {
       const cp = regex.codePointAt(i);
       if (REGEX_LIT_STOP.includes(cp)) {
         // remove last prefix char if it could match 0 times
@@ -1091,7 +1088,6 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     });
     return intersect;
   }
-
 
   /** @deprecated since 2.2.0, to be removed in 3.0.0. Use `difference` instead. */
   subtract(rhs: TernaryStringSet): TernaryStringSet {
