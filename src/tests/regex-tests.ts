@@ -18,6 +18,15 @@ function regex(
   expect(set.getRegexMatchesOf(regex)).toEqual(expected);
 }
 
+/** Test any regular expression against the word list. */
+function regexList(pattern: RegExp) {
+  const expected = words.filter((s) => {
+    const m = s.match(pattern);
+    return m && m[0].length === s.length;
+  });
+  regex(wordSet(false), pattern, expected);
+}
+
 test("getRegexMatchesOf() throws if not passed RegExp or string", () => {
   expect(() => set.getRegexMatchesOf(null)).toThrow();
   expect(() => set.getRegexMatchesOf(1 as unknown as RegExp)).toThrow();
@@ -143,6 +152,9 @@ test("getRegexMatchesOf() with false prefix due to pipe", () => {
 });
 
 test("getRegexMatchesOf() against word list", () => {
+  // these tests do not rely on regexList(), which uses
+  // similar logic to getRegexMatchesOf() to filter
+  // the word list and so might have a common flaw
   regex(
     wordSet(false),
     /wise/,
@@ -163,4 +175,21 @@ test("getRegexMatchesOf() against word list", () => {
     /.*e.*/,
     words.filter((w) => w.includes("e")),
   );
+
+  // more general tests using regexList
+  regexList(/st.*[gs]/);
+  regexList(/s[aeiou]\w/);
+  regexList(/(a|b|c|dog)[aeiou]?[a-z]?/);
+  regexList(/[a-z]{3,}/);
+  regexList(/m[a-z]{3,}/);
+  regexList(/mo*n/);
+  regexList(/moo*n/);
+  regexList(/mo+n/);
+  regexList(/mooo*n/);
+  regexList(/moooo*n/);
+  regexList(/mo?n/);
+  regexList(/moo?n/);
+  regexList(/mooo?n/);
+  regexList(/moooo?n/);
+  regexList(/[a-z]{,7}ed/);
 });
