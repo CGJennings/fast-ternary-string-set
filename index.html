@@ -5,7 +5,7 @@
 <p><img src="https://github.com/CGJennings/fast-ternary-string-set/actions/workflows/ci.yml/badge.svg" alt="CI status badge"></p>
 <p>A fast, space-efficient, serializable string set based on <a href="#about-ternary-search-trees"><em>ternary search trees</em></a> (or <em>lexicographic trees</em>), with both exact and approximate search.</p>
 <p><strong>Common applications:</strong> autocompletion, text prediction, spelling checking, word games and puzzles</p>
-<p><a href="https://cgjennings.github.io/fast-ternary-string-set/classes/TernaryStringSet.html">API docs</a></p>
+<p><strong>Jump to:</strong> <a href="#features">Features</a>&nbsp;/ <a href="#installation">Installation</a>&nbsp;/ <a href="#examples">Examples</a>&nbsp;/ <a href="#usage-notes">Usage notes</a>&nbsp;/ <a href="#serialization-format">Serialization format</a>&nbsp;/ <a href="https://cgjennings.github.io/fast-ternary-string-set/classes/TernaryStringSet.html">API docs</a></p>
 
 <a href="#features" id="features" style="color: inherit; text-decoration: none;">
   <h2>Features</h2>
@@ -14,7 +14,9 @@
 <li>Drop-in replacement for <a href="#differences-from-standard-js-set">nearly any use</a> of a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set">JavaScript <code>Set</code></a> of strings.</li>
 <li>Serializes to an <code>ArrayBuffer</code>: load sets directly without the overhead of initializing from a list of strings.</li>
 <li>Search and iteration methods return elements in ascending sorted order (lexicographic by code point).</li>
-<li>Set relations (equality, subset, superset) and operations (union, intersection, difference, symmetric difference).</li>
+<li>Set relations (equal, subset, superset, disjoint).</li>
+<li>Set operations (union, intersection, difference, symmetric difference).</li>
+<li><code>Array</code>-like functional methods (forEach, filter, map, find, reduce, join, some, every).</li>
 <li>Several approximate matching methods:<ol>
 <li>List strings that complete a prefix.</li>
 <li>List strings that are completed by a suffix.</li>
@@ -58,7 +60,7 @@
 <pre><code class="language-js"><span class="hl-1">// From Node.js with CommonJS-style modules:</span><br/><span class="hl-2">const</span><span class="hl-0"> { </span><span class="hl-3">TernaryStringSet</span><span class="hl-0"> } = </span><span class="hl-4">require</span><span class="hl-0">(</span><span class="hl-5">&quot;fast-ternary-string-set&quot;</span><span class="hl-0">);</span><br/><span class="hl-1">// From TypeScript:</span><br/><span class="hl-6">import</span><span class="hl-0"> { </span><span class="hl-7">TernaryStringSet</span><span class="hl-0"> } </span><span class="hl-6">from</span><span class="hl-0"> </span><span class="hl-5">&quot;fast-ternary-string-set&quot;</span><span class="hl-0">;</span>
 </code></pre>
 <p>Create a new set and add some strings:</p>
-<pre><code class="language-js"><span class="hl-2">const</span><span class="hl-0"> </span><span class="hl-3">set</span><span class="hl-0"> = </span><span class="hl-2">new</span><span class="hl-0"> </span><span class="hl-4">TernaryStringSet</span><span class="hl-0">();</span><br/><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">add</span><span class="hl-0">(</span><span class="hl-5">&quot;dog&quot;</span><span class="hl-0">).</span><span class="hl-4">add</span><span class="hl-0">(</span><span class="hl-5">&quot;cat&quot;</span><span class="hl-0">).</span><span class="hl-4">add</span><span class="hl-0">(</span><span class="hl-5">&quot;eagle&quot;</span><span class="hl-0">);</span><br/><span class="hl-1">// or alternatively</span><br/><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">addAll</span><span class="hl-0">([</span><span class="hl-5">&quot;aardvark&quot;</span><span class="hl-0">, </span><span class="hl-5">&quot;beaver&quot;</span><span class="hl-0">, </span><span class="hl-5">&quot;dog&quot;</span><span class="hl-0">, </span><span class="hl-5">&quot;fish&quot;</span><span class="hl-0">, </span><span class="hl-5">&quot;hamster&quot;</span><span class="hl-0">]);</span><br/><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">has</span><span class="hl-0">(</span><span class="hl-5">&quot;cat&quot;</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; true</span><br/><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">delete</span><span class="hl-0">(</span><span class="hl-5">&quot;cat&quot;</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; true since &quot;cat&quot; was in the set</span><br/><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">has</span><span class="hl-0">(</span><span class="hl-5">&quot;cat&quot;</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; false</span><br/><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">has</span><span class="hl-0">(</span><span class="hl-8">123.456</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; false (any non-string returns false)</span>
+<pre><code class="language-js"><span class="hl-2">const</span><span class="hl-0"> </span><span class="hl-3">set</span><span class="hl-0"> = </span><span class="hl-2">new</span><span class="hl-0"> </span><span class="hl-4">TernaryStringSet</span><span class="hl-0">();</span><br/><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">add</span><span class="hl-0">(</span><span class="hl-5">&quot;dog&quot;</span><span class="hl-0">).</span><span class="hl-4">add</span><span class="hl-0">(</span><span class="hl-5">&quot;cat&quot;</span><span class="hl-0">).</span><span class="hl-4">add</span><span class="hl-0">(</span><span class="hl-5">&quot;eagle&quot;</span><span class="hl-0">);</span><br/><span class="hl-1">// or alternatively</span><br/><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">addAll</span><span class="hl-0">(</span><span class="hl-5">&quot;aardvark&quot;</span><span class="hl-0">, </span><span class="hl-5">&quot;beaver&quot;</span><span class="hl-0">, </span><span class="hl-5">&quot;dog&quot;</span><span class="hl-0">, </span><span class="hl-5">&quot;fish&quot;</span><span class="hl-0">, </span><span class="hl-5">&quot;hamster&quot;</span><span class="hl-0">);</span><br/><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">has</span><span class="hl-0">(</span><span class="hl-5">&quot;cat&quot;</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; true</span><br/><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">delete</span><span class="hl-0">(</span><span class="hl-5">&quot;cat&quot;</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; true since &quot;cat&quot; was in the set</span><br/><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">has</span><span class="hl-0">(</span><span class="hl-5">&quot;cat&quot;</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; false</span><br/><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">has</span><span class="hl-0">(</span><span class="hl-8">123.456</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; false (any non-string returns false)</span>
 </code></pre>
 <p>Create a new string set from any <code>Iterable&lt;string&gt;</code>:</p>
 <pre><code class="language-js"><span class="hl-1">// otherSet could be any Iterable&lt;string&gt;, such as a string array</span><br/><span class="hl-1">// or even another TernaryStringSet</span><br/><span class="hl-2">let</span><span class="hl-0"> </span><span class="hl-7">otherSet</span><span class="hl-0"> = </span><span class="hl-2">new</span><span class="hl-0"> </span><span class="hl-9">Set</span><span class="hl-0">([</span><span class="hl-5">&quot;fish&quot;</span><span class="hl-0">, </span><span class="hl-5">&quot;hippo&quot;</span><span class="hl-0">]);</span><br/><span class="hl-2">let</span><span class="hl-0"> </span><span class="hl-7">set</span><span class="hl-0"> = </span><span class="hl-2">new</span><span class="hl-0"> </span><span class="hl-4">TernaryStringSet</span><span class="hl-0">(</span><span class="hl-7">otherSet</span><span class="hl-0">);</span><br/><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">has</span><span class="hl-0">(</span><span class="hl-5">&quot;hippo&quot;</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; true</span>
@@ -75,11 +77,23 @@
 <p>Get all elements within Hamming distance 1 of <code>&quot;cat&quot;</code>:</p>
 <pre><code class="language-js"><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">getWithinHammingDistanceOf</span><span class="hl-0">(</span><span class="hl-5">&quot;cat&quot;</span><span class="hl-0">, </span><span class="hl-8">1</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; [&quot;bat&quot;, &quot;can&quot;, &quot;cat&quot;, &quot;cot&quot;, &quot;sat&quot;] (for example)</span>
 </code></pre>
-<p>Get all elements within edit distance 1 of <code>&quot;cat&quot;</code>:</p>
+<p>Get all elements within edit distance (Levenshtein distance) 1 of <code>&quot;cat&quot;</code>:</p>
 <pre><code class="language-js"><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">getWithinEditDistanceOf</span><span class="hl-0">(</span><span class="hl-5">&quot;cat&quot;</span><span class="hl-0">, </span><span class="hl-8">1</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; [&quot;at&quot;, &quot;bat&quot;, &quot;can&quot;, &quot;cat&quot;, &quot;cats&quot;, &quot;cot&quot;, &quot;sat&quot;] (for example)</span>
 </code></pre>
 <p>Get all elements that match <code>&quot;b.t&quot;</code>:</p>
 <pre><code class="language-js"><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">getPartialMatchesOf</span><span class="hl-0">(</span><span class="hl-5">&quot;b.t&quot;</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; [&quot;bat&quot;, &quot;bet&quot;, &quot;bit&quot;, &quot;bot&quot;, &quot;but&quot;] (for example)</span>
+</code></pre>
+<p>Create a new set with the elements reversed:</p>
+<pre><code class="language-js"><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">map</span><span class="hl-0">((</span><span class="hl-7">el</span><span class="hl-0">) </span><span class="hl-2">=&gt;</span><span class="hl-0"> [...</span><span class="hl-7">el</span><span class="hl-0">].</span><span class="hl-4">reverse</span><span class="hl-0">().</span><span class="hl-4">join</span><span class="hl-0">(</span><span class="hl-5">&quot;&quot;</span><span class="hl-0">)).</span><span class="hl-4">toArray</span><span class="hl-0">();</span><br/><span class="hl-1">// =&gt; [&quot;olleH&quot;, &quot;rotcoD&quot;] (for example)</span>
+</code></pre>
+<p>Get the subset of 4-letter strings:</p>
+<pre><code class="language-js"><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">filter</span><span class="hl-0">((</span><span class="hl-7">el</span><span class="hl-0">) </span><span class="hl-2">=&gt;</span><span class="hl-0"> </span><span class="hl-7">el</span><span class="hl-0">.</span><span class="hl-7">length</span><span class="hl-0"> === </span><span class="hl-8">4</span><span class="hl-0">).</span><span class="hl-4">toArray</span><span class="hl-0">();</span><br/><span class="hl-1">// =&gt; [&quot;bank&quot;, &quot;cave&quot;, &quot;door&quot;, &quot;four&quot;] (for example)</span>
+</code></pre>
+<p>List elements in reverse sorted order:</p>
+<pre><code class="language-js"><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">reduce</span><span class="hl-0">((</span><span class="hl-7">acc</span><span class="hl-0">, </span><span class="hl-7">el</span><span class="hl-0">) </span><span class="hl-2">=&gt;</span><span class="hl-0"> </span><span class="hl-5">`</span><span class="hl-2">${</span><span class="hl-7">el</span><span class="hl-2">}</span><span class="hl-5">, </span><span class="hl-2">${</span><span class="hl-7">acc</span><span class="hl-2">}</span><span class="hl-5">`</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; &quot;cherry, banana, apple&quot; (for example)</span>
+</code></pre>
+<p>Test if any element is longer than 9 characters:</p>
+<pre><code class="language-js"><span class="hl-7">set</span><span class="hl-0">.</span><span class="hl-4">add</span><span class="hl-0">(</span><span class="hl-5">&quot;ambidextrous&quot;</span><span class="hl-0">).</span><span class="hl-4">some</span><span class="hl-0">((</span><span class="hl-7">el</span><span class="hl-0">) </span><span class="hl-2">=&gt;</span><span class="hl-0"> </span><span class="hl-7">el</span><span class="hl-0">.</span><span class="hl-7">length</span><span class="hl-0"> &gt; </span><span class="hl-8">9</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; true</span>
 </code></pre>
 <p>Compare sets:</p>
 <pre><code class="language-js"><span class="hl-2">let</span><span class="hl-0"> </span><span class="hl-7">s1</span><span class="hl-0"> = </span><span class="hl-2">new</span><span class="hl-0"> </span><span class="hl-4">TernaryStringSet</span><span class="hl-0">([</span><span class="hl-5">&quot;a&quot;</span><span class="hl-0">, </span><span class="hl-5">&quot;b&quot;</span><span class="hl-0">, </span><span class="hl-5">&quot;c&quot;</span><span class="hl-0">]);</span><br/><span class="hl-2">let</span><span class="hl-0"> </span><span class="hl-7">s2</span><span class="hl-0"> = </span><span class="hl-2">new</span><span class="hl-0"> </span><span class="hl-4">TernaryStringSet</span><span class="hl-0">(</span><span class="hl-7">s1</span><span class="hl-0">);</span><br/><span class="hl-7">s1</span><span class="hl-0">.</span><span class="hl-4">equals</span><span class="hl-0">(</span><span class="hl-7">s2</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; true</span><br/><span class="hl-7">s1</span><span class="hl-0">.</span><span class="hl-4">isSubsetOf</span><span class="hl-0">(</span><span class="hl-7">s2</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; true</span><br/><span class="hl-7">s2</span><span class="hl-0">.</span><span class="hl-4">add</span><span class="hl-0">(</span><span class="hl-5">&quot;d&quot;</span><span class="hl-0">);</span><br/><span class="hl-7">s1</span><span class="hl-0">.</span><span class="hl-4">equals</span><span class="hl-0">(</span><span class="hl-7">s2</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; false</span><br/><span class="hl-7">s1</span><span class="hl-0">.</span><span class="hl-4">isSubsetOf</span><span class="hl-0">(</span><span class="hl-7">s2</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; true</span><br/><span class="hl-7">s1</span><span class="hl-0">.</span><span class="hl-4">isSupersetOf</span><span class="hl-0">(</span><span class="hl-7">s2</span><span class="hl-0">);</span><br/><span class="hl-1">// =&gt; false</span>
@@ -115,21 +129,25 @@ For example, a TST is excellent for solving crossword puzzles.</p>
 <a href="#differences-from-standard-js-set" id="differences-from-standard-js-set" style="color: inherit; text-decoration: none;">
   <h3>Differences from standard JS <code>Set</code></h3>
 </a>
-<p><code>TernaryStringSet</code> supports a superset of the standard <code>Set</code> interface, but it is not a subclass of <code>Set</code>.</p>
-<p>JavaScript <code>Set</code> objects guarantee that they iterate over elements in the order that they are added.
-<code>TernaryStringSet</code>s always return results in sorted order.</p>
-<p><code>TernaryStringSet</code>s can contain the empty string, but cannot contain non-strings.
-Not even <code>null</code> or <code>undefined</code>.</p>
+<p><code>TernaryStringSet</code>s behave like standard JS <code>Set</code>s, with minor differences:</p>
+<ul>
+<li>They iterate over their elements in sorted order (ascending lexicographic order by code point); <code>Sets</code> iterate over objects in the order they were added.</li>
+<li>They support a superset of the standard <code>Set</code> interface, but are not a subclass of <code>Set</code>. Testing them with <code>instanceof Set</code> will return <code>false</code>.</li>
+<li>They can contain the empty string, but cannot contain non-strings&mdash;not even <code>null</code> or <code>undefined</code>.</li>
+<li>Methods that would return a new <code>Set</code>, such as <code>filter</code> or <code>union</code>, return a new <code>TernaryStringSet</code>.</li>
+<li>Methods expect that <code>this</code> to be a <code>TernaryStringSet</code>; they should not be <code>call</code>ed with arbitrary objects.</li>
+<li>The <code>addAll</code> method accepts either a list of string arguments (like <code>Set</code>s), or an <code>Iterable&lt;string&gt;</code> with an optional range.</li>
+</ul>
 
 <a href="#tree-health" id="tree-health" style="color: inherit; text-decoration: none;">
   <h3>Tree health</h3>
 </a>
 <p>Ternary search trees are not self-balancing&mdash;unlike, say, a red-black tree.
 Adding strings in sorted order produces a worst-case tree structure.
-This can be avoided by adding strings all at once using the constructor or <code>addAll()</code>.
+This can be avoided by adding strings all at once using the constructor or <code>addAll</code>.
 Given sorted input, both of these methods will produce an optimal tree structure.
 If this is not practical, adding strings in random order will typically yield a tree that&#39;s &quot;close enough&quot; to balanced for most applications.
-Calling <code>balance()</code> will rebuild the tree in optimal form, but it can be expensive.</p>
+Calling <code>balance</code> will rebuild the tree in optimal form, but it can be expensive.</p>
 <p>Since most <code>TernaryStringSet</code> methods are recursive, extremely unbalanced trees can provoke &quot;maximum call stack size exceeded&quot; errors.</p>
 
 <a href="#code-point-ordering" id="code-point-ordering" style="color: inherit; text-decoration: none;">
@@ -146,7 +164,7 @@ For example, since the above string is one code point, it would match <code>getP
 <a href="#compaction" id="compaction" style="color: inherit; text-decoration: none;">
   <h3>Compaction</h3>
 </a>
-<p>Calling <code>compact()</code> can significantly reduce a set&#39;s memory footprint.
+<p>Calling <code>compact</code> can significantly reduce a set&#39;s memory footprint.
 For large sets of typical strings, this can reduce the set&#39;s footprint by around 50–80%.
 However, no strings can be added or deleted without first undoing the compaction (this is done automatically when needed).
 Compaction is relatively expensive, but can be a one-time or even ahead-of-time step for many use cases.</p>
@@ -160,9 +178,9 @@ In such cases it is often desirable to build a set ahead of time, serialize it t
 Recreating a set directly from buffer data is generally much faster than downloading a file containing the strings and adding them to a new set on the client.</p>
 <p>The following steps will make such ahead-of-time sets as small as possible:</p>
 <ol>
-<li>Create a set and insert the desired strings using <code>add()</code> or <code>addAll()</code>.</li>
-<li>Minimize the tree size by calling <code>balance()</code> followed by <code>compact()</code>.</li>
-<li>Create the buffer with <code>toBuffer()</code> and write the result to a file.</li>
+<li>Create a set and insert the desired strings using <code>add</code> or <code>addAll</code>.</li>
+<li>Minimize the tree size by calling <code>balance</code> followed by <code>compact</code>.</li>
+<li>Create the buffer with <code>toBuffer</code> and write the result to a file.</li>
 <li>Optionally, compress the result and configure the server to serve the compressed version where supported by the browser.</li>
 </ol>
 <p>To recreate the set, download or otherwise obtain the buffer data, then use <code>TernaryStringSet.fromBuffer(data)</code>.</p>
