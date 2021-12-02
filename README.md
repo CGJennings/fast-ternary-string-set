@@ -85,7 +85,7 @@ Create a new string set from any `Iterable<string>`:
 
 ```js
 // otherSet could be any Iterable<string>, such as a string array
-// or even another TernaryStringSet
+// or another TernaryStringSet
 let otherSet = new Set(["fish", "hippo"]);
 let set = new TernaryStringSet(otherSet);
 set.has("hippo");
@@ -286,9 +286,9 @@ For example, since the above string is one code point, it would match `getPartia
 ### Compaction
 
 Calling `compact` can significantly reduce a set's memory footprint.
-For large sets of typical strings, this can reduce the set's footprint by around 50–80%.
-However, no strings can be added or deleted without first undoing the compaction (this is done automatically when needed).
-Compaction is relatively expensive, but can be a one-time or even ahead-of-time step for many use cases.
+For large sets of typical strings, this can reduce the set's footprint by more than 50%.
+However, no strings can be added or deleted without first undoing the compaction (this is done automatically).
+Compaction is relatively expensive, but can be a one-time or ahead-of-time step for many use cases.
 
 ### Serialization
 
@@ -365,7 +365,7 @@ This must be 0x5454 (`TT`) if the file is valid.
 Indicates the version of the format.
 Valid values are currently 1, 2, or 3.
 A value of 0 implies that the file is not valid.
-Other values would indicate newer versions of the format specification.
+Other values would indicate newer versions of the format.
 
 **Tree flags (int8)**  
 A set of bit flags that denote specific features:
