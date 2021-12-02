@@ -12,7 +12,8 @@ sourceTree.balance();
 
 /**
  * Creates a new set containing the word list.
- * Pass false if you will **not** mutate the set to get a shared instance.
+ * To get a shared instance, pass false to indicate that you will
+ * **not** mutate the set.
  */
 export function wordSet(mutable = true): TernaryStringSet {
   return mutable ? new TernaryStringSet(sourceTree) : sourceTree;

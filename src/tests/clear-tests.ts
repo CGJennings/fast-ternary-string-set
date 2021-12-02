@@ -10,20 +10,20 @@ test("clear() is fluent", () => {
   expect(set.clear()).toBe(set);
 });
 
-test("Clear empty tree", () => {
+test("clear() empty tree", () => {
   expect(set.size).toBe(0);
   expect(() => set.clear()).not.toThrow();
   expect(set.size).toBe(0);
 });
 
-test("Clear non-empty tree", () => {
+test("clear() non-empty tree", () => {
   set.addAll(["chicken", "duck", "whale"]);
   expect(set.size).toBe(3);
   set.clear();
   expect(set.size).toBe(0);
 });
 
-test("Clear tree with empty string", () => {
+test("clear() tree with empty string", () => {
   set.add("horse").add("");
   expect(set.size).toBe(2);
   expect(set.has("")).toBe(true);

@@ -8,7 +8,8 @@ const EOS = 1 << 21;
 const CP_MASK = EOS - 1;
 /** Smallest code point that requires a surrogate pair. */
 const CP_MIN_SURROGATE = 0x10000;
-
+/** A filtered set with fewer than this many elements is cleaned up by being balanced. */
+const BALANCE_LIMIT = 100;
 /** Code points which end a literal prefix in a regular expression. Initialized only if needed. */
 let REGEX_LIT_STOP: number[];
 /**
@@ -72,7 +73,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     this.clear();
 
     if (source != null) {
-      if (typeof source[Symbol.iterator] !== "function") {
+      if (!(source[Symbol.iterator] instanceof Function)) {
         throw new TypeError("source object is not iterable");
       }
       if (source instanceof TernaryStringSet) {
@@ -80,16 +81,18 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         this._hasEmpty = source._hasEmpty;
         this._compact = source._compact;
         this._size = source._size;
-      } else if (Array.isArray(source)) {
-        this.addAll(source);
       } else {
-        this.addAll(Array.from(source));
+        if (Array.isArray(source)) {
+          this.addAll(source);
+        } else {
+          this.addAll(...source);
+        }
       }
     }
   }
 
   /**
-   * Returns the number of unique strings stored in this set.
+   * Returns the number of unique strings in this set.
    *
    * @returns The non-negative integer number of string elements in the set.
    */
@@ -113,12 +116,12 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   /**
    * Adds a string to this set. The string can be empty, but cannot be null.
    * Adding an already present string has no effect.
-   * If inserting multiple strings in sorted (lexicographic) order, prefer
-   * `addAll` over this method.
+   * If inserting multiple strings in sorted order, prefer `addAll`
+   * over this method.
    *
    * @param s The non-null string to add.
    * @returns This set, allowing chained calls.
-   * @throws TypeError If the argument is not a string.
+   * @throws `TypeError` If the argument is not a string.
    */
   add(s: string): this {
     if (typeof s !== "string") {
@@ -171,44 +174,77 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Adds an entire array, or subarray, of strings to this set.
+   * Adds zero or more strings to this set.
    *
-   * If the array is sorted in ascending order and no other strings have been
+   * If the collection is sorted in ascending order and no other strings have been
    * added to this set, the underlying tree is guaranteed to be balanced, ensuring
-   * good search performance. If the array is in random order, the tree is *likely*
+   * good search performance. If the collection is in random order, the tree is *likely*
    * to be nearly balanced.
    *
-   * @param strings The non-null array of strings to add.
-   * @param start The index of the first element to add (inclusive, default is 0).
-   * @param end The index of the last element to add (exclusive, default is `strings.length`)
+   * @param strings Zero or more strings to be added to the set.
    * @returns This set, allowing chained calls.
-   * @throws `ReferenceError` If the array is null.
-   * @throws `TypeError` If any element is not a string or if the start or end are not numbers.
-   * @throws `RangeError` If the start or end are out of the array bounds.
+   * @throws `TypeError` If any of the arguments is not a string.
+   */
+  addAll(...strings: string[]): TernaryStringSet;
+
+  /**
+   * Adds an entire array, or subarray, of strings to this set. By default,
+   * the entire collection is added. If the `start` and/or `end` are specified,
+   * only the elements in the specified range are added.
+   *
+   * If the collection is sorted in ascending order and no other strings have been
+   * added to this set, the underlying tree is guaranteed to be balanced, ensuring
+   * good search performance. If the collection is in random order, the tree is *likely*
+   * to be nearly balanced.
+   *
+   * @param strings The non-null collection of strings to add.
+   * @param start The optional index of the first element to add (inclusive, default is 0).
+   * @param end The optional index of the last element to add (exclusive, default is all elements)
+   * @returns This set, allowing chained calls.
+   * @throws `ReferenceError` If the collection is null.
+   * @throws `TypeError` If `strings` is not an array or if any element is not a string
+   *   or if the start or end are not integer numbers.
+   * @throws `RangeError` If the start or end are out of bounds, that is, less than 0
+   *   or greater than `strings.length`.
    */
   addAll(
     strings: readonly string[],
-    start = 0,
-    end = strings.length,
-  ): TernaryStringSet {
-    if (strings == null) throw new ReferenceError("null strings");
-    if (!Array.isArray(strings)) {
-      throw new TypeError("strings must be an array");
-    }
-    if (typeof start !== "number" || start !== Math.trunc(start)) {
-      throw new TypeError("start must be an integer");
-    }
-    // Note: start = strings.length is allowed so that
-    // addAll(array=[], 0, array.length) works as expected
-    if (start < 0 || start > strings.length) {
-      throw new RangeError("start: " + start);
-    }
+    start?: number,
+    end?: number,
+  ): TernaryStringSet;
 
-    if (typeof end !== "number" || end !== Math.trunc(end)) {
-      throw new TypeError("end must be an integer");
-    }
-    if (end < 0 || end > strings.length) {
-      throw new RangeError("end: " + end);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  addAll(...args: any[]): TernaryStringSet {
+    if (args.length === 0) return this;
+
+    let strings: readonly string[];
+    let start: number;
+    let end: number;
+
+    if (Array.isArray(args[0])) {
+      strings = args[0];
+      const len = strings.length;
+      start = (args[1] as number) ?? 0;
+      end = (args[2] as number) ?? len;
+
+      // check start and end
+      // start == strings.length is allowed for addAll([], 0, array.length)
+      if (typeof start !== "number" || start !== Math.trunc(start)) {
+        throw new TypeError("start must be an integer");
+      }
+      if (typeof end !== "number" || end !== Math.trunc(end)) {
+        throw new TypeError("end must be an integer");
+      }
+      if (start < 0 || start > len) {
+        throw new RangeError("start: " + start);
+      }
+      if (end < 0 || end > len) {
+        throw new RangeError("end: " + end);
+      }
+    } else {
+      strings = args;
+      start = 0;
+      end = strings.length;
     }
 
     if (start < end) {
@@ -224,9 +260,9 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   ): void {
     if (--end < start) return;
 
-    // if the tree is empty and the list is sorted, this insertion
-    // order ensures a balanced tree (inserting strings in sorted order
-    // is a degenerate case)
+    // if the tree is empty and the list is sorted, insertion by
+    // repeated bifurcation ensures a balanced tree
+    // (inserting strings in sorted order is a degenerate case)
     const mid = Math.trunc(start + (end - start) / 2);
     try {
       this.add(strings[mid]);
@@ -334,6 +370,21 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         return this._deleteImpl(tree[node + 2], s, i, s.codePointAt(i));
       }
     }
+  }
+
+  /**
+   * Removes multiple elements from this set.
+   *
+   * @param elements The elements to remove.
+   * @returns True if every element was present and was removed.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  deleteAll(...elements: string[]): boolean {
+    let allDeleted = true;
+    for (const el of elements) {
+      allDeleted = this.delete(el) && allDeleted;
+    }
+    return allDeleted;
   }
 
   /**
@@ -645,7 +696,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * @param predicate A function that accepts strings from this set and returns
    *   true if the string should be included in the results.
    * @returns A (possibly empty) array of elements that pass the test.
-   * @throws {TypeError} If the predicate is not a function.
+   * @throws `TypeError` If the predicate is not a function.
    */
   getMatchesOf(predicate: (value: string) => boolean): string[] {
     if (!(predicate instanceof Function)) {
@@ -875,19 +926,288 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
+   * Returns a new set containing all of the strings in this set that pass a
+   * test implemented by the specified function.
+   *
+   * @param predicate A function that accepts strings from this set and returns
+   *   true if the string should be included in the new set.
+   * @param thisArg An optional value to use as `this` when calling the predicate.
+   * @returns A new set containing only those elements for which the predicate return
+   *   value is true.
+   * @throws `TypeError` If the predicate is not a function.
+   */
+  filter(
+    predicate: (value: string, index: number, set: TernaryStringSet) => boolean,
+    thisArg?: unknown,
+  ): TernaryStringSet {
+    if (!(predicate instanceof Function)) {
+      throw new TypeError("predicate must be a function");
+    }
+    if (this._size === 0) return new TernaryStringSet();
+    if (thisArg !== undefined) predicate = predicate.bind(thisArg);
+
+    const results = this._cloneDecompacted();
+
+    let index = 0;
+    if (this._hasEmpty) {
+      if (!predicate("", index++, this)) {
+        results._hasEmpty = false;
+        --results._size;
+      }
+    }
+
+    this._visitCodePoints(0, [], (cp) => {
+      if (!predicate(String.fromCodePoint(...cp), index++, this)) {
+        const node = results._hasCodePoints(0, cp, 0);
+        results._tree[node] &= ~EOS;
+        --results._size;
+      }
+    });
+
+    // avoid wasting space when the result set is small
+    if (results._size === 0) {
+      results.clear();
+    } else if (results._size <= BALANCE_LIMIT) {
+      results.balance();
+    }
+
+    return results;
+  }
+
+  /**
+   * Returns a new set populated with the results of calling the specified mapping
+   * function on each element of this set. Like `Array.map()`, the mapping function
+   * can return any value, but non-string values will be coerced for
+   * compatibility with the new set.
+   *
+   * @param mapper A function that accepts strings from this set and returns
+   *   the string to be added to the new set.
+   * @param thisArg An optional value to use as `this` when calling the mapping function.
+   * @returns A new set containing the results of applying the mapping function to each
+   *   element in this set.
+   * @throws `TypeError` If the mapping function is not a function.
+   */
+  map(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mapper: (value: string, index: number, set: TernaryStringSet) => any,
+    thisArg?: unknown,
+  ): TernaryStringSet {
+    if (!(mapper instanceof Function)) {
+      throw new TypeError("mapper must be a function");
+    }
+    if (thisArg !== undefined) mapper = mapper.bind(thisArg);
+
+    // We guarantee that we will process the strings in sorted order, but
+    // if the mapping function also produces sorted output and we build
+    // the set on the fly, the result will be unbalanced and slow.
+    // To avoid this we convert the tree to an array, map it in place,
+    // then convert the result back to a tree.
+
+    const array = this.toArray();
+    for (let i = 0; i < array.length; ++i) {
+      array[i] = String(mapper(array[i], i, this));
+    }
+    return new TernaryStringSet(array);
+  }
+
+  /**
+   * Returns a string that reduces this set to a single accumulated
+   * value by calling the specified reducer function with each element
+   * in turn. The reducer is passed the accumulator and the next element
+   * and returns the new value of the accumulator.
+   *
+   * @param reducer A function called with the previous accumulator value,
+   *   the next element to reduce, the element index, and this set.
+   * @param initialValue An optional initial value for the accumulator.
+   *   If no none is provided, the first element is used.
+   * @returns The final value of the accumulator.
+   * @throws `TypeError` If the reducer is not a function or if the set is
+   *   empty and no initial value is provided.
+   */
+  reduce<T>(
+    reducer: (
+      previous: T,
+      current: string,
+      index: number,
+      set: TernaryStringSet,
+    ) => T,
+    initialValue: T,
+  ): T;
+
+  reduce(
+    reducer: (
+      previous: string,
+      current: string,
+      index: number,
+      set: TernaryStringSet,
+    ) => string,
+    initialValue?: string,
+  ): string;
+
+  reduce<T>(
+    reducer: (
+      previous: T | string,
+      current: string,
+      index: number,
+      set: TernaryStringSet,
+    ) => T | string,
+    initialValue?: T | string,
+  ): T | string {
+    if (!(reducer instanceof Function)) {
+      throw new TypeError("reducer must be a function");
+    }
+    if (this._size === 0 && initialValue === undefined) {
+      throw new TypeError("reduce of empty set with no initial value");
+    }
+    let index = 0;
+    let initialized = false;
+    let accumulator: T | string;
+
+    if (initialValue !== undefined) {
+      accumulator = initialValue;
+      initialized = true;
+    }
+
+    if (this._hasEmpty) {
+      if (!initialized) {
+        accumulator = "";
+        initialized = true;
+      } else {
+        accumulator = reducer(accumulator, "", 0, this);
+      }
+      index = 1;
+    }
+
+    this._visitCodePoints(0, [], (cp) => {
+      const s = String.fromCodePoint(...cp);
+      if (!initialized) {
+        ++index;
+        accumulator = s;
+        initialized = true;
+      } else {
+        accumulator = reducer(accumulator, s, index++, this);
+      }
+    });
+
+    return accumulator;
+  }
+
+  /**
+   * Returns the first element in this set that satisfies a test implemented by
+   * the specified function. If no element satisfies the test, the result is
+   * `undefined`.
+   *
+   * @param predicate A function that accepts strings from this set and returns
+   *  true if the string passes the desired test.
+   * @param thisArg An optional value to use as `this` when calling the predicate.
+   * @returns The first string to pass the test when tested in sorted order, or `undefined`.
+   */
+  find(
+    predicate: (value: string, index: number, set: TernaryStringSet) => boolean,
+    thisArg?: unknown,
+  ): string | undefined {
+    if (!(predicate instanceof Function)) {
+      throw new TypeError("predicate must be a function");
+    }
+    if (this._size === 0) return undefined;
+    if (thisArg !== undefined) predicate = predicate.bind(thisArg);
+
+    let index = 0;
+    if (this._hasEmpty && predicate("", index++, this)) {
+      return "";
+    }
+
+    let result: string = undefined;
+    this._searchCodePoints(0, [], (cp) => {
+      const s = String.fromCodePoint(...cp);
+      if (predicate(s, index++, this)) {
+        if (result === undefined) {
+          result = s;
+          return true;
+        }
+      }
+      return false;
+    });
+    return result;
+  }
+
+  /**
+   * Returns whether at least one element in this set passes a test implemented
+   * by the specified function.
+   *
+   * @param predicate A function that accepts strings from this set and returns
+   *  true if the string passes the desired test.
+   * @param thisArg An optional value to use as `this` when calling the predicate.
+   * @returns True if at least one element in this set passes the test.
+   * @throws `TypeError` If the predicate is not a function.
+   */
+  some(
+    predicate: (value: string, index: number, set: TernaryStringSet) => boolean,
+    thisArg?: unknown,
+  ): boolean {
+    return this._predicateImpl(true, predicate, thisArg);
+  }
+
+  /**
+   * Returns whether every element in this set passes a test implemented
+   * by the specified function.
+   *
+   * @param predicate A function that accepts strings from this set and returns
+   *  true if the string passes the desired test.
+   * @param thisArg An optional value to use as `this` when calling the predicate.
+   * @returns True if at every element in this set passes the test.
+   * @throws `TypeError` If the predicate is not a function.
+   */
+  every(
+    predicate: (value: string, index: number, set: TernaryStringSet) => boolean,
+    thisArg?: unknown,
+  ): boolean {
+    return this._predicateImpl(false, predicate, thisArg);
+  }
+
+  private _predicateImpl(
+    cond: boolean,
+    predicate: (value: string, index: number, set: TernaryStringSet) => boolean,
+    thisArg?: unknown,
+  ): boolean {
+    if (!(predicate instanceof Function)) {
+      throw new TypeError("predicate must be a function");
+    }
+    if (this._size === 0) return !cond;
+    if (thisArg !== undefined) predicate = predicate.bind(thisArg);
+
+    let index = 0;
+    if (this._hasEmpty) {
+      if (cond == !!predicate("", index++, this)) {
+        return cond;
+      }
+    }
+
+    let result = !cond;
+    this._searchCodePoints(0, [], (cp) => {
+      if (cond == !!predicate(String.fromCodePoint(...cp), index++, this)) {
+        result = cond;
+        return true;
+      }
+      return false;
+    });
+    return result;
+  }
+
+  /**
    * Calls the specified callback function once for each string in this set, passing the string
    * and this set. The string is passed as both value and key to align with `Map.forEach`.
    * If `thisArg` is specified, it is used as `this` when invoking the callback function.
    *
    * @param callbackFn The function to call for each string.
-   * @param thisArg Optional value to use as `this` when calling the function.
+   * @param thisArg An optional value to use as `this` when calling the function.
    * @throws `TypeError` If the callback function is not a function.
    */
   forEach(
     callbackFn: (value: string, key: string, set: TernaryStringSet) => void,
     thisArg?: unknown,
   ): void {
-    if (typeof callbackFn !== "function") {
+    if (!(callbackFn instanceof Function)) {
       throw new TypeError("callbackFn must be a function");
     }
     if (arguments.length >= 2) {
@@ -965,38 +1285,121 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Returns whether this set contains exactly the same elements as the specified set.
-   * If passed an object that is not a `TernaryStringSet`, this method returns false.
+   * Returns a string that is the concatenation of all strings in this set,
+   * separated by a comma or the specified separator.
+   *
+   * @param separator Optional string to use as separator. Default is `","`.
+   * @returns A string containing all of the set's elements, in sorted order,
+   *   separated by the specified string.
+   */
+  join(separator = ","): string {
+    separator = String(separator);
+    let result = "";
+    let first = !this._hasEmpty;
+    this._visitCodePoints(0, [], (s) => {
+      if (first) {
+        first = false;
+      } else {
+        result += separator;
+      }
+      result += String.fromCodePoint(...s);
+    });
+    return result;
+  }
+
+  /**
+   * Returns whether this set contains exactly the same elements as the specified iterable.
+   * Any object is accepted for comparison; if it is not a set or iterable, the result
+   * is always `false`.
    *
    * @param rhs The set (or other object) to compare this set to.
-   * @returns True if the specified object is also a `TernaryStringSet` and it contains the same elements.
+   * @returns True if the specified object is iterable, has the same number of elements
+   *   as this set, and this set also contains each of those elements.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   equals(rhs: any): boolean {
-    if (!(rhs instanceof TernaryStringSet)) return false;
+    if (this === rhs) return true;
+
+    if (!(rhs instanceof TernaryStringSet)) {
+      if (rhs == null || !(rhs[Symbol.iterator] instanceof Function)) {
+        return false;
+      }
+      let rhsSize = 0;
+      for (const el of rhs) {
+        if (!this.has(el)) return false;
+        ++rhsSize;
+      }
+      return this.size === rhsSize;
+    }
+
     if (this._size !== rhs._size) return false;
     return this.isSubsetOf(rhs);
   }
 
   /**
-   * Returns whether this set is a subset of the specified set. This set is a subset if every
-   * element in this set is also contained in the other set. By this definition,
-   * equal sets are also subsets of each other. To test if this set is a *proper* subset
-   * of the specified set, use code like this: `lhs.size < rhs.size && lhs.isSubsetOf(rhs)`.
+   * Returns whether this set is disjoint from the elements of the specified iterable,
+   * that is, whether this set has no elements in common with the iterable.
+   *
+   * @param rhs The iterable whose elements should be tested against this set's.
+   * @returns True if `this.intersection(rhs)` is empty.
+   * @throws `TypeError` If the argument is not an iterable.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  isDisjointFrom(rhs: Iterable<any>): boolean {
+    if (this === rhs) return false;
+
+    if (!(rhs instanceof TernaryStringSet)) {
+      if (rhs == null || !(rhs[Symbol.iterator] instanceof Function)) {
+        throw new TypeError("rhs is not iterable");
+      }
+      for (const el of rhs) {
+        if (this.has(el)) return false;
+      }
+      return true;
+    }
+
+    if (this._size === 0 || rhs._size === 0) return true;
+    if (this._hasEmpty && rhs._hasEmpty) return false;
+
+    let disjoint = true;
+    this._searchCodePoints(0, [], (s) => {
+      if (rhs._hasCodePoints(0, s, 0) >= 0) {
+        disjoint = false;
+        return true;
+      }
+      return false;
+    });
+    return disjoint;
+  }
+
+  /**
+   * Returns whether this set is a subset of the elements of the specified iterable,
+   * that is, whether every element in this set is also an element of the iterable.
    *
    * @param rhs The set to compare this set to.
-   * @returns True if this set is a subset of, or equal to, the specified set.
-   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
+   * @returns True if this set is a proper subset of, or equal to, the specified iterable.
+   * @throws `TypeError` If the argument is not an iterable.
    */
-  isSubsetOf(rhs: TernaryStringSet): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  isSubsetOf(rhs: Iterable<any>): boolean {
     if (this === rhs) return true;
+
     if (!(rhs instanceof TernaryStringSet)) {
-      throw new TypeError("not a TernaryStringSet");
+      if (rhs == null || !(rhs[Symbol.iterator] instanceof Function)) {
+        throw new TypeError("rhs is not iterable");
+      }
+      const rhset = rhs instanceof Set ? rhs : new Set(rhs);
+      if (this._size > rhset.size) return false;
+      for (const s of this) {
+        if (!rhset.has(s)) return false;
+      }
+      return true;
     }
+
     if (this._size > rhs._size) return false;
     if (this._hasEmpty && !rhs._hasEmpty) return false;
 
-    // What follows is a faster equivalent to the following code:
+    // What follows is a faster equivalent for:
     // ```
     // for (const s of this) {
     //   if (!rhs.has(s)) return false;
@@ -1016,37 +1419,60 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Returns whether this set is a superset of the specified set. This set is a superset if every
-   * element in the other set is also contained in this set. By this definition,
-   * equal sets are also supersets of each other. To test if this set is a *proper* superset
-   * of the specified set, use code like this: `lhs.size > rhs.size && lhs.isSupersetOf(rhs)`.
+   * Returns whether this set is a superset of the elements of the specified iterable,
+   * that is, whether every element of the iterable is also an element in this set.
    *
    * @param rhs The set to compare this set to.
-   * @returns True if this set is a superset of, or equal to, the specified set.
-   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
+   * @returns True if this set is a proper superset of, or equal to, the specified iterable.
+   * @throws `TypeError` If the argument is not an iterable.
    */
-  isSupersetOf(rhs: TernaryStringSet): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  isSupersetOf(rhs: Iterable<any>): boolean {
+    if (this === rhs) return true;
+
     if (!(rhs instanceof TernaryStringSet)) {
-      throw new TypeError("not a TernaryStringSet");
+      if (rhs == null || !(rhs[Symbol.iterator] instanceof Function)) {
+        throw new TypeError("rhs is not iterable");
+      }
+      let rhsSize = 0;
+      for (const el of rhs) {
+        if (!this.has(el)) return false;
+        ++rhsSize;
+      }
+      return this.size >= rhsSize;
     }
+
     return rhs.isSubsetOf(this);
   }
 
   /**
-   * Returns a new set that is the union of this set and the specified set.
-   * The new set will include any element that is a member of either set.
+   * Returns a new set that is the union of this set and the elements of the
+   * specified iterable. The new set will include any element that is a
+   * member of either.
    *
-   * @param rhs The set to form a union with.
-   * @returns A new set containing the elements of both sets.
-   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
+   * @param rhs The iterable whose elements should be united with this set.
+   * @returns A new set containing the elements of both this set and the iterable.
+   * @throws `TypeError` If the specified target is not iterable or any
+   *     element is not a string.
    */
-  union(rhs: TernaryStringSet): TernaryStringSet {
+  union(rhs: Iterable<string>): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
-      throw new TypeError("not a TernaryStringSet");
+      if (rhs == null || !(rhs[Symbol.iterator] instanceof Function)) {
+        throw new TypeError("rhs is not iterable");
+      }
+      const union = this._cloneDecompacted();
+      if (Array.isArray(rhs)) {
+        union.addAll(rhs);
+      } else {
+        union.addAll(...rhs);
+      }
+      return union;
     }
+
     if (rhs._size > this._size) {
       return rhs.union(this);
     }
+
     const union = this._cloneDecompacted();
     if (!union._hasEmpty && rhs._hasEmpty) {
       union._hasEmpty = true;
@@ -1059,26 +1485,39 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Returns a new set that is the intersection of this set and the specified set.
-   * The new set will include only those elements that are members of both sets.
+   * Returns a new set that is the intersection of this set and the elements
+   * of the specified iterable. The new set will include only those elements
+   * that are members of both.
    *
-   * @param rhs The set to intersect with this set.
-   * @returns A new set containing only elements in both sets.
-   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
+   * @param rhs The iterable to intersect with this set.
+   * @returns A new set containing only elements in both this set and the iterable.
+   * @throws `TypeError` If the specified target is not iterable.
    */
-  intersection(rhs: TernaryStringSet): TernaryStringSet {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  intersection(rhs: Iterable<any>): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
-      throw new TypeError("not a TernaryStringSet");
+      if (rhs == null || !(rhs[Symbol.iterator] instanceof Function)) {
+        throw new TypeError("rhs is not iterable");
+      }
+      const intersect: string[] = [];
+      for (const s of rhs) {
+        if (this.has(s)) {
+          intersect.push(s);
+        }
+      }
+      return new TernaryStringSet(intersect);
     }
+
     if (rhs._size < this._size) {
       return rhs.intersection(this);
     }
+
     const intersect = this._cloneDecompacted();
     if (intersect._hasEmpty && !rhs._hasEmpty) {
       intersect._hasEmpty = false;
       --intersect._size;
     }
-    intersect._hasEmpty &&= rhs._hasEmpty;
+
     intersect._visitCodePoints(0, [], (s, node) => {
       // delete if not also in rhs
       if (rhs._hasCodePoints(0, s, 0) < 0) {
@@ -1095,24 +1534,35 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Returns a new set that is the difference of this set and the specified set.
-   * The new set will include all of the elements of this set *except* for those
-   * in the specified set.
+   * Returns a new set that is the difference of this set and the elements
+   * of the specified iterable. The new set will contain all elements
+   * that are only members of this set and not both.
    *
-   * @param rhs The set to subtract from this set.
-   * @returns A new set containing only those elements in this set that are not
-   *   in the specified set.
-   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
+   * @param rhs The iterable whose elements should be subtracted from this set;
+   *   the iterable's elements do not have to be strings.
+   * @returns A new set containing only those elements in this set and that are not
+   *   in the specified iterable.
+   * @throws `TypeError` If the specified target is not iterable.
    */
-  difference(rhs: TernaryStringSet): TernaryStringSet {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  difference(rhs: Iterable<any>): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
-      throw new TypeError("not a TernaryStringSet");
+      if (rhs == null || !(rhs[Symbol.iterator] instanceof Function)) {
+        throw new TypeError("rhs is not iterable");
+      }
+      const diff = this._cloneDecompacted();
+      for (const s of rhs) {
+        diff.delete(s);
+      }
+      return diff;
     }
+
     const diff = this._cloneDecompacted();
     if (rhs._hasEmpty && diff._hasEmpty) {
       diff._hasEmpty = false;
       --diff._size;
     }
+
     diff._visitCodePoints(0, [], (s, node) => {
       // delete if in rhs
       if (rhs._hasCodePoints(0, s, 0) >= 0) {
@@ -1124,20 +1574,25 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Returns a new set that is the symmetric difference of this set and the specified set.
-   * The new set will include all of the elements that are either set, but not in *both* sets.
+   * Returns a new set that is the symmetric difference of this set and the elements
+   * of the specified iterable. The new set will include all of the elements that
+   * are in either, but not in *both*.
    *
-   * @param rhs The set to take the symmetric difference of from this set.
-   * @returns A new set containing only those elements in this set or the specified set,
-   *   but not both.
-   * @throws `TypeError` If the specified set is not a `TernaryStringSet`.
+   * @param rhs The iterable whose elements should be exclusive-or'd with this set.
+   * @returns A new set containing those elements either in this set or the iterable,
+   *   but not both or neither.
+   * @throws `TypeError` If the specified target is not iterable.
    */
-  symmetricDifference(rhs: TernaryStringSet): TernaryStringSet {
+  symmetricDifference(rhs: Iterable<string>): TernaryStringSet {
     if (!(rhs instanceof TernaryStringSet)) {
-      throw new TypeError("not a TernaryStringSet");
+      if (rhs == null || !(rhs[Symbol.iterator] instanceof Function)) {
+        throw new TypeError("rhs is not iterable");
+      }
+      rhs = new TernaryStringSet(rhs);
     }
+
     const diff = this._cloneDecompacted();
-    diff._hasEmpty = this._hasEmpty !== rhs._hasEmpty;
+    diff._hasEmpty = this._hasEmpty !== (rhs as TernaryStringSet)._hasEmpty;
     if (this._hasEmpty !== diff._hasEmpty) {
       if (diff._hasEmpty) {
         ++diff._size;
@@ -1145,7 +1600,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
         --diff._size;
       }
     }
-    rhs._visitCodePoints(0, [], (s) => {
+
+    (rhs as TernaryStringSet)._visitCodePoints(0, [], (s) => {
       // if s is also in diff, delete in diff; otherwise add to diff
       const node = diff._hasCodePoints(0, s, 0);
       if (node >= 0) {
@@ -1204,11 +1660,10 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * Compacts the set to reduce its memory footprint and improve search performance.
    * For large sets, a compacted set is typically *significantly* smaller
    * than a non-compacted set. The tradeoff is that compact sets cannot be modified.
-   * Any method that mutates the set, including
-   * `add`, `addAll`, `balance`, and `delete`
+   * Any method that mutates the set, such as `add`, `balance`, oe `delete`,
    * can therefore cause the set to revert to an non-compacted state.
    *
-   * Compaction is an excellent option if the primary purpose of a set matching
+   * Compaction is an excellent option if the primary purpose of a set is matching
    * against a fixed collection of strings, such as a dictionary. Since
    * compaction and decompaction are expensive operations, it is less attractive
    * in use cases where the set will be intermittently modified.
@@ -1237,9 +1692,9 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     in the previously built map to find the slot it was assigned in the output array. If the
     slot is past the end of the array, then we haven't added it to the output yet. We can
     write the node's value unchanged, but the three pointers to the child branches need to
-    be rewritten to point to the new, deduplicated equivalent of the nodes that they point to.
-    For each branch, if the pointer is NUL we write it unchanged. Otherwise we look up the node
-    that that branch points to in our unique node map to get its new slot number (i.e. array offset)
+    be rewritten to point to the new, deduplicated equivalent of the nodes that they point to now.
+    Thus for each branch, if the pointer is NUL we write it unchanged. Otherwise we look up the node
+    that the branch points to in our unique node map to get its new slot number (i.e. array offset)
     and write the translated address.
 
     After doing this once, we will have deduplicated just the leaf nodes. In the original tree,
@@ -1249,9 +1704,11 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
     So, we can repeat the rewriting step above to remove these newly generated duplicates as well.
     This may again lead to new duplicates, and so on: the rewriting can continue until the output
     doesn't shrink anymore.
+
     */
 
     let source = this._tree;
+    this._tree = null;
     for (;;) {
       const compacted = compactionPass(source);
       if (compacted.length === source.length) {
@@ -1568,7 +2025,7 @@ function checkDistance(distance: number) {
 
 /**
  * Converts a string to an array of numeric code points.
- * (This is not equivalent to `[...s]`, which returns strings.)
+ * (This is not equivalent to `[...s]`, which returns a `string[]`.)
  *
  * @param s A non-null string.
  * @returns An array of the code points comprising the string.
@@ -1578,7 +2035,7 @@ function toCodePoints(s: string): number[] {
   for (let i = 0; i < s.length; ) {
     const cp = s.codePointAt(i++);
     if (cp >= CP_MIN_SURROGATE) ++i;
-    cps.push(cp);
+    cps[cps.length] = cp;
   }
   return cps;
 }

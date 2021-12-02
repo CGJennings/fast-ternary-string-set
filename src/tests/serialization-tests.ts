@@ -14,11 +14,11 @@ beforeEach(() => {
   set = new TernaryStringSet();
 });
 
-test("empty tree has header only", () => {
+test("toBuffer() empty tree has header only", () => {
   expect(set.toBuffer().byteLength).toBe(8);
 });
 
-test("non-empty tree has node bytes", () => {
+test("toBuffer() non-empty tree has node bytes", () => {
   set.add("a");
   // HEADER + 1 node enc. + 1 char + 0 * 3 branches
   expect(set.toBuffer().byteLength).toBe(8 + 2);
@@ -35,21 +35,21 @@ test("non-empty tree has node bytes", () => {
   roundtrip(set);
 });
 
-test("roundtrip a small set", () => {
+test("toBuffer()/fromBuffer() roundtrip a small set", () => {
   set.addAll(["", "apple", "ankle", "ball", "pi", "piano", "pink", "ukulele"]);
   roundtrip(set);
   set.compact();
   roundtrip(set);
 });
 
-test("roundtrip a large set", () => {
+test("toBuffer()/fromBuffer() roundtrip a large set", () => {
   set = wordSet(true);
   roundtrip(set);
   set.compact();
   roundtrip(set);
 });
 
-test("roundtrip sets with wide cp/branch values", () => {
+test("toBuffer()/fromBuffer() roundtrip sets with wide cp/branch values", () => {
   const s: string[] = [];
   for (let cp = 0; cp < 0x100ff; ++cp) {
     s[s.length] = String.fromCodePoint(cp);
@@ -76,18 +76,21 @@ test("roundtrip sets with wide cp/branch values", () => {
   "version3",
   "version3compact",
 ].forEach((file) => {
-  test(`restore ${file} buffer from file`, () => {
+  test(`fromBuffer() restore ${file} buffer from file`, () => {
     const restored = TernaryStringSet.fromBuffer(readBuffer(file));
     expect(restored.equals(wordSet(false))).toBeTruthy();
   });
 });
 
-test("restore v3 coverage buffer from file", () => {
+test("fromBuffer() restore v3 coverage buffer from file", () => {
   const restored = TernaryStringSet.fromBuffer(readBuffer("version3coverage"));
   expect(restored.size).toBe(0x100ff);
 });
 
-test("null or invalid buffer throws", () => {
+test("fromBuffer() null or invalid buffer throws", () => {
   expect(() => TernaryStringSet.fromBuffer(null)).toThrow();
+  expect(() =>
+    TernaryStringSet.fromBuffer(1 as unknown as ArrayBuffer),
+  ).toThrow();
   expect(() => TernaryStringSet.fromBuffer(new Uint8Array(16))).toThrow();
 });

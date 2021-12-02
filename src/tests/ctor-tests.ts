@@ -1,11 +1,11 @@
 import { TernaryStringSet } from "../index";
 import { expectSameSet } from "./utils";
 
-test("No-arg constructor yields empty set", () => {
+test("TernaryStringSet() no-arg constructor yields empty set", () => {
   expect(new TernaryStringSet().size).toBe(0);
 });
 
-test("Non-iterable constructor argument throws", () => {
+test("TernaryStringSet() non-iterable argument throws", () => {
   expect(
     () => new TernaryStringSet(1 as unknown as Iterable<string>),
   ).toThrow();
@@ -14,13 +14,13 @@ test("Non-iterable constructor argument throws", () => {
   ).toThrow();
 });
 
-test("Empty iterable constructor yields empty set", () => {
+test("TernaryStringSet() empty iterable yields empty set", () => {
   expect(new TernaryStringSet([]).size).toBe(0);
   expect(new TernaryStringSet(new Set()).size).toBe(0);
   expect(new TernaryStringSet("").size).toBe(0);
 });
 
-test("TernaryStringTree constructor argument yields equivalent set", () => {
+test("TernaryStringSet() set yields equivalent set", () => {
   const t1 = new TernaryStringSet();
   expectSameSet(t1, new TernaryStringSet(t1));
   t1.add("");
@@ -37,7 +37,7 @@ test("TernaryStringTree constructor argument yields equivalent set", () => {
   expectSameSet(t1, new TernaryStringSet(t1));
 });
 
-test("Array constructor argument yields equivalent set", () => {
+test("TernaryStringSet() array yields equivalent set", () => {
   const addAll = (a: string[]) => {
     const set = new TernaryStringSet();
     set.addAll(a);
@@ -62,7 +62,7 @@ class GenericIterator implements Iterator<string> {
   }
 }
 
-test("Generic iterable yields equivalent set", () => {
+test("TernaryStringSet() iterable yields equivalent set", () => {
   const itTree = (it: Iterable<string>) => {
     const set = new TernaryStringSet();
     set.addAll(Array.from(it));
@@ -81,6 +81,6 @@ test("Generic iterable yields equivalent set", () => {
   expectSameSet(itTree(it), new TernaryStringSet(it));
 });
 
-test("toStringTag matches class name", () => {
+test("[Symbol.toStringTag] makes toString() matches class name", () => {
   expect(new TernaryStringSet().toString()).toBe("[object TernaryStringSet]");
 });

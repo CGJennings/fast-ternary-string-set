@@ -7,7 +7,7 @@ beforeEach(() => {
   set = new TernaryStringSet();
 });
 
-test("balanced tree is better constructed", () => {
+test("balance() improves bad tree structure", () => {
   // add words in worst possible order
   for (const s of words) {
     set.add(s);
@@ -20,17 +20,17 @@ test("balanced tree is better constructed", () => {
   expect(set.has("")).toBe(false);
 });
 
-test("contents preserved after balancing", () => {
+test("balance() preserves contents", () => {
   const words = [
     "",
     "a",
     "ape",
-    "apple",
-    "apples",
+    "aphid",
+    "aphids",
     "bee",
     "bees",
-    "car",
-    "cars",
+    "cat",
+    "cats",
   ];
   // add words in worst possible order
   for (const s of words) {
@@ -40,7 +40,7 @@ test("contents preserved after balancing", () => {
   expect(set.toArray()).toEqual(words);
 });
 
-test("balancing empty tree is safe", () => {
+test("balance() of empty tree is safe", () => {
   expect(() => set.balance()).not.toThrow();
   expect(set.size).toBe(0);
   set.add("");

@@ -6,14 +6,16 @@ A fast, space-efficient, serializable string set based on [*ternary search trees
 
 **Common applications:** autocompletion, text prediction, spelling checking, word games and puzzles
 
-[API docs](https://cgjennings.github.io/fast-ternary-string-set/classes/TernaryStringSet.html)
+**Jump to:** [Features](#features)&nbsp;/ [Installation](#installation)&nbsp;/ [Examples](#examples)&nbsp;/ [Usage notes](#usage-notes)&nbsp;/ [Serialization format](#serialization-format)&nbsp;/ [API docs](https://cgjennings.github.io/fast-ternary-string-set/classes/TernaryStringSet.html)
 
 ## Features
 
  - Drop-in replacement for [nearly any use](#differences-from-standard-js-set) of a [JavaScript `Set`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set) of strings.
  - Serializes to an `ArrayBuffer`: load sets directly without the overhead of initializing from a list of strings.
  - Search and iteration methods return elements in ascending sorted order (lexicographic by code point).
- - Set relations (equality, subset, superset) and operations (union, intersection, difference, symmetric difference).
+ - Set relations (equal, subset, superset, disjoint).
+ - Set operations (union, intersection, difference, symmetric difference).
+ - `Array`-like functional methods (forEach, filter, map, find, reduce, join, some, every).
  - Several approximate matching methods:
    1. List strings that complete a prefix.
    2. List strings that are completed by a suffix.
@@ -68,7 +70,7 @@ Create a new set and add some strings:
 const set = new TernaryStringSet();
 set.add("dog").add("cat").add("eagle");
 // or alternatively
-set.addAll(["aardvark", "beaver", "dog", "fish", "hamster"]);
+set.addAll("aardvark", "beaver", "dog", "fish", "hamster");
 set.has("cat");
 // => true
 set.delete("cat");
@@ -83,7 +85,7 @@ Create a new string set from any `Iterable<string>`:
 
 ```js
 // otherSet could be any Iterable<string>, such as a string array
-// or even another TernaryStringSet
+// or another TernaryStringSet
 let otherSet = new Set(["fish", "hippo"]);
 let set = new TernaryStringSet(otherSet);
 set.has("hippo");
@@ -121,7 +123,7 @@ set.getWithinHammingDistanceOf("cat", 1);
 // => ["bat", "can", "cat", "cot", "sat"] (for example)
 ```
 
-Get all elements within edit distance 1 of `"cat"`:
+Get all elements within edit distance (Levenshtein distance) 1 of `"cat"`:
 
 ```js
 set.getWithinEditDistanceOf("cat", 1);
@@ -133,6 +135,34 @@ Get all elements that match `"b.t"`:
 ```js
 set.getPartialMatchesOf("b.t");
 // => ["bat", "bet", "bit", "bot", "but"] (for example)
+```
+
+Create a new set with the elements reversed:
+
+```js
+set.map((el) => [...el].reverse().join("")).toArray();
+// => ["olleH", "rotcoD"] (for example)
+```
+
+Get the subset of 4-letter strings:
+
+```js
+set.filter((el) => el.length === 4).toArray();
+// => ["bank", "cave", "door", "four"] (for example)
+```
+
+List elements in reverse sorted order:
+
+```js
+set.reduce((acc, el) => `${el}, ${acc}`);
+// => "cherry, banana, apple" (for example)
+```
+
+Test if any element is longer than 9 characters:
+
+```js
+set.add("ambidextrous").some((el) => el.length > 9);
+// => true
 ```
 
 Compare sets:
@@ -220,22 +250,23 @@ For example, a TST is excellent for solving crossword puzzles.
 
 ### Differences from standard JS `Set`
 
-`TernaryStringSet` supports a superset of the standard `Set` interface, but it is not a subclass of `Set`.
+`TernaryStringSet`s behave like standard JS `Set`s, with minor differences:
 
-JavaScript `Set` objects guarantee that they iterate over elements in the order that they are added.
-`TernaryStringSet`s always return results in sorted order.
-
-`TernaryStringSet`s can contain the empty string, but cannot contain non-strings.
-Not even `null` or `undefined`.
+ - They iterate over their elements in sorted order (ascending lexicographic order by code point); `Sets` iterate over objects in the order they were added.
+ - They support a superset of the standard `Set` interface, but are not a subclass of `Set`. Testing them with `instanceof Set` will return `false`.
+ - They can contain the empty string, but cannot contain non-strings&mdash;not even `null` or `undefined`.
+ - Methods that would return a new `Set`, such as `filter` or `union`, return a new `TernaryStringSet`.
+ - Methods expect that `this` to be a `TernaryStringSet`; they should not be `call`ed with arbitrary objects.
+ - The `addAll` method accepts either a list of string arguments (like `Set`s), or an `Iterable<string>` with an optional range.
 
 ### Tree health
 
 Ternary search trees are not self-balancing&mdash;unlike, say, a red-black tree.
 Adding strings in sorted order produces a worst-case tree structure.
-This can be avoided by adding strings all at once using the constructor or `addAll()`.
+This can be avoided by adding strings all at once using the constructor or `addAll`.
 Given sorted input, both of these methods will produce an optimal tree structure.
 If this is not practical, adding strings in random order will typically yield a tree that's "close enough" to balanced for most applications.
-Calling `balance()` will rebuild the tree in optimal form, but it can be expensive.
+Calling `balance` will rebuild the tree in optimal form, but it can be expensive.
 
 Since most `TernaryStringSet` methods are recursive, extremely unbalanced trees can provoke "maximum call stack size exceeded" errors.
 
@@ -254,10 +285,10 @@ For example, since the above string is one code point, it would match `getPartia
 
 ### Compaction
 
-Calling `compact()` can significantly reduce a set's memory footprint.
-For large sets of typical strings, this can reduce the set's footprint by around 50–80%.
-However, no strings can be added or deleted without first undoing the compaction (this is done automatically when needed).
-Compaction is relatively expensive, but can be a one-time or even ahead-of-time step for many use cases.
+Calling `compact` can significantly reduce a set's memory footprint.
+For large sets of typical strings, this can reduce the set's footprint by more than 50%.
+However, no strings can be added or deleted without first undoing the compaction (this is done automatically).
+Compaction is relatively expensive, but can be a one-time or ahead-of-time step for many use cases.
 
 ### Serialization
 
@@ -268,9 +299,9 @@ Recreating a set directly from buffer data is generally much faster than downloa
 
 The following steps will make such ahead-of-time sets as small as possible:
 
-1. Create a set and insert the desired strings using `add()` or `addAll()`.
-2. Minimize the tree size by calling `balance()` followed by `compact()`.
-3. Create the buffer with `toBuffer()` and write the result to a file.
+1. Create a set and insert the desired strings using `add` or `addAll`.
+2. Minimize the tree size by calling `balance` followed by `compact`.
+3. Create the buffer with `toBuffer` and write the result to a file.
 4. Optionally, compress the result and configure the server to serve the compressed version where supported by the browser.
 
 To recreate the set, download or otherwise obtain the buffer data, then use `TernaryStringSet.fromBuffer(data)`.
@@ -334,7 +365,7 @@ This must be 0x5454 (`TT`) if the file is valid.
 Indicates the version of the format.
 Valid values are currently 1, 2, or 3.
 A value of 0 implies that the file is not valid.
-Other values would indicate newer versions of the format specification.
+Other values would indicate newer versions of the format.
 
 **Tree flags (int8)**  
 A set of bit flags that denote specific features:

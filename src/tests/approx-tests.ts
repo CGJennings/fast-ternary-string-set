@@ -7,24 +7,14 @@ beforeEach(() => {
   set = new TernaryStringSet();
 });
 
-test("bad arguments throw", () => {
+test("getArrangementsOf() bad arguments throw", () => {
   expect(() => set.getArrangementsOf(null)).toThrow();
-  expect(() => set.getCompletionsOf(null)).toThrow();
-  expect(() => set.getCompletedBy(null)).toThrow();
-  expect(() => set.getPartialMatchesOf(null)).toThrow();
-  expect(() => set.getPartialMatchesOf("", null)).toThrow();
-  expect(() => set.getWithinHammingDistanceOf(null, 0)).toThrow();
-  expect(() => set.getWithinHammingDistanceOf(null, -1)).toThrow();
-  expect(() => set.getWithinHammingDistanceOf(null, NaN)).toThrow();
-  expect(() =>
-    set.getWithinHammingDistanceOf(null, "1" as unknown as number),
-  ).toThrow();
 });
 
-test("arrangements do not allow reuse or use of characters not present", () => {
+test("getArrangementsOf() doesn't allow reuse or use of characters not present", () => {
   set.addAll([
     "apple",
-    "bag",
+    "baboon",
     "ice",
     "iced",
     "icicle",
@@ -45,7 +35,7 @@ test("arrangements do not allow reuse or use of characters not present", () => {
   ]);
 });
 
-test("arrangements allow use of characters as many times as they are specified", () => {
+test("getArrangementsOf() allows use of characters as many times as they are specified", () => {
   set.addAll([
     "aah",
     "aardvark",
@@ -72,7 +62,7 @@ test("arrangements allow use of characters as many times as they are specified",
   expect(set.getArrangementsOf("aaaa")).toEqual(["a", "aa", "aaa"]);
 });
 
-test("arrangements include empty string if present", () => {
+test("getArrangementsOf() includes empty string if present", () => {
   set.addAll(["a", "b", "c"]);
   expect(set.getArrangementsOf("")).toEqual([]);
   set.add("");
@@ -81,33 +71,39 @@ test("arrangements include empty string if present", () => {
   expect(set.getArrangementsOf("a")).toEqual(["", "a"]);
 });
 
-test("basic completions test", () => {
+test("getCompletionsOf() bad arguments throw", () => {
+  expect(() => set.getCompletionsOf(null)).toThrow();
+});
+
+test("getCompletionsOf() basic completions", () => {
   const elements = [
     "",
     "aardvark",
     "aardvarks",
-    "apple",
-    "banjos",
-    "banks",
-    "cars",
+    "armadillo",
+    "baboon",
+    "badger",
+    "cats",
   ];
   set.addAll(elements);
   expect(set.getCompletionsOf("")).toEqual(elements);
-  expect(set.getCompletionsOf("a")).toEqual(["aardvark", "aardvarks", "apple"]);
+  expect(set.getCompletionsOf("a")).toEqual([
+    "aardvark",
+    "aardvarks",
+    "armadillo",
+  ]);
   expect(set.getCompletionsOf("aa")).toEqual(["aardvark", "aardvarks"]);
   expect(set.getCompletionsOf("aardvark")).toEqual(["aardvark", "aardvarks"]);
   expect(set.getCompletionsOf("aardvarks")).toEqual(["aardvarks"]);
   expect(set.getCompletionsOf("aardvarkz")).toEqual([]);
   expect(set.getCompletionsOf("aardvarksz")).toEqual([]);
-  expect(set.getCompletionsOf("b")).toEqual(["banjos", "banks"]);
-  expect(set.getCompletionsOf("ba")).toEqual(["banjos", "banks"]);
-  expect(set.getCompletionsOf("ban")).toEqual(["banjos", "banks"]);
-  expect(set.getCompletionsOf("banj")).toEqual(["banjos"]);
-  expect(set.getCompletionsOf("banjo")).toEqual(["banjos"]);
-  expect(set.getCompletionsOf("banjos")).toEqual(["banjos"]);
+  expect(set.getCompletionsOf("b")).toEqual(["baboon", "badger"]);
+  expect(set.getCompletionsOf("ba")).toEqual(["baboon", "badger"]);
+  expect(set.getCompletionsOf("bab")).toEqual(["baboon"]);
+  expect(set.getCompletionsOf("baboon")).toEqual(["baboon"]);
   expect(set.getCompletionsOf("z")).toEqual([]);
   expect(set.getCompletionsOf("zaa")).toEqual([]);
-  expect(set.getCompletionsOf("banz")).toEqual([]);
+  expect(set.getCompletionsOf("babz")).toEqual([]);
 });
 
 /** Get completions the hard way for comparison. */
@@ -119,7 +115,7 @@ function completions(prefix: string, elements: readonly string[]): string[] {
   return results;
 }
 
-test("test completions against word list", () => {
+test("getCompletionsOf() test against word list", () => {
   set = wordSet(false);
   expect(set.getCompletionsOf("z")).toEqual(completions("z", words));
   expect(set.getCompletionsOf("wi")).toEqual(completions("wi", words));
@@ -132,7 +128,11 @@ test("test completions against word list", () => {
   ]);
 });
 
-test("basic completed by test", () => {
+test("getCompletedBy() bad arguments throw", () => {
+  expect(() => set.getCompletedBy(null)).toThrow();
+});
+
+test("getCompletedBy() basic completions", () => {
   const elements = [
     "",
     "aardvark",
@@ -163,14 +163,19 @@ function completedBy(prefix: string, elements: readonly string[]): string[] {
   return results;
 }
 
-test("test completed by against word list", () => {
+test("getCompletedBy() test against word list", () => {
   set = wordSet(false);
   expect(set.getCompletedBy("s")).toEqual(completedBy("s", words));
   expect(set.getCompletedBy("ing")).toEqual(completedBy("ing", words));
   expect(set.getCompletedBy("zzz").length).toEqual(0);
 });
 
-test("basic partial matches test", () => {
+test("getPartialMatchesOf() bad arguments throw", () => {
+  expect(() => set.getPartialMatchesOf(null)).toThrow();
+  expect(() => set.getPartialMatchesOf("", null)).toThrow();
+});
+
+test("getPartialMatchesOf() basic partial matches", () => {
   const elements = ["a", "aa", "aaa", "aab", "aaaa", "aaaaa", "aaaab", "aaaac"];
   set.addAll(elements);
   expect(set.getPartialMatchesOf("?", "?")).toEqual(["a"]);
@@ -193,7 +198,7 @@ test("basic partial matches test", () => {
   expect(set.getPartialMatchesOf("Z")).toEqual([]);
 });
 
-test("partial matches against word list", () => {
+test("getPartialMatchesOf() test matches against word list", () => {
   set = wordSet(false);
   expect(set.getPartialMatchesOf(".")).toEqual(["I", "a"]);
   expect(set.getPartialMatchesOf(".e.n")).toEqual(["bean", "mean"]);
@@ -242,7 +247,7 @@ test("partial matches against word list", () => {
   ]);
 });
 
-test("partial matches empty string handling", () => {
+test("getPartialMatchesOf() empty string handling", () => {
   set.addAll(["", "a", "b"]);
   expect(set.getPartialMatchesOf("")).toEqual([""]);
   expect(set.getPartialMatchesOf(".")).toEqual(["a", "b"]);
@@ -250,7 +255,7 @@ test("partial matches empty string handling", () => {
   expect(set.getPartialMatchesOf("b")).toEqual(["b"]);
 });
 
-test("partial matches with non-default don't care", () => {
+test("getPartialMatchesOf() matches with non-default don't care", () => {
   set.addAll(["c.t", "cat", "cot", "cup", "cut"]);
   expect(set.getPartialMatchesOf("c?t", "?")).toEqual([
     "c.t",
@@ -268,7 +273,16 @@ test("partial matches with non-default don't care", () => {
   expect(set.getPartialMatchesOf("##p", "#")).toEqual(["cup"]);
 });
 
-test("Hamming dist 0 is exact match", () => {
+test("getWithinHammingDistanceOf() bad arguments throw", () => {
+  expect(() => set.getWithinHammingDistanceOf(null, 0)).toThrow();
+  expect(() => set.getWithinHammingDistanceOf(null, -1)).toThrow();
+  expect(() => set.getWithinHammingDistanceOf(null, NaN)).toThrow();
+  expect(() =>
+    set.getWithinHammingDistanceOf(null, "1" as unknown as number),
+  ).toThrow();
+});
+
+test("getWithinHammingDistanceOf() distance 0 is exact match", () => {
   set.addAll(["a", "aa", "aaa", "aaaa", "aac", "abc", "xyz"]);
   expect(set.getWithinHammingDistanceOf("abc", 0)).toEqual(["abc"]);
   expect(set.getWithinHammingDistanceOf("abz", 0)).toEqual([]);
@@ -276,7 +290,7 @@ test("Hamming dist 0 is exact match", () => {
   expect(set.getWithinHammingDistanceOf("zzz", 0)).toEqual([]);
 });
 
-test("Hamming dist >= n matches all strings with pattern's length", () => {
+test("getWithinHammingDistanceOf() distance >= n matches all strings with pattern's length", () => {
   set.addAll(["a", "aa", "aaa", "aaaa", "aac", "abc", "xyz"]);
   expect(set.getWithinHammingDistanceOf("abc", 3)).toEqual([
     "aaa",
@@ -298,7 +312,7 @@ test("Hamming dist >= n matches all strings with pattern's length", () => {
   ]);
 });
 
-test("Hamming dist 1..n-1 matches strings <= dist", () => {
+test("getWithinHammingDistanceOf() distance 1..n-1 matches strings <= dist", () => {
   set.addAll(["a", "aa", "aaa", "aaaa", "aac", "abc", "xyz"]);
   expect(set.getWithinHammingDistanceOf("abc", 1)).toEqual(["aac", "abc"]);
   expect(set.getWithinHammingDistanceOf("abc", 2)).toEqual([
@@ -308,7 +322,7 @@ test("Hamming dist 1..n-1 matches strings <= dist", () => {
   ]);
 });
 
-test("Hamming dist for cats", () => {
+test("getWithinHammingDistanceOf() for cats", () => {
   set = wordSet(false);
   expect(set.getWithinHammingDistanceOf("cat", 0)).toEqual(["cat"]);
   expect(set.getWithinHammingDistanceOf("cat", 1)).toEqual(
@@ -322,7 +336,7 @@ test("Hamming dist for cats", () => {
   );
 });
 
-test("Hamming dist empty string handling", () => {
+test("getWithinHammingDistanceOf() empty string handling", () => {
   set.addAll(["", "a", "b"]);
   expect(set.getWithinHammingDistanceOf("", 0)).toEqual([""]);
   expect(set.getWithinHammingDistanceOf("", 1)).toEqual([""]);
