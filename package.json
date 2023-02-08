@@ -30,7 +30,7 @@
     "test": "jest --config jestconfig.json",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint src",
-    "doc": "typedoc --excludePrivate src/index.ts --out docs",
+    "doc": "typedoc --excludePrivate src/fast-ternary-string-set.ts --out docs",
     "prepare": "npm run build",
     "prepublishOnly": "npm run lint && npm test",
     "preversion": "npm run lint && npm test",
