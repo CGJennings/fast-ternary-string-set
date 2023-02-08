@@ -1,4 +1,4 @@
-import { TernaryStringSet, TernaryTreeStats } from "../index";
+import { TernaryStringSet, TernaryTreeStats } from "../fast-ternary-string-set";
 
 let set: TernaryStringSet;
 let st: TernaryTreeStats;

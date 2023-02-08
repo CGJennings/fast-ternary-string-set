@@ -1,4 +1,4 @@
-import { TernaryStringSet } from "../index";
+import { TernaryStringSet } from "../fast-ternary-string-set";
 import { wordSet, readBuffer } from "./utils";
 
 let set: TernaryStringSet;
@@ -88,7 +88,9 @@ test("fromBuffer() restore v3 coverage buffer from file", () => {
 });
 
 test("fromBuffer() null or invalid buffer throws", () => {
-  expect(() => TernaryStringSet.fromBuffer(null as unknown as ArrayBuffer)).toThrow();
+  expect(() =>
+    TernaryStringSet.fromBuffer(null as unknown as ArrayBuffer),
+  ).toThrow();
   expect(() =>
     TernaryStringSet.fromBuffer(1 as unknown as ArrayBuffer),
   ).toThrow();

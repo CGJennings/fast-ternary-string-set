@@ -1,4 +1,4 @@
-import { TernaryStringSet } from "../index";
+import { TernaryStringSet } from "../fast-ternary-string-set";
 import { expectSameSet } from "./utils";
 
 test("TernaryStringSet() no-arg constructor yields empty set", () => {

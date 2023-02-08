@@ -21,9 +21,10 @@
   ],
   "author": "Christopher G. Jennings",
   "license": "MIT",
-  "main": "lib/cjs/index.js",
-  "module": "lib/esm/index.js",
-  "types": "lib/index.d.ts",
+  "main": "lib/cjs/fast-ternary-string-set.js",
+  "module": "lib/esm/fast-ternary-string-set.js",
+  "types": "lib/fast-ternary-string-set.d.ts",
+  "unpkg": "lib/esm/fast-ternary-string-set.js",
   "scripts": {
     "build": "tsc --removeComments --declaration false && tsc -p tsconfig-cjs.json --removeComments --declaration false && tsc --emitDeclarationOnly --outDir lib",
     "test": "jest --config jestconfig.json",

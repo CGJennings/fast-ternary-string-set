@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "fs";
 import { join } from "path";
-import { TernaryStringSet } from "..";
+import { TernaryStringSet } from "../fast-ternary-string-set";
 
 let text = readFileSync(join(__dirname, "short-english-list.txt"), "utf8");
 
