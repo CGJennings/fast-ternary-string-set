@@ -1,4 +1,4 @@
-import { TernaryStringSet } from "../index";
+import { TernaryStringSet } from "../fast-ternary-string-set";
 import { words, wordSet } from "./utils";
 
 let set: TernaryStringSet;

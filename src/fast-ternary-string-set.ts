@@ -1,3 +1,11 @@
+/*!
+   Fast Ternary String Set
+   https://github.com/CGJennings/fast-ternary-string-set
+
+   Copyright © 2023 by Christopher Jennings.
+   Licensed under an MIT license (see link above for details).
+!*/
+
 /** Node index indicating that no node is present. */
 const NUL = ~(1 << 31);
 /** First node index that would run off of the end of the array. */
