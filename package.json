@@ -21,10 +21,11 @@
   ],
   "author": "Christopher G. Jennings",
   "license": "MIT",
-  "main": "lib/index.js",
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc && tsc --removeComments --declaration false",
+    "build": "tsc --removeComments --declaration false && tsc -p tsconfig-cjs.json --removeComments --declaration false && tsc --emitDeclarationOnly --outDir lib",
     "test": "jest --config jestconfig.json",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint src",
