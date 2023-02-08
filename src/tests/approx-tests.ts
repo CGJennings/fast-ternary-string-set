@@ -172,7 +172,9 @@ test("getCompletedBy() test against word list", () => {
 
 test("getPartialMatchesOf() bad arguments throw", () => {
   expect(() => set.getPartialMatchesOf(null as unknown as string)).toThrow();
-  expect(() => set.getPartialMatchesOf("", null as unknown as string)).toThrow();
+  expect(() =>
+    set.getPartialMatchesOf("", null as unknown as string),
+  ).toThrow();
 });
 
 test("getPartialMatchesOf() basic partial matches", () => {
@@ -274,7 +276,9 @@ test("getPartialMatchesOf() matches with non-default don't care", () => {
 });
 
 test("getWithinHammingDistanceOf() bad arguments throw", () => {
-  expect(() => set.getWithinHammingDistanceOf(null as unknown as string, 0)).toThrow();
+  expect(() =>
+    set.getWithinHammingDistanceOf(null as unknown as string, 0),
+  ).toThrow();
   expect(() => set.getWithinHammingDistanceOf("", -1)).toThrow();
   expect(() => set.getWithinHammingDistanceOf("", NaN)).toThrow();
   expect(() =>
