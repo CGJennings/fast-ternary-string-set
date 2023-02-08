@@ -37,6 +37,7 @@ A fast, space-efficient, serializable string set based on [*ternary search trees
 
 ## Installation
 
+To use the library in a Node.js project, you must first install it.
 To install the latest stable version with `npm`:
 
 ```bash
@@ -49,7 +50,7 @@ Or, if using `yarn`:
 yarn add fast-ternary-string-set
 ```
 
-To use it without Node.js, you can simply copy the main source file (`src/index.ts`) into any TypeScript project, rename to something sensible, and then `import` it into your code as usual.
+You can also use the library without Node.js. In a TypeScript project, simply copy the main source file (`src/fast-ternary-string-set.ts`) into your project and then `import` it as usual. To use it on a Web page as an ES6 module without using Node.js, see the first example immediately below.
 
 ## Examples
 
@@ -58,10 +59,18 @@ To use it without Node.js, you can simply copy the main source file (`src/index.
 Loading the module:
 
 ```js
+// From a Web page with ES6 modules:
+import { TernaryStringSet } from "https://unpkg.com/fast-ternary-string-set";
+
+// From Node.js with ES6 modules:
+import { TernaryStringSet } from "fast-ternary-string-set";
 // From Node.js with CommonJS-style modules:
 const { TernaryStringSet } = require("fast-ternary-string-set");
-// From TypeScript:
+
+// From TypeScript + Node.js:
 import { TernaryStringSet } from "fast-ternary-string-set";
+// From TypeScript standalone
+import { TernaryStringSet } from "./path/to/fast-ternary-string-set";
 ```
 
 Create a new set and add some strings:
@@ -206,7 +215,7 @@ async function loadTernaryStringSet(url) {
 }
 ```
 
-A simple spelling checker:
+A simple spelling checker (uses Node.js `fs` module):
 
 ```js
 // make-dict.js
@@ -256,7 +265,7 @@ For example, a TST is excellent for solving crossword puzzles.
  - They support a superset of the standard `Set` interface, but are not a subclass of `Set`. Testing them with `instanceof Set` will return `false`.
  - They can contain the empty string, but cannot contain non-strings&mdash;not even `null` or `undefined`.
  - Methods that would return a new `Set`, such as `filter` or `union`, return a new `TernaryStringSet`.
- - Methods expect that `this` to be a `TernaryStringSet`; they should not be `call`ed with arbitrary objects.
+ - Methods expect `this` to be a `TernaryStringSet`; they should not be `call`ed with arbitrary objects.
  - The `addAll` method accepts either a list of string arguments (like `Set`s), or an `Iterable<string>` with an optional range.
 
 ### Tree health
@@ -322,8 +331,9 @@ Compiled output is written to `lib`. To build the project:
 npm run build
 ```
 
-The included `tsconfig.json` targets ES2020.
-To target old JavaScript engines or browsers you will need to modify this configuration and/or use a tool like Babel.
+This will compile both CommonJS and ES6 versions of the module.
+The CommonJS version targets ES2015, while the ES6 version targets the latest JS standards.
+To target other JS engines or browsers, modify `tsconfig.json` and/or use a tool like [Babel](https://babeljs.io/).
 
 The project includes an extensive suite of tests under `src/tests`.
 To run all tests:
@@ -332,7 +342,7 @@ To run all tests:
 npm test
 ```
 
-HTML documentation can be prepared automatically using TypeDoc:
+[HTML documentation](https://cgjennings.github.io/fast-ternary-string-set/classes/TernaryStringSet.html) can be prepared automatically using TypeDoc:
 
 ```bash
 npm run doc
