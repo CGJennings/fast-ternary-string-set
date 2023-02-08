@@ -1348,7 +1348,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
    * Returns whether this set is disjoint from the elements of the specified iterable,
    * that is, whether this set has no elements in common with the iterable.
    *
-   * @param rhs The iterable whose elements should be tested against this set's.
+   * @param rhs The iterable whose elements should be tested against this set.
    * @returns True if `this.intersection(rhs)` is empty.
    * @throws `TypeError` If the argument is not an iterable.
    */
@@ -1929,7 +1929,7 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * If the tree is currently compacted, converts it a non-compact form.
+   * If the tree is currently compacted, converts it to loose (non-compact) form.
    */
   private _decompact() {
     if (this._compact) this.balance();
