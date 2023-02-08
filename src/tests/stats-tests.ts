@@ -1,7 +1,7 @@
 import { TernaryStringSet, TernaryTreeStats } from "../fast-ternary-string-set";
 
 let set: TernaryStringSet;
-let st: TernaryTreeStats;
+let st: TernaryTreeStats | null;
 
 beforeEach(() => {
   set = new TernaryStringSet();

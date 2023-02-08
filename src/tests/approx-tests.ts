@@ -8,7 +8,7 @@ beforeEach(() => {
 });
 
 test("getArrangementsOf() bad arguments throw", () => {
-  expect(() => set.getArrangementsOf(null)).toThrow();
+  expect(() => set.getArrangementsOf(null as unknown as string)).toThrow();
 });
 
 test("getArrangementsOf() doesn't allow reuse or use of characters not present", () => {
@@ -72,7 +72,7 @@ test("getArrangementsOf() includes empty string if present", () => {
 });
 
 test("getCompletionsOf() bad arguments throw", () => {
-  expect(() => set.getCompletionsOf(null)).toThrow();
+  expect(() => set.getCompletionsOf(null as unknown as string)).toThrow();
 });
 
 test("getCompletionsOf() basic completions", () => {
@@ -108,7 +108,7 @@ test("getCompletionsOf() basic completions", () => {
 
 /** Get completions the hard way for comparison. */
 function completions(prefix: string, elements: readonly string[]): string[] {
-  const results = [];
+  const results: string[] = [];
   for (const s of elements) {
     if (s.startsWith(prefix)) results.push(s);
   }
@@ -129,7 +129,7 @@ test("getCompletionsOf() test against word list", () => {
 });
 
 test("getCompletedBy() bad arguments throw", () => {
-  expect(() => set.getCompletedBy(null)).toThrow();
+  expect(() => set.getCompletedBy(null as unknown as string)).toThrow();
 });
 
 test("getCompletedBy() basic completions", () => {
@@ -156,7 +156,7 @@ test("getCompletedBy() basic completions", () => {
 
 /** Get completions the hard way for comparison. */
 function completedBy(prefix: string, elements: readonly string[]): string[] {
-  const results = [];
+  const results: string[] = [];
   for (const s of elements) {
     if (s.endsWith(prefix)) results.push(s);
   }
@@ -171,8 +171,8 @@ test("getCompletedBy() test against word list", () => {
 });
 
 test("getPartialMatchesOf() bad arguments throw", () => {
-  expect(() => set.getPartialMatchesOf(null)).toThrow();
-  expect(() => set.getPartialMatchesOf("", null)).toThrow();
+  expect(() => set.getPartialMatchesOf(null as unknown as string)).toThrow();
+  expect(() => set.getPartialMatchesOf("", null as unknown as string)).toThrow();
 });
 
 test("getPartialMatchesOf() basic partial matches", () => {
@@ -274,11 +274,11 @@ test("getPartialMatchesOf() matches with non-default don't care", () => {
 });
 
 test("getWithinHammingDistanceOf() bad arguments throw", () => {
-  expect(() => set.getWithinHammingDistanceOf(null, 0)).toThrow();
-  expect(() => set.getWithinHammingDistanceOf(null, -1)).toThrow();
-  expect(() => set.getWithinHammingDistanceOf(null, NaN)).toThrow();
+  expect(() => set.getWithinHammingDistanceOf(null as unknown as string, 0)).toThrow();
+  expect(() => set.getWithinHammingDistanceOf("", -1)).toThrow();
+  expect(() => set.getWithinHammingDistanceOf("", NaN)).toThrow();
   expect(() =>
-    set.getWithinHammingDistanceOf(null, "1" as unknown as number),
+    set.getWithinHammingDistanceOf("", "1" as unknown as number),
   ).toThrow();
 });
 
