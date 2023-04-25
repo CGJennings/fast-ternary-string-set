@@ -40,8 +40,9 @@ const REGEX_LIT_ANCHOR = 94;
  * planes, and so on.
  *
  * Strings are stored using a *ternary search tree*, which has well-balanced performance
- * characteristics when properly constructed (it is important to avoid adding strings
- * in sorted order).
+ * characteristics when properly constructed.
+ * Namely, it is important that strings not be added in ascending lexicographic order.
+ * (To avoid this when adding strings from a sorted list, use `addAll` instead of `add`.)
  */
 export class TernaryStringSet implements Set<string>, Iterable<string> {
   /**
@@ -328,8 +329,8 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
   /**
    * Removes the specified string from this set, if it is present.
-   * Non-strings are accepted but treated as if they are not present.
    * If it is not present, this has no effect.
+   * Non-strings are accepted, but treated as if they are not present.
    *
    * @param s The non-null string to delete.
    * @returns True if the string was in this set; false otherwise.
@@ -1643,14 +1644,14 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
   }
 
   /**
-   * Optimizes the layout of the underlying data structure to maximize search speed.
-   * This may improve future search performance after adding or deleting a large
+   * Balances the tree structure, minimizing the depth of the tree.
+   * This may improve search performance, especially after adding or deleting a large
    * number of strings.
    *
    * It is not normally necessary to call this method as long as care was taken not
    * to add large numbers of strings in lexicographic order. That said, two scenarios
-   * where it may be particularly effective are:
-   *  - If the set will be used in phases, with strings being added in one phase
+   * where this methof may be particularly useful are:
+   *  - If the set will be used in two phases, with strings being added in one phase
    *    followed by a phase of extensive search operations.
    *  - If the string is about to be serialized to a buffer for future use.
    *
@@ -1668,15 +1669,17 @@ export class TernaryStringSet implements Set<string>, Iterable<string> {
 
   /**
    * Compacts the set to reduce its memory footprint and improve search performance.
-   * For large sets, a compacted set is typically *significantly* smaller
-   * than a non-compacted set. The tradeoff is that compact sets cannot be modified.
-   * Any method that mutates the set, such as `add`, `balance`, or `delete`,
-   * can therefore cause the set to revert to an non-compacted state.
+   * Compaction allows certain nodes of the underlying tree to be shared, effectively
+   * converting it to a graph. For large sets, the result is typically a *significantly*
+   * smaller footprint. The tradeoff is that compacted sets cannot be mutated.
+   * Any attempt to do so, such as adding or deleting a string, will automatically
+   * decompact the set to a its standard tree form, if necessary, before performing
+   * the requested operation.
    *
    * Compaction is an excellent option if the primary purpose of a set is matching
-   * against a fixed collection of strings, such as a dictionary. Since
-   * compaction and decompaction are expensive operations, it is less attractive
-   * in use cases where the set will be modified intermittently.
+   * or searching against a fixed string collection. Since compaction and decompaction
+   * are both expensive operations, it may not be suitable if the set is expected to
+   * be modified intermittently.
    */
   compact(): void {
     if (this._compact || this._tree.length === 0) return;
