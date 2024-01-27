@@ -210,7 +210,7 @@ async function loadTernaryStringSet(url) {
   if (!response.ok) {
     throw new Error(`set download "${url}" failed: ${response.status} ${response.statusText}`);
   }
-  const buffer = await resonse.arrayBuffer();
+  const buffer = await response.arrayBuffer();
   return TernaryStringSet.fromBuffer(buffer);
 }
 ```
@@ -303,7 +303,7 @@ Compaction is relatively expensive, but can be a one-time or ahead-of-time step 
 
 A common use case is to match user input against a fixed set of strings.
 For example, checking input against a spelling dictionary or suggesting completions for partial input.
-In such cases it is often desirable to build a set ahead of time, serialize it to a buffer, and then save the buffer data on a server to downloaded when needed.
+In such cases it is often desirable to build a set ahead of time, serialize it to a buffer, and then save the buffer data on a server to download when needed.
 Recreating a set directly from buffer data is generally much faster than downloading a file containing the strings and adding them to a new set on the client.
 
 The following steps will make such ahead-of-time sets as small as possible:
@@ -436,7 +436,7 @@ Code points in this range are written as an int16 value.
 The lowest 15 bits store the code point and the highest bit is set if the node terminates a string.
 
 **Encoding bits 10: code point ≤ 127**  
-Small code points are written as a single int8 value.
+Low code points are written as a single int8 value.
 The lowest 7 bits store the code point and the highest bit is set if the node terminates a string.
 
 **Encoding bits 11: letter "e"**  
